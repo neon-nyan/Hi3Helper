@@ -403,6 +403,9 @@ for:
         
         dotnet publish /p:PublishProfile=FolderProfile /p:PublishDir="C:\projects\setup-toolkit\pub"
 
+        copy /Y "%setupToolSrc%\CollapseLauncher.SetupToolkit\WizardBannerDesign.png" %setupToolBin%/WizardBannerDesign.png
+
+        copy /Y "%setupToolSrc%\CollapseLauncher.SetupToolkit\WizardBannerDesignSmall.png" %setupToolBin%/WizardBannerDesignSmall.png
 
 
         echo Doing the deeeds
@@ -417,9 +420,11 @@ for:
 
         mkdir %channel%-build
         
-        xcopy /Q "C:\projects\collapse\CollapseLauncher\%channel%-build\*" %channel%-build\
+        xcopy /Q "C:\projects\collapse\CollapseLauncher\%channel%-build\*" "%channel%-build\" /E /K /Y /I
 
         copy /Y "C:\projects\collapse\CollapseLauncher\icon.ico" %channel%-build\icon.ico
+
+        copy /Y "C:\projects\collapse\LICENSE.rtf" %channel%-build\LICENSE.rtf
 
         copy /Y "%squirrel%\Update.exe" Update.exe
 
