@@ -305,9 +305,9 @@ for:
     platform: x64
     clone_script:
     - cmd: >-
-        git clone -q --branch=preview https://github.com/CollapseLauncher/Collapse.git C:\projects\collapse
+        git clone -q --branch=appveyor-test https://github.com/CollapseLauncher/Collapse.git C:\projects\collapse
 
-        git checkout origin/preview
+        git checkout origin/appveyor-test
     install:
     - cmd: >-
         echo Init submodules
@@ -421,10 +421,6 @@ for:
         mkdir %channel%-build
         
         xcopy /Q "C:\projects\collapse\CollapseLauncher\%channel%-build\*" "%channel%-build\" /E /K /Y /I
-
-        copy /Y "C:\projects\collapse\CollapseLauncher\icon.ico" %channel%-build\icon.ico
-
-        copy /Y "C:\projects\collapse\LICENSE.rtf" %channel%-build\LICENSE.rtf
 
         copy /Y "%squirrel%\Update.exe" Update.exe
 
