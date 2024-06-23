@@ -405,8 +405,6 @@ for:
 
         echo Doing the deeeds
 
-        mkdir %setupToolBin%
-
         cd %setupToolBin%
 
         mkdir src
