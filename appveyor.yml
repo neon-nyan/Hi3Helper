@@ -326,6 +326,8 @@ for:
 
         dotnet tool install --global wix
 
+        wix.exe extension add -g WixToolset.UI.wixext
+
         echo.
 
 
