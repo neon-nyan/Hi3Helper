@@ -403,9 +403,9 @@ for:
         
         dotnet publish /p:PublishProfile=FolderProfile /p:PublishDir="C:\projects\setup-toolkit\pub"
 
-        copy /Y "%setupToolSrc%\CollapseLauncher.SetupToolkit\WizardBannerDesign.png" %setupToolBin%/WizardBannerDesign.png
+        copy /Y "%setupToolSrc%\CollapseLauncher.SetupToolkit\WizardBannerDesign.png" %setupToolBin%\WizardBannerDesign.png
 
-        copy /Y "%setupToolSrc%\CollapseLauncher.SetupToolkit\WizardBannerDesignSmall.png" %setupToolBin%/WizardBannerDesignSmall.png
+        copy /Y "%setupToolSrc%\CollapseLauncher.SetupToolkit\WizardBannerDesignSmall.png" %setupToolBin%\WizardBannerDesignSmall.png
 
 
         echo Doing the deeeds
