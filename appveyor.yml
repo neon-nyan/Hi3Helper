@@ -29,22 +29,19 @@ for:
 
         echo.
 
-        echo Install InnoSetup
-
-        set innoinstall=%temp%\innosetup.exe
-
-        curl "https://files.jrsoftware.org/is/6/innosetup-6.2.2.exe" --output %innoinstall%
-
-
-        cmd /c start /wait %innoinstall% /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-
-
-        echo.
-
         echo Install dotnet sdk
 
         choco install dotnet-sdk
 
         dotnet --version
+
+        echo.
+
+        echo Install WiX Toolkit
+
+        dotnet tool install --global wix
+
+        wix.exe extension add -g WixToolset.UI.wixext
 
         echo.
 
@@ -106,16 +103,50 @@ for:
         %squirrel%\rcedit.exe DeployResource\CollapseLauncher.exe --set-file-version %version% --set-product-version %version% --set-icon CollapseLauncher\icon.ico --set-requested-execution-level requireAdministrator
 
 
-        echo Making innosetup file...
+        echo Cloning and building the Setup Toolkit
 
-        mkdir InnoTarget
+        set setupToolSrc=C:\projects\setup-toolkit
 
-        %inno% /O+ /O "InstallerProp\DeployInstaller-%channel%-AppVeyor.iss"
+        set setupToolBin=C:\projects\setup-toolkit\pub
+        
+        set setupTarget=""
 
-        echo.
+        git clone https://github.com/CollapseLauncher/CollapseLauncher.SetupToolkit.git %setupToolSrc%
+
+        cd %setupToolSrc%
+        
+        dotnet publish /p:PublishProfile=FolderProfile /p:PublishDir="C:\projects\setup-toolkit\pub"
+
+        cd %setupToolBin%
+
+        mkdir src
+        
+        cd src
+
+        copy /Y "%setupToolSrc%\CollapseLauncher.SetupToolkit\WizardBannerDesign.png" %setupToolBin%\src\WizardBannerDesign.png
+
+        copy /Y "%setupToolSrc%\CollapseLauncher.SetupToolkit\WizardBannerDesignSmall.png" %setupToolBin%\src\WizardBannerDesignSmall.png
+
+
+        echo Doing the deeeds
+
+        copy C:\projects\collapse\DeployResource\CollapseLauncher.exe CollapseLauncher.exe
+
+        mkdir %channel%-build
+        
+        xcopy /Q "C:\projects\collapse\CollapseLauncher\%channel%-build\*" "%channel%-build\" /E /K /Y /I
+
+        copy /Y "%squirrel%\Update.exe" Update.exe
+
+        copy /Y "C:\projects\collapse\CollapseLauncher\icon.ico" icon.ico
+
+        %setupToolBin%\CollapseLauncher.SetupToolkit.exe %setupToolBin%\src %channel% false
+
 
 
         echo Moving all the files into artifact to be pushed to SignPath
+
+        cd C:\projects\collapse
 
         mkdir SignArtifact
 
@@ -123,13 +154,13 @@ for:
 
         mkdir SignArtifact\Squirrel-Stub
 
-        mkdir SignArtifact\InnoInstaller
-
         xcopy /Q "CollapseLauncher\%channel%-build\*" "SignArtifact\BuildArtifact-%version%\" /E /K /Y /I
 
         copy DeployResource\CollapseLauncher.exe SignArtifact\Squirrel-Stub\CollapseLauncher.exe
 
-        xcopy /Q "InnoTarget\*" "SignArtifact\InnoInstaller\" /E /K /Y /I
+        mkdir SignArtifact\MsiArtifact
+
+        copy "%setupToolBin%\src\Collapse Launcher.msi" SignArtifact\MsiArtifact\CollapseLauncher.msi
 
 
         
@@ -140,7 +171,7 @@ for:
 
     deploy:
     - provider: Webhook
-      url: https://app.signpath.io/API/v1/6988fc60-19f4-4710-8eb7-e837c60c83b4/Integrations/AppVeyor?ProjectSlug=Collapse&SigningPolicySlug=release-signing&ArtifactConfigurationSlug=initial
+      url: https://app.signpath.io/API/v1/6988fc60-19f4-4710-8eb7-e837c60c83b4/Integrations/AppVeyor?ProjectSlug=Collapse&SigningPolicySlug=release-signing&ArtifactConfigurationSlug=new-withMSI
       authorization:
         secure: B8zpDU6wkKuCBRz65VfTFxUCxY7HniWmRbJP/E3tE40kGmHKdaFnMCDSURQFWwR1pCcXHqbkJd3YX76tnTXQow==
       on:
@@ -172,22 +203,19 @@ for:
 
         echo.
 
-        echo Install InnoSetup
-
-        set innoinstall=%temp%\innosetup.exe
-
-        curl "https://files.jrsoftware.org/is/6/innosetup-6.2.2.exe" --output %innoinstall%
-
-
-        cmd /c start /wait %innoinstall% /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-
-
-        echo.
-
         echo Install dotnet sdk
 
         choco install dotnet-sdk
 
         dotnet --version
+
+        echo.
+
+        echo Install WiX Toolkit
+
+        dotnet tool install --global wix
+
+        wix.exe extension add -g WixToolset.UI.wixext
 
         echo.
 
@@ -249,16 +277,50 @@ for:
         %squirrel%\rcedit.exe DeployResource\CollapseLauncher.exe --set-file-version %version% --set-product-version %version% --set-icon CollapseLauncher\icon.ico --set-requested-execution-level requireAdministrator
 
 
-        echo Making innosetup file...
+        echo Cloning and building the Setup Toolkit
 
-        mkdir InnoTarget
+        set setupToolSrc=C:\projects\setup-toolkit
 
-        %inno% /O+ /O "InstallerProp\DeployInstaller-%channel%-AppVeyor.iss"
+        set setupToolBin=C:\projects\setup-toolkit\pub
+        
+        set setupTarget=""
 
-        echo.
+        git clone https://github.com/CollapseLauncher/CollapseLauncher.SetupToolkit.git %setupToolSrc%
+
+        cd %setupToolSrc%
+        
+        dotnet publish /p:PublishProfile=FolderProfile /p:PublishDir="C:\projects\setup-toolkit\pub"
+
+        cd %setupToolBin%
+
+        mkdir src
+        
+        cd src
+
+        copy /Y "%setupToolSrc%\CollapseLauncher.SetupToolkit\WizardBannerDesign.png" %setupToolBin%\src\WizardBannerDesign.png
+
+        copy /Y "%setupToolSrc%\CollapseLauncher.SetupToolkit\WizardBannerDesignSmall.png" %setupToolBin%\src\WizardBannerDesignSmall.png
+
+
+        echo Doing the deeeds
+
+        copy C:\projects\collapse\DeployResource\CollapseLauncher.exe CollapseLauncher.exe
+
+        mkdir %channel%-build
+        
+        xcopy /Q "C:\projects\collapse\CollapseLauncher\%channel%-build\*" "%channel%-build\" /E /K /Y /I
+
+        copy /Y "%squirrel%\Update.exe" Update.exe
+
+        copy /Y "C:\projects\collapse\CollapseLauncher\icon.ico" icon.ico
+
+        %setupToolBin%\CollapseLauncher.SetupToolkit.exe %setupToolBin%\src %channel% false
+
 
 
         echo Moving all the files into artifact to be pushed to SignPath
+
+        cd C:\projects\collapse
 
         mkdir SignArtifact
 
@@ -266,14 +328,13 @@ for:
 
         mkdir SignArtifact\Squirrel-Stub
 
-        mkdir SignArtifact\InnoInstaller
-
-
         xcopy /Q "CollapseLauncher\%channel%-build\*" "SignArtifact\BuildArtifact-%version%\" /E /K /Y /I
 
         copy DeployResource\CollapseLauncher.exe SignArtifact\Squirrel-Stub\CollapseLauncher.exe
 
-        xcopy /Q "InnoTarget\*" "SignArtifact\InnoInstaller\" /E /K /Y /I
+        mkdir SignArtifact\MsiArtifact
+
+        copy "%setupToolBin%\src\Collapse Launcher.msi" SignArtifact\MsiArtifact\CollapseLauncher.msi
 
 
         
@@ -284,7 +345,7 @@ for:
 
     deploy:
     - provider: Webhook
-      url: https://app.signpath.io/API/v1/6988fc60-19f4-4710-8eb7-e837c60c83b4/Integrations/AppVeyor?ProjectSlug=Collapse&SigningPolicySlug=release-signing&ArtifactConfigurationSlug=initial
+      url: https://app.signpath.io/API/v1/6988fc60-19f4-4710-8eb7-e837c60c83b4/Integrations/AppVeyor?ProjectSlug=Collapse&SigningPolicySlug=release-signing&ArtifactConfigurationSlug=new-withMSI
       authorization:
         secure: B8zpDU6wkKuCBRz65VfTFxUCxY7HniWmRbJP/E3tE40kGmHKdaFnMCDSURQFWwR1pCcXHqbkJd3YX76tnTXQow==
       on:
