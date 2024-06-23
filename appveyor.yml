@@ -444,9 +444,9 @@ for:
 
         copy DeployResource\CollapseLauncher.exe SignArtifact\Squirrel-Stub\CollapseLauncher.exe
 
-        mkdir MsiArtifact
+        mkdir SignArtifact\MsiArtifact
 
-        copy "%setupToolBin%\src\Collapse Launcher.msi" MsiArtifact\CollapseLauncher.msi
+        copy "%setupToolBin%\src\Collapse Launcher.msi" SignArtifact\MsiArtifact\CollapseLauncher.msi
 
 
 
@@ -464,7 +464,7 @@ for:
       authorization:
         secure: B8zpDU6wkKuCBRz65VfTFxUCxY7HniWmRbJP/E3tE40kGmHKdaFnMCDSURQFWwR1pCcXHqbkJd3YX76tnTXQow==
       on:
-        branch: preview
+        branch: appveyor-test
     notifications:
     - provider: Email
       to:
