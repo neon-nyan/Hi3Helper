@@ -395,9 +395,9 @@ for:
         
         set setupTarget=""
 
-        git clone https://github.com/CollapseLauncher/CollapseLauncher.SetupToolkit.git %setupToolkitSrc%
+        git clone https://github.com/CollapseLauncher/CollapseLauncher.SetupToolkit.git %setupToolSrc%
 
-        cd %setupToolkitSrc%
+        cd %setupToolSrc%
         
         dotnet publish /p:PublishProfile=FolderProfile /p:PublishDir="C:\projects\setup-toolkit\pub"
 
