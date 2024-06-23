@@ -417,6 +417,8 @@ for:
         
         xcopy /Q "C:\projects\collapse\CollapseLauncher\%channel%-build\*" %channel%-build\
 
+        copy /Y "C:\projects\collapse\CollapseLauncher\icon.ico" %channel%-build\icon.ico
+
         copy /Y "%squirrel%\Update.exe" Update.exe
 
         copy /Y "C:\projects\collapse\CollapseLauncher\icon.ico" icon.ico
