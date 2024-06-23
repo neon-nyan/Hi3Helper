@@ -411,7 +411,7 @@ for:
         
         cd src
 
-        copy cd C:\projects\collapse\CollapseLauncher\DeployResource\CollapseLauncher.exe CollapseLauncher.exe
+        copy C:\projects\collapse\DeployResource\CollapseLauncher.exe CollapseLauncher.exe
 
         mkdir %channel%-build
         
