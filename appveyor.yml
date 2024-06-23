@@ -8,6 +8,7 @@ branches:
   only:
   - preview
   - stable
+  - appveyor-test
 for:
   -
     branches:
@@ -92,7 +93,7 @@ for:
 
         mkdir DeployResource\app-%version%
 
-        xcopy "CollapseLauncher\%channel%-build\*" "DeployResource\app-%version%\" /E /K /Y /I
+        xcopy /Q "CollapseLauncher\%channel%-build\*" "DeployResource\app-%version%\" /E /K /Y /I
 
 
         echo Preparing stub and updater...
@@ -124,11 +125,11 @@ for:
 
         mkdir SignArtifact\InnoInstaller
 
-        xcopy "CollapseLauncher\%channel%-build\*" "SignArtifact\BuildArtifact-%version%\" /E /K /Y /I
+        xcopy /Q "CollapseLauncher\%channel%-build\*" "SignArtifact\BuildArtifact-%version%\" /E /K /Y /I
 
         copy DeployResource\CollapseLauncher.exe SignArtifact\Squirrel-Stub\CollapseLauncher.exe
 
-        xcopy "InnoTarget\*" "SignArtifact\InnoInstaller\" /E /K /Y /I
+        xcopy /Q "InnoTarget\*" "SignArtifact\InnoInstaller\" /E /K /Y /I
 
 
         
@@ -235,7 +236,7 @@ for:
 
         mkdir DeployResource\app-%version%
 
-        xcopy "CollapseLauncher\%channel%-build\*" "DeployResource\app-%version%\" /E /K /Y /I
+        xcopy /Q "CollapseLauncher\%channel%-build\*" "DeployResource\app-%version%\" /E /K /Y /I
 
 
         echo Preparing stub and updater...
@@ -268,11 +269,11 @@ for:
         mkdir SignArtifact\InnoInstaller
 
 
-        xcopy "CollapseLauncher\%channel%-build\*" "SignArtifact\BuildArtifact-%version%\" /E /K /Y /I
+        xcopy /Q "CollapseLauncher\%channel%-build\*" "SignArtifact\BuildArtifact-%version%\" /E /K /Y /I
 
         copy DeployResource\CollapseLauncher.exe SignArtifact\Squirrel-Stub\CollapseLauncher.exe
 
-        xcopy "InnoTarget\*" "SignArtifact\InnoInstaller\" /E /K /Y /I
+        xcopy /Q "InnoTarget\*" "SignArtifact\InnoInstaller\" /E /K /Y /I
 
 
         
@@ -288,6 +289,179 @@ for:
         secure: B8zpDU6wkKuCBRz65VfTFxUCxY7HniWmRbJP/E3tE40kGmHKdaFnMCDSURQFWwR1pCcXHqbkJd3YX76tnTXQow==
       on:
         branch: stable
+    notifications:
+    - provider: Email
+      to:
+      - dzakibagus@gmail.com
+      on_build_success: true
+      on_build_failure: true
+      on_build_status_changed: true
+
+  -
+    branches:
+      only:
+      - appveyor-test
+    configuration: Release
+    platform: x64
+    clone_script:
+    - cmd: >-
+        git clone -q --branch=preview https://github.com/CollapseLauncher/Collapse.git C:\projects\collapse
+
+        git checkout origin/preview
+    install:
+    - cmd: >-
+        echo Init submodules
+
+        git submodule update --init --force --depth=1 --recursive
+
+        echo.
+
+        echo Install dotnet sdk
+
+        choco install dotnet-sdk
+
+        dotnet --version
+
+        echo Install WiX Toolkit
+
+        dotnet tool install --global wix
+
+        echo.
+
+
+
+    build_script:
+    - cmd: >-
+        @echo on
+
+        setlocal enabledelayedexpansion
+
+        echo Setting environments...
+
+        set name=Collapse
+
+        set channel=preview
+
+        set squirrel="C:\Users\appveyor\.nuget\packages\clowd.squirrel\2.11.1\tools"
+
+
+        echo.
+
+
+        echo Build app...
+
+        dotnet restore
+
+        dotnet publish CollapseLauncher -c Release -p:PublishProfile=Publish-PreviewRelease -p:PublishDir=".\preview-build\"
+
+
+        echo Getting app version...
+
+        for /f "tokens=2 delims==" %%I in ('wmic datafile where "name='C:\\projects\\collapse\\CollapseLauncher\\preview-build\\CollapseLauncher.exe'" get Version /value ^| find "Version"') do set "version_untrim=%%I"
+
+        set "version=%version_untrim:~0,-2%"
+
+        echo Got version %version%
+
+        echo.
+
+
+        echo Setting up Deployable Resources...
+
+        mkdir DeployResource
+
+        mkdir DeployResource\app-%version%
+
+        xcopy /Q "CollapseLauncher\%channel%-build\*" "DeployResource\app-%version%\" /E /K /Y /I
+
+
+
+        echo Preparing stub and updater...
+
+        copy %squirrel%\stubexecutable.exe DeployResource\CollapseLauncher.exe
+
+        copy %squirrel%\Update.exe DeployResource\Update.exe
+
+
+        %squirrel%\rcedit.exe DeployResource\CollapseLauncher.exe --set-file-version %version% --set-product-version %version% --set-icon CollapseLauncher\icon.ico --set-requested-execution-level requireAdministrator
+
+
+
+        echo Cloning and building the Setup Toolkit
+
+        set setupToolSrc=C:\projects\setup-toolkit
+
+        set setupToolBin=C:\projects\setup-toolkit\pub
+        
+        set setupTarget=""
+
+        git clone https://github.com/CollapseLauncher/CollapseLauncher.SetupToolkit.git %setupToolkitSrc%
+
+        cd %setupToolkitSrc%
+        
+        dotnet publish /p:PublishProfile=FolderProfile /p:PublishDir="C:\projects\setup-toolkit\pub"
+
+
+
+        echo Doing the deeeds
+
+        mkdir %setupToolBin%
+
+        cd %setupToolBin%
+
+        mkdir src
+        
+        cd src
+
+        copy cd C:\projects\collapse\DeployResource\CollapseLauncher.exe CollapseLauncher.exe
+
+        mkdir %channel%-build
+        
+        xcopy /Q "C:\projects\collapse\CollapseLauncher\%channel%-build\*" %channel%-build\
+
+        copy /Y "%squirrel%\Update.exe" Update.exe
+
+        copy /Y "C:\projects\collapse\CollapseLauncher\icon.ico" icon.ico
+
+        %setupToolBin%\CollapseLauncher.SetupToolkit.exe %setupToolBin%\src %channel% false
+
+
+
+        echo Moving all the files into artifact to be pushed to SignPath
+
+        cd C:\projects\collapse
+
+        mkdir SignArtifact
+
+        mkdir SignArtifact\BuildArtifact-%version%
+
+        mkdir SignArtifact\Squirrel-Stub
+
+        xcopy /Q "CollapseLauncher\%channel%-build\*" "SignArtifact\BuildArtifact-%version%\" /E /K /Y /I
+
+        copy DeployResource\CollapseLauncher.exe SignArtifact\Squirrel-Stub\CollapseLauncher.exe
+
+        mkdir MsiArtifact
+
+        copy "%setupToolBin%\Collapse Launcher.msi" MsiArtifact\CollapseLauncher.msi
+
+
+
+
+
+        
+    test: off
+    artifacts:
+    - path: SignArtifact\
+      name: SignArtifact-Preview
+
+    deploy:
+    - provider: Webhook
+      url: https://app.signpath.io/API/v1/6988fc60-19f4-4710-8eb7-e837c60c83b4/Integrations/AppVeyor?ProjectSlug=Collapse&SigningPolicySlug=test-signing&ArtifactConfigurationSlug=new-withMSI
+      authorization:
+        secure: B8zpDU6wkKuCBRz65VfTFxUCxY7HniWmRbJP/E3tE40kGmHKdaFnMCDSURQFWwR1pCcXHqbkJd3YX76tnTXQow==
+      on:
+        branch: preview
     notifications:
     - provider: Email
       to:
