@@ -403,18 +403,18 @@ for:
         
         dotnet publish /p:PublishProfile=FolderProfile /p:PublishDir="C:\projects\setup-toolkit\pub"
 
+        cd %setupToolBin%
+
+        mkdir src
+        
+        cd src
+
         copy /Y "%setupToolSrc%\CollapseLauncher.SetupToolkit\WizardBannerDesign.png" %setupToolBin%\src\WizardBannerDesign.png
 
         copy /Y "%setupToolSrc%\CollapseLauncher.SetupToolkit\WizardBannerDesignSmall.png" %setupToolBin%\src\WizardBannerDesignSmall.png
 
 
         echo Doing the deeeds
-
-        cd %setupToolBin%
-
-        mkdir src
-        
-        cd src
 
         copy C:\projects\collapse\DeployResource\CollapseLauncher.exe CollapseLauncher.exe
 
