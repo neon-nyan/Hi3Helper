@@ -278,6 +278,8 @@ for:
           
           dotnet restore
           
+          dotnet workload update
+
           dotnet publish CollapseLauncher -c Release -p:PublishProfile=Publish-PreviewReleaseAOT -p:PublishDir=".\%channel%-build\"
           
           
