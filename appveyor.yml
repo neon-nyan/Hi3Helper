@@ -248,16 +248,15 @@ for:
           echo.
           
           echo.
-          
-          echo Install dotnet sdk
-          
-          choco install dotnet-sdk --pre
-          
+
+      - ps: >-
+          Invoke-WebRequest 'https://download.visualstudio.microsoft.com/download/pr/7c9b3974-1350-4fc0-9e71-26ef66400270/4f8ba90528060880240f392408e50053/dotnet-sdk-9.0.200-preview.0.24575.35-win-x64.exe' -OutFile 'dotnet-9.0.200-pre.exe'
+
+          ./dotnet-9.0.200-pre.exe /install /quiet /norestart
+
+          RefreshEnv
+
           dotnet --version
-          
-          echo.
-
-
 
     build_script:
       - cmd: >-

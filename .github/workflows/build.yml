@@ -96,6 +96,7 @@ jobs:
         ./dotnet-9.0.200-pre.exe /install /quiet /norestart
         refreshenv
         dotnet --version
+        dotnet --list-sdks
 
     # - name: Restore
       # run: dotnet restore CollapseLauncher --locked-mode
