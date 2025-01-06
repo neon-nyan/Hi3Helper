@@ -72,7 +72,7 @@ jobs:
       Platform: ${{ matrix.platform }}
       DOTNET_INSTALL_DIR: '.\.dotnet' 
       DOTNET_VERSION: '9.x'
-      DOTNET_QUALITY: 'ga'
+      DOTNET_QUALITY: 'signed'
       NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
 
     steps:

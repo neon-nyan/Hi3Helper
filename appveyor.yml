@@ -28,17 +28,16 @@ for:
     - cmd: >-
         echo Init submodules
         
-        git submodule update --init --force --depth=20 --recursive --jobs=4
-          
-        echo Install dotnet sdk
-        
-        choco install dotnet-sdk --pre
-        
+        git submodule update --init --force --recursive --jobs=4
+
+    - ps: >-
+        Invoke-WebRequest 'https://dot.net/v1/dotnet-install.ps1' -OutFile 'dotnet-install.ps1'
+
+        ./dotnet-install.ps1 -Channel 9.0 -InstallDir "C:\Program Files\dotnet" -Quality signed -Verbose
+
+        RefreshEnv
+
         dotnet --version
-        
-        echo.
-
-
 
     build_script:
     - cmd: >-
