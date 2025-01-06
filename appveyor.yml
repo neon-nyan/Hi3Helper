@@ -321,7 +321,7 @@ for:
         on:
           branch: nativeaot-test
           
-      - provider: environment
+      - provider: Environment
         name: GH_AppVeyorTestDeployTarget_Releases-Files
 
     notifications:
