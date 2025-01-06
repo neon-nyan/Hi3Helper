@@ -57,6 +57,8 @@ for:
         echo Build app...
         
         dotnet restore
+
+        dotnet workload update
         
         dotnet publish CollapseLauncher -c Release -p:PublishProfile=Publish-PreviewRelease -p:PublishDir=".\preview-build\"
         
@@ -229,6 +231,9 @@ for:
       only:
         - nativeaot-test
     configuration: Release
+    environment:
+      SENTRY_AUTH_TOKEN:
+        secure: 0+V+hKjxzGHSx/feeS7l9UFqD989glkg69Z2a/XW1PAPOrSu4NXB25k1X42bAbIH4mHrZtdQgV+qYPi2IrMfJVgd+I5VBI/befw4T7utkhFEvxN9AEvJLQesSacXRY23YV27L5OUzkUtbubg1sM+Dbt/LVJw9y3QYN4gIhQku+x9K0kuAQwUYmYbaQFNbrPj9n2E24up+NlmCBaT9Xc6f4Js6I7KRiE5hLgqR6ENpydKR6HVF0+HCEOB4+xIiW9A
     platform: x64
     clone_script:
       - cmd: >-
