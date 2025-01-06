@@ -31,9 +31,9 @@ for:
         git submodule update --init --force --recursive --jobs=4
 
     - ps: >-
-        Invoke-WebRequest 'https://dot.net/v1/dotnet-install.ps1' -OutFile 'dotnet-install.ps1'
+        Invoke-WebRequest 'https://download.visualstudio.microsoft.com/download/pr/7c9b3974-1350-4fc0-9e71-26ef66400270/4f8ba90528060880240f392408e50053/dotnet-sdk-9.0.200-preview.0.24575.35-win-x64.exe' -OutFile 'dotnet-9.0.200-pre.exe'
 
-        ./dotnet-install.ps1 -Channel 9.0 -InstallDir "C:\Program Files\dotnet" -Quality signed -Verbose
+        ./dotnet-9.0.200-pre.exe /install /quiet /norestart
 
         RefreshEnv
 

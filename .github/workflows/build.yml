@@ -81,13 +81,21 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Install .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: ${{ env.DOTNET_VERSION }}
-        dotnet-quality: ${{ env.DOTNET_QUALITY }}
-        cache: true
-        cache-dependency-path: CollapseLauncher/packages.lock.json
+    # - name: Install .NET
+    #   uses: actions/setup-dotnet@v4
+    #   with:
+    #     dotnet-version: ${{ env.DOTNET_VERSION }}
+    #     dotnet-quality: ${{ env.DOTNET_QUALITY }}
+    #     cache: true
+    #     cache-dependency-path: CollapseLauncher/packages.lock.json
+
+    - name: Manual .NET install
+      run: |
+        Import-Module "$env:ChocolateyInstall/helpers/chocolateyInstaller.psm1"
+        Invoke-WebRequest 'https://download.visualstudio.microsoft.com/download/pr/7c9b3974-1350-4fc0-9e71-26ef66400270/4f8ba90528060880240f392408e50053/dotnet-sdk-9.0.200-preview.0.24575.35-win-x64.exe' -OutFile 'dotnet-9.0.200-pre.exe'
+        ./dotnet-9.0.200-pre.exe /install /quiet /norestart
+        refreshenv
+        dotnet --version
 
     # - name: Restore
       # run: dotnet restore CollapseLauncher --locked-mode
