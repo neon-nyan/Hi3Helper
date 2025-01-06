@@ -300,10 +300,6 @@ for:
           
           echo.
           
-          echo Archiving PDB files
-          
-          7z a debug-sym.zip CollapseLauncher\%channel%-build\*.pdb
-          
           echo Moving all the files into artifact to be pushed to SignPath
           
           mkdir SignArtifact
@@ -315,9 +311,7 @@ for:
     test: off
     artifacts:
       - path: SignArtifact\
-        name: SignArtifact-Preview
-      - path: debug-sym.zip
-        name: DebugSymbols
+        name: SignArtifact_AOT-Preview
 
     deploy:
       - provider: Webhook
