@@ -18,10 +18,10 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.Renderers;
 
 public class WinUIRenderer : RendererBase
 {
-    private readonly Stack<IAddChild> _stack = new Stack<IAddChild>();
-    private char[] _buffer;
-    private MarkdownConfig _config = MarkdownConfig.Default;
-    public MyFlowDocument FlowDocument { get; private set; }
+    private readonly Stack<IAddChild> _stack = new();
+    private          char[]           _buffer;
+    private          MarkdownConfig   _config = MarkdownConfig.Default;
+    public           MyFlowDocument   FlowDocument { get; }
     public MarkdownConfig Config
     {
         get => _config;
@@ -72,8 +72,8 @@ public class WinUIRenderer : RendererBase
     {
         if (leafBlock == null) throw new ArgumentNullException(nameof(leafBlock));
 
-        var lines = leafBlock.Lines;
-        var slices = lines.Lines;
+        var          lines  = leafBlock.Lines;
+        StringLine[] slices = lines.Lines;
         for (var i = 0; i < lines.Count; i++)
         {
             if (i != 0)

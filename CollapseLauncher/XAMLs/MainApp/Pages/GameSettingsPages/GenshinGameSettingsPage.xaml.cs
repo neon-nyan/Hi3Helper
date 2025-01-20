@@ -1,58 +1,62 @@
-#if !DISABLEDISCORD
-    using CollapseLauncher.DiscordPresence;
-#endif
-    using CollapseLauncher.GameSettings.Genshin;
-    using CollapseLauncher.Helper;
-    using CollapseLauncher.Helper.Animation;
-    using Hi3Helper;
-    using Hi3Helper.Shared.ClassStruct;
-    using Microsoft.Graphics.Canvas;
-    using Microsoft.Graphics.Canvas.Brushes;
-    using Microsoft.Graphics.Canvas.Effects;
-    using Microsoft.Graphics.Canvas.UI.Xaml;
-    using Microsoft.Graphics.Display;
-    using Microsoft.UI;
-    using Microsoft.UI.Xaml;
-    using Microsoft.UI.Xaml.Controls;
-    using Microsoft.UI.Xaml.Controls.Primitives;
-    using Microsoft.UI.Xaml.Media;
-    using Microsoft.Win32;
-    using RegistryUtils;
-    using System;
-    using System.Diagnostics.CodeAnalysis;
-    using System.IO;
-    using System.Numerics;
-    using System.Threading.Tasks;
-    using Windows.Foundation;
-    using Windows.Globalization.NumberFormatting;
-    using Windows.Graphics.DirectX;
-    using Windows.Storage;
-    using Windows.Storage.Streams;
-    using Windows.UI;
-    using static Hi3Helper.Locale;
-    using static Hi3Helper.Logger;
-    using static Hi3Helper.Shared.Region.LauncherConfig;
-    using static CollapseLauncher.Statics.GamePropertyVault;
-    using Brush = Microsoft.UI.Xaml.Media.Brush;
+using CollapseLauncher.GameSettings.Genshin;
+using CollapseLauncher.Helper;
+using CollapseLauncher.Helper.Animation;
+using Hi3Helper;
+using Hi3Helper.Shared.ClassStruct;
+using Microsoft.Graphics.Canvas;
+using Microsoft.Graphics.Canvas.Brushes;
+using Microsoft.Graphics.Canvas.Effects;
+using Microsoft.Graphics.Canvas.UI.Xaml;
+using Microsoft.Graphics.Display;
+using Microsoft.UI;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.Win32;
+using RegistryUtils;
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Numerics;
+using System.Threading.Tasks;
+using Windows.Foundation;
+using Windows.Globalization.NumberFormatting;
+using Windows.Graphics.DirectX;
+using Windows.Storage;
+using Windows.Storage.Streams;
+using Windows.UI;
+using static Hi3Helper.Locale;
+using static Hi3Helper.Logger;
+using static Hi3Helper.Shared.Region.LauncherConfig;
+using static CollapseLauncher.Statics.GamePropertyVault;
+using Brush = Microsoft.UI.Xaml.Media.Brush;
+using Hi3Helper.SentryHelper;
 
-    namespace CollapseLauncher.Pages
+
+#if !DISABLEDISCORD
+using CollapseLauncher.DiscordPresence;
+// ReSharper disable IdentifierTypo
+// ReSharper disable CommentTypo
+#endif
+
+namespace CollapseLauncher.Pages
 {
     [SuppressMessage("ReSharper", "PossibleNullReferenceException")]
     public partial class GenshinGameSettingsPage
     {
         #region Properties
-        private GamePresetProperty CurrentGameProperty   { get; set; }
+        private GamePresetProperty CurrentGameProperty   { get; }
         private GenshinSettings    Settings              { get => (GenshinSettings)CurrentGameProperty.GameSettings; }
         private Brush              InheritApplyTextColor { get; set; }
         private RegistryMonitor    RegistryWatcher       { get; set; }
         
-        private CanvasBitmap HDRCalibrationIcon;
-        private CanvasBitmap HDRCalibrationScene;
-        private CanvasBitmap HDRCalibrationUI;
+        private CanvasBitmap _hdrCalibrationIcon;
+        private CanvasBitmap _hdrCalibrationScene;
+        private CanvasBitmap _hdrCalibrationUI;
         private bool IsHDREnabled { get; }
         private bool IsHDRSupported { get; }
 
-        private bool IsNoReload = false;
         #endregion
 
         #region Main GSP Methods
@@ -98,17 +102,14 @@
 
         private void RegistryListener(object sender, EventArgs e)
         {
-            if (!IsNoReload)
-            {
-                LogWriteLine("[GI GSP Module] RegistryMonitor has detected registry change outside of the launcher! Reloading the page...", LogType.Warning, true);
-                DispatcherQueue?.TryEnqueue(MainFrameChanger.ReloadCurrentMainFrame);
-            }
+            LogWriteLine("[GI GSP Module] RegistryMonitor has detected registry change outside of the launcher! Reloading the page...", LogType.Warning, true);
+            DispatcherQueue?.TryEnqueue(MainFrameChanger.ReloadCurrentMainFrame);
         }
 
         private void LoadPage()
         {
             Settings.ReloadSettings();
-            this.InitializeComponent();
+            InitializeComponent();
 
             ApplyButton.Translation = Shadow32;
             GameSettingsApplyGrid.Translation = new Vector3(0, 0, 64);
@@ -117,12 +118,12 @@
             InheritApplyTextColor = ApplyText.Foreground;
         }
 
-        private void RegistryExportClick(object sender, RoutedEventArgs e)
+        private async void RegistryExportClick(object sender, RoutedEventArgs e)
         {
             try
             {
                 ToggleRegistrySubscribe(false);
-                Exception exc = Settings.ExportSettings();
+                Exception exc = await Settings.ExportSettings();
 
                 if (exc != null) throw exc;
 
@@ -143,12 +144,12 @@
             }
         }
 
-        private void RegistryImportClick(object sender, RoutedEventArgs e)
+        private async void RegistryImportClick(object sender, RoutedEventArgs e)
         {
             try
             {
                 ToggleRegistrySubscribe(false);
-                Exception exc = Settings.ImportSettings();
+                Exception exc = await Settings.ImportSettings();
 
                 if (exc != null) throw exc;
 
@@ -178,17 +179,18 @@
 
                 if (CurrentGameProperty.IsGameRunning)
                 {
-                    #if !GSPBYPASSGAMERUNNING
+                #if !GSPBYPASSGAMERUNNING
                     Overlay.Visibility = Visibility.Visible;
                     PageContent.Visibility = Visibility.Collapsed;
                     OverlayTitle.Text = Lang._StarRailGameSettingsPage.OverlayGameRunningTitle;
                     OverlaySubtitle.Text = Lang._StarRailGameSettingsPage.OverlayGameRunningSubtitle;
-                    #endif
+                #endif
                 }
-                else if (GameInstallationState == GameInstallStateEnum.NotInstalled
-                      || GameInstallationState == GameInstallStateEnum.NeedsUpdate
-                      || GameInstallationState == GameInstallStateEnum.InstalledHavePlugin
-                      || GameInstallationState == GameInstallStateEnum.GameBroken)
+                else if (GameInstallationState
+                    is GameInstallStateEnum.NotInstalled
+                    or GameInstallStateEnum.NeedsUpdate
+                    or GameInstallStateEnum.InstalledHavePlugin
+                    or GameInstallStateEnum.GameBroken)
                 {
                     Overlay.Visibility = Visibility.Visible;
                     PageContent.Visibility = Visibility.Collapsed;
@@ -197,9 +199,9 @@
                 }
                 else
                 {
-#if !DISABLEDISCORD
+                #if !DISABLEDISCORD
                     InnerLauncherConfig.AppDiscordPresence.SetActivity(ActivityType.GameSettings);
-#endif
+                #endif
                 }
             }
             catch (Exception ex)
@@ -247,18 +249,13 @@
             get
             {
                 bool value = CurrentGameProperty.GameSettings.SettingsCollapseMisc.UseCustomArguments;
-
-                if (value) CustomArgsTextBox.IsEnabled = true;
-                else CustomArgsTextBox.IsEnabled       = false;
-                
+                CustomArgsTextBox.IsEnabled = value;
                 return value;
             }
             set
             {
                 CurrentGameProperty.GameSettings.SettingsCollapseMisc.UseCustomArguments = value;
-                
-                if (value) CustomArgsTextBox.IsEnabled = true;
-                else CustomArgsTextBox.IsEnabled       = false;
+                CustomArgsTextBox.IsEnabled = value;
             }
         }
         
@@ -296,13 +293,17 @@
                 }
                 else
                 {
-                    IncrementNumberRounder rounder = new IncrementNumberRounder();
-                    rounder.Increment = 0.0000001;
+                    IncrementNumberRounder rounder = new IncrementNumberRounder
+                    {
+                        Increment = 0.0000001
+                    };
 
-                    DecimalFormatter formatter = new DecimalFormatter();
-                    formatter.IntegerDigits = 1;
-                    formatter.FractionDigits = 5;
-                    formatter.NumberRounder = rounder;
+                    DecimalFormatter formatter = new DecimalFormatter
+                    {
+                        IntegerDigits  = 1,
+                        FractionDigits = 5,
+                        NumberRounder  = rounder
+                    };
                     GammaValue.NumberFormatter = formatter;
 
                     GammaSlider.Value = GammaValue.Value;
@@ -325,13 +326,17 @@
                 }
                 else
                 {
-                    IncrementNumberRounder rounder = new IncrementNumberRounder();
-                    rounder.Increment = 0.1;
+                    IncrementNumberRounder rounder = new IncrementNumberRounder
+                    {
+                        Increment = 0.1
+                    };
 
-                    DecimalFormatter formatter = new DecimalFormatter();
-                    formatter.IntegerDigits = 3;
-                    formatter.FractionDigits = 1;
-                    formatter.NumberRounder = rounder;
+                    DecimalFormatter formatter = new DecimalFormatter
+                    {
+                        IntegerDigits  = 3,
+                        FractionDigits = 1,
+                        NumberRounder  = rounder
+                    };
                     MaxLuminosityValue.NumberFormatter = formatter;
 
                     MaxLuminositySlider.Value = MaxLuminosityValue.Value;
@@ -354,13 +359,17 @@
                 }
                 else
                 {
-                    IncrementNumberRounder rounder = new IncrementNumberRounder();
-                    rounder.Increment = 0.1;
+                    IncrementNumberRounder rounder = new IncrementNumberRounder
+                    {
+                        Increment = 0.1
+                    };
 
-                    DecimalFormatter formatter = new DecimalFormatter();
-                    formatter.IntegerDigits = 3;
-                    formatter.FractionDigits = 1;
-                    formatter.NumberRounder = rounder;
+                    DecimalFormatter formatter = new DecimalFormatter
+                    {
+                        IntegerDigits  = 3,
+                        FractionDigits = 1,
+                        NumberRounder  = rounder
+                    };
                     UiPaperWhiteValue.NumberFormatter = formatter;
 
                     UiPaperWhiteSlider.Value = UiPaperWhiteValue.Value;
@@ -383,13 +392,17 @@
                 }
                 else
                 {
-                    IncrementNumberRounder rounder = new IncrementNumberRounder();
-                    rounder.Increment = 0.1;
+                    IncrementNumberRounder rounder = new IncrementNumberRounder
+                    {
+                        Increment = 0.1
+                    };
 
-                    DecimalFormatter formatter = new DecimalFormatter();
-                    formatter.IntegerDigits = 3;
-                    formatter.FractionDigits = 1;
-                    formatter.NumberRounder = rounder;
+                    DecimalFormatter formatter = new DecimalFormatter
+                    {
+                        IntegerDigits  = 3,
+                        FractionDigits = 1,
+                        NumberRounder  = rounder
+                    };
                     ScenePaperWhiteValue.NumberFormatter = formatter;
 
                     ScenePaperWhiteSlider.Value = ScenePaperWhiteValue.Value;
@@ -439,7 +452,7 @@
         #endregion
 
         #region Method - HDR Calibration Panels
-        private async Task<StorageFile> GetAppFileAsync(Uri uri)
+        private static async Task<StorageFile> GetAppFileAsync(Uri uri)
         {
             StorageFile file;
             try
@@ -470,42 +483,46 @@
 
                 LinearTransferEffect bg = new LinearTransferEffect
                 {
-                    Source = HDRCalibrationIcon,
+                    Source = _hdrCalibrationIcon,
                     BufferPrecision = CanvasBufferPrecision.Precision16Float,
                     RedSlope = bgGain,
                     GreenSlope = bgGain,
                     BlueSlope = bgGain
                 };
-                ds.DrawImage(bg, new Rect((w - 0.6 * h) / 2, h * 0.2, h * 0.6, h * 0.6), HDRCalibrationIcon.Bounds);
+                ds.DrawImage(bg, new Rect((w - 0.6 * h) / 2, h * 0.2, h * 0.6, h * 0.6), _hdrCalibrationIcon.Bounds);
             }
             swapChain.Present();
         }
 
         private async void SwapChainPanel1_OnLoaded(object sender, RoutedEventArgs e)
         {
-            CanvasSwapChainPanel panel = sender as CanvasSwapChainPanel;
-            CanvasDevice device = CanvasDevice.GetSharedDevice();
-            float w = (float)panel.Width;
-            float h = (float)panel.Height;
-            float dpi = 96 * (float)XamlRoot.RasterizationScale;
-            CanvasSwapChain swapChain = new CanvasSwapChain(device, w, h, dpi, DirectXPixelFormat.R16G16B16A16Float, 2, CanvasAlphaMode.Premultiplied);
-            panel.SwapChain = swapChain;
-
-            // Unpacked app failed to open ms-appx uri, so we need to read it manually :(
-            StorageFile bgFile = await GetAppFileAsync(new Uri("ms-appx:///Assets/Images/GenshinHDRCalibration/Sign.png"));
-            using (IRandomAccessStream stream = await bgFile.OpenReadAsync())
+            try
             {
-                HDRCalibrationIcon = await CanvasBitmap.LoadAsync(swapChain, stream, dpi);
+                CanvasSwapChainPanel panel     = sender as CanvasSwapChainPanel;
+                CanvasDevice         device    = CanvasDevice.GetSharedDevice();
+                float                w         = (float)panel.Width;
+                float                h         = (float)panel.Height;
+                float                dpi       = 96 * (float)XamlRoot.RasterizationScale;
+                CanvasSwapChain      swapChain = new CanvasSwapChain(device, w, h, dpi, DirectXPixelFormat.R16G16B16A16Float, 2, CanvasAlphaMode.Premultiplied);
+                panel.SwapChain = swapChain;
+
+                // Unpacked app failed to open ms-appx uri, so we need to read it manually :(
+                StorageFile bgFile = await GetAppFileAsync(new Uri("ms-appx:///Assets/Images/GenshinHDRCalibration/Sign.png"));
+                using (IRandomAccessStream stream = await bgFile.OpenReadAsync())
+                {
+                    _hdrCalibrationIcon = await CanvasBitmap.LoadAsync(swapChain, stream, dpi);
+                }
+
+                MaxLuminositySlider.Value = MaxLuminosity;
+                DrawHDRCalibrationImage1();
             }
-
-            MaxLuminositySlider.Value = MaxLuminosity;
-            DrawHDRCalibrationImage1();
+            catch (Exception ex)
+            {
+                await SentryHelper.ExceptionHandlerAsync(ex);
+            }
         }
 
-        private float GammaCorrection(float val, float max)
-        {
-            return val * MathF.Pow(val / max, 2.2f);
-        }
+        private static float GammaCorrection(float val, float max) => val * MathF.Pow(val / max, 2.2f);
 
         private void DrawHDRCalibrationImage2()
         {
@@ -522,52 +539,59 @@
             {
                 LinearTransferEffect bg = new LinearTransferEffect
                 {
-                    Source = HDRCalibrationScene,
+                    Source = _hdrCalibrationScene,
                     BufferPrecision = CanvasBufferPrecision.Precision16Float,
                     RedSlope = bgGain,
                     GreenSlope = bgGain,
                     BlueSlope = bgGain
                 };
-                ds.DrawImage(bg, new Rect(0, 0, w, h), HDRCalibrationScene.Bounds);
+                ds.DrawImage(bg, new Rect(0, 0, w, h), _hdrCalibrationScene.Bounds);
 
                 LinearTransferEffect ui = new LinearTransferEffect
                 {
-                    Source = HDRCalibrationUI,
+                    Source = _hdrCalibrationUI,
                     BufferPrecision = CanvasBufferPrecision.Precision16Float,
                     RedSlope = uiGain,
                     GreenSlope = uiGain,
                     BlueSlope = uiGain
                 };
-                ds.DrawImage(ui, new Rect(0, 0, w, h), HDRCalibrationUI.Bounds);
+                ds.DrawImage(ui, new Rect(0, 0, w, h), _hdrCalibrationUI.Bounds);
             }
             swapChain.Present();
         }
 
         private async void SwapChainPanel2_OnLoaded(object sender, RoutedEventArgs e)
         {
-            CanvasSwapChainPanel panel = sender as CanvasSwapChainPanel;
-            CanvasDevice device = CanvasDevice.GetSharedDevice();
-            float w = (float)panel.Width;
-            float h = (float)panel.Height;
-            float dpi = 96 * (float)XamlRoot.RasterizationScale;
-            CanvasSwapChain swapChain = new CanvasSwapChain(device, w, h, dpi, DirectXPixelFormat.R16G16B16A16Float, 2, CanvasAlphaMode.Premultiplied);
-            panel.SwapChain = swapChain;
-
-            StorageFile bgFile = await GetAppFileAsync(new Uri("ms-appx:///Assets/Images/GenshinHDRCalibration/Scene.jxr"));
-            using (IRandomAccessStream stream = await bgFile.OpenReadAsync())
+            try
             {
-                HDRCalibrationScene = await CanvasBitmap.LoadAsync(swapChain, stream, dpi);
-            }
+                CanvasSwapChainPanel panel     = sender as CanvasSwapChainPanel;
+                CanvasDevice         device    = CanvasDevice.GetSharedDevice();
+                float                w         = (float)panel.Width;
+                float                h         = (float)panel.Height;
+                float                dpi       = 96 * (float)XamlRoot.RasterizationScale;
+                CanvasSwapChain      swapChain = new CanvasSwapChain(device, w, h, dpi, DirectXPixelFormat.R16G16B16A16Float, 2, CanvasAlphaMode.Premultiplied);
+                panel.SwapChain = swapChain;
 
-            StorageFile uiFile = await GetAppFileAsync(new Uri("ms-appx:///Assets/Images/GenshinHDRCalibration/UI.jxr"));
-            using (IRandomAccessStream stream = await uiFile.OpenReadAsync())
+                StorageFile bgFile = await GetAppFileAsync(new Uri("ms-appx:///Assets/Images/GenshinHDRCalibration/Scene.jxr"));
+                using (IRandomAccessStream stream = await bgFile.OpenReadAsync())
+                {
+                    _hdrCalibrationScene = await CanvasBitmap.LoadAsync(swapChain, stream, dpi);
+                }
+
+                StorageFile uiFile = await GetAppFileAsync(new Uri("ms-appx:///Assets/Images/GenshinHDRCalibration/UI.jxr"));
+                using (IRandomAccessStream stream = await uiFile.OpenReadAsync())
+                {
+                    _hdrCalibrationUI = await CanvasBitmap.LoadAsync(swapChain, stream, dpi);
+                }
+
+                ScenePaperWhiteSlider.Value = ScenePaperWhite;
+                UiPaperWhiteSlider.Value    = UiPaperWhite;
+                DrawHDRCalibrationImage2();
+            }
+            catch (Exception ex)
             {
-                HDRCalibrationUI = await CanvasBitmap.LoadAsync(swapChain, stream, dpi);
+                await SentryHelper.ExceptionHandlerAsync(ex);
             }
-
-            ScenePaperWhiteSlider.Value = ScenePaperWhite;
-            UiPaperWhiteSlider.Value = UiPaperWhite;
-            DrawHDRCalibrationImage2();
         }
 
         private void HDRExpander_OnExpanding(Expander sender, ExpanderExpandingEventArgs args)

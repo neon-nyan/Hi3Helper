@@ -355,15 +355,15 @@ namespace CollapseLauncher.GameSettings.Genshin
 
                 // Dump GeneralData as indented JSON output using GeneralData properties
                 LogWriteLine($"Deserialized Genshin Settings: {_ValueName}\r\n{byteStr
-                    .Deserialize(GenshinSettingsJSONContext.Default.GeneralData)
-                    .Serialize(GenshinSettingsJSONContext.Default.GeneralData, false, true)}", LogType.Debug, true);
+                    .Deserialize(GenshinSettingsJsonContext.Default.GeneralData)
+                    .Serialize(GenshinSettingsJsonContext.Default.GeneralData, false, true)}", LogType.Debug, true);
 #endif
 #if DEBUG
                 LogWriteLine($"Loaded Genshin Settings: {_ValueName}", LogType.Debug, true);
 #else
                 LogWriteLine($"Loaded Genshin Settings", LogType.Default, true);
 #endif
-                GeneralData data = byteStr.Deserialize(GenshinSettingsJSONContext.Default.GeneralData) ?? new GeneralData();
+                GeneralData data = byteStr.Deserialize(GenshinSettingsJsonContext.Default.GeneralData) ?? new GeneralData();
 
                 if (data._graphicsData != null) data.graphicsData = GraphicsData.Load(data._graphicsData);
                 if (data._globalPerfData != null) data.globalPerfData   = GlobalPerfData.Load(data._globalPerfData, data.graphicsData)!;
@@ -380,7 +380,7 @@ namespace CollapseLauncher.GameSettings.Genshin
                     $"Unless you have never opened the game (fresh installation), please open the game and change any settings, then safely close the game. If the problem persist, report the issue on our GitHub\r\n\r\n" +
                     $"{ex}", ex));
 
-                GeneralData data = _generalDataDefault!.Deserialize(GenshinSettingsJSONContext.Default.GeneralData) ?? new GeneralData();
+                GeneralData data = _generalDataDefault.Deserialize(GenshinSettingsJsonContext.Default.GeneralData) ?? new GeneralData();
                 data.graphicsData   = GraphicsData.Load(data._graphicsData!);
                 data.globalPerfData = GlobalPerfData.Load(data._globalPerfData!, data.graphicsData)!;
                 return data;
@@ -393,16 +393,16 @@ namespace CollapseLauncher.GameSettings.Genshin
             {
                 if (RegistryRoot == null) throw new NullReferenceException($"Cannot save {_ValueName} since RegistryKey is unexpectedly not initialized!");
 
-                _graphicsData = graphicsData!.Create(globalPerfData!);
-                _globalPerfData = globalPerfData!.Save()!;
+                _graphicsData = graphicsData.Create(globalPerfData);
+                _globalPerfData = globalPerfData.Save();
 
-                string data = this.Serialize(GenshinSettingsJSONContext.Default.GeneralData);
+                string data = this.Serialize(GenshinSettingsJsonContext.Default.GeneralData);
                 byte[] dataByte = Encoding.UTF8.GetBytes(data);
 
                 RegistryRoot.SetValue(_ValueName, dataByte, RegistryValueKind.Binary);
 #if DUMPGIJSON
                 //Dump saved GeneralData JSON from Collapse as indented output
-                LogWriteLine($"Saved Genshin Settings: {_ValueName}\r\n{this.Serialize(GenshinSettingsJSONContext.Default.GeneralData, false, true)}", LogType.Debug, true);
+                LogWriteLine($"Saved Genshin Settings: {_ValueName}\r\n{this.Serialize(GenshinSettingsJsonContext.Default.GeneralData, false, true)}", LogType.Debug, true);
 #endif
 #if DEBUG
                 LogWriteLine($"Saved Genshin Settings: {_ValueName}" +

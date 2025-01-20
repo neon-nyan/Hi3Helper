@@ -13,31 +13,33 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using System;
 using System.Collections.Generic;
 using static Hi3Helper.Locale;
+// ReSharper disable StringLiteralTypo
 
 namespace CollapseLauncher
 {
     internal class BackgroundActivityManager
     {
-        private static ThemeShadow _infoBarShadow = new ThemeShadow();
-        public static Dictionary<int, IBackgroundActivity> BackgroundActivities = new Dictionary<int, IBackgroundActivity>();
+        private static readonly ThemeShadow                          InfoBarShadow        = new();
+        public static           Dictionary<int, IBackgroundActivity> BackgroundActivities = new();
 
         public static void Attach(int hashID, IBackgroundActivity activity, string activityTitle, string activitySubtitle)
         {
-            if (!BackgroundActivities!.ContainsKey(hashID))
+            if (BackgroundActivities.ContainsKey(hashID))
             {
-                AttachEventToNotification(hashID, activity, activityTitle, activitySubtitle);
-                BackgroundActivities.Add(hashID, activity);
-#if DEBUG
-                Logger.LogWriteLine($"Background activity with ID: {hashID} has been attached", LogType.Debug, true);
-#endif
+                return;
             }
+
+            AttachEventToNotification(hashID, activity, activityTitle, activitySubtitle);
+            BackgroundActivities.Add(hashID, activity);
+        #if DEBUG
+            Logger.LogWriteLine($"Background activity with ID: {hashID} has been attached", LogType.Debug, true);
+        #endif
         }
 
         public static void Detach(int hashID)
         {
-            if (BackgroundActivities!.ContainsKey(hashID))
+            if (BackgroundActivities.Remove(hashID))
             {
-                BackgroundActivities.Remove(hashID);
                 DetachEventFromNotification(hashID);
 #if DEBUG
                 Logger.LogWriteLine($"Background activity with ID: {hashID} has been detached", LogType.Debug, true);
@@ -55,31 +57,31 @@ namespace CollapseLauncher
             Thickness containerNotClosableMargin = new Thickness(-28, -8, 24, 20);
             Thickness containerClosableMargin = new Thickness(-28, -8, -28, 20);
 
-            InfoBar _parentNotifUI = new InfoBar
+            InfoBar parentNotificationUI = new InfoBar
                                      {
                 Tag = hashID,
                 Severity = InfoBarSeverity.Informational,
                 Background = (Brush)Application.Current!.Resources!["InfoBarAnnouncementBrush"],
                 IsOpen = true,
                 IsClosable = false,
-                Shadow = _infoBarShadow,
+                Shadow = InfoBarShadow,
                 Title = activityTitle,
                 Message = activitySubtitle
             }
             .WithMargin(4d, 4d, 4d, 0)
             .WithCornerRadius(8);
-            _parentNotifUI.Translation = LauncherConfig.Shadow32;
+            parentNotificationUI.Translation = LauncherConfig.Shadow32;
 
-            StackPanel _parentContainer = UIElementExtensions.CreateStackPanel()
-                .WithMargin(_parentNotifUI.IsClosable ? containerClosableMargin : containerNotClosableMargin);
+            StackPanel parentContainer = UIElementExtensions.CreateStackPanel()
+                .WithMargin(parentNotificationUI.IsClosable ? containerClosableMargin : containerNotClosableMargin);
 
-            _parentNotifUI.Content = _parentContainer;
-            Grid _parentGrid = _parentContainer.AddElementToStackPanel(
+            parentNotificationUI.Content = parentContainer;
+            Grid parentGrid = parentContainer.AddElementToStackPanel(
                 UIElementExtensions.CreateGrid()
-                    .WithColumns(new(72), new(1, GridUnitType.Star))
+                    .WithColumns(new GridLength(72), new GridLength(1, GridUnitType.Star))
             );
 
-            StackPanel progressLogoContainer = _parentGrid.AddElementToGridColumn(
+            StackPanel progressLogoContainer = parentGrid.AddElementToGridColumn(
                 UIElementExtensions.CreateStackPanel()
                     .WithWidthAndHeight(64d)
                     .WithMargin(0d, 4d, 8d, 4d)
@@ -87,11 +89,11 @@ namespace CollapseLauncher
                 0
             );
 
-            GamePresetProperty CurrentGameProperty = GamePropertyVault.GetCurrentGameProperty();
+            GamePresetProperty currentGameProperty = GamePropertyVault.GetCurrentGameProperty();
             _ = progressLogoContainer.AddElementToStackPanel(
                 new Image
                 {
-                    Source = new BitmapImage(new Uri(CurrentGameProperty!.GameVersion!.GameType switch
+                    Source = new BitmapImage(new Uri(currentGameProperty!.GameVersion!.GameType switch
                     {
                         GameNameType.Honkai => "ms-appx:///Assets/Images/GameLogo/honkai-logo.png",
                         GameNameType.Genshin => "ms-appx:///Assets/Images/GameLogo/genshin-logo.png",
@@ -101,7 +103,7 @@ namespace CollapseLauncher
                     }))
                 }.WithWidthAndHeight(64));
 
-            StackPanel progressStatusContainer = _parentGrid.AddElementToGridColumn(
+            StackPanel progressStatusContainer = parentGrid.AddElementToGridColumn(
                 UIElementExtensions.CreateStackPanel()
                     .WithVerticalAlignment(VerticalAlignment.Center)
                     .WithMargin(8d, -4d, 0, 0),
@@ -110,20 +112,20 @@ namespace CollapseLauncher
 
             Grid progressStatusGrid = progressStatusContainer.AddElementToStackPanel(
                 UIElementExtensions.CreateGrid()
-                    .WithColumns(new(1, GridUnitType.Star), new(1, GridUnitType.Star))
-                    .WithRows(new(1, GridUnitType.Star), new(1, GridUnitType.Star))
+                    .WithColumns(new GridLength(1, GridUnitType.Star), new GridLength(1, GridUnitType.Star))
+                    .WithRows(new GridLength(1,    GridUnitType.Star), new GridLength(1, GridUnitType.Star))
                     .WithMargin(0d, 0d, 0d, 16d)
             );
 
             TextBlock progressLeftTitle = progressStatusGrid.AddElementToGridRowColumn(new TextBlock
             {
                 Style = UIElementExtensions.GetApplicationResource<Style>("BodyStrongTextBlockStyle"),
-                Text = Lang!._BackgroundNotification!.LoadingTitle,
+                Text = Lang!._BackgroundNotification!.LoadingTitle
             });
             TextBlock progressLeftSubtitle = progressStatusGrid.AddElementToGridRowColumn(new TextBlock
             {
                 Style = UIElementExtensions.GetApplicationResource<Style>("CaptionTextBlockStyle"),
-                Text = Lang._BackgroundNotification.Placeholder,
+                Text = Lang._BackgroundNotification.Placeholder
             }, 1);
 
             TextBlock progressRightTitle = progressStatusGrid.AddElementToGridRowColumn(new TextBlock
@@ -154,7 +156,7 @@ namespace CollapseLauncher
             {
                 cancelButton.IsEnabled = false;
                 activity!.CancelRoutine();
-                _parentNotifUI.IsOpen = false;
+                parentNotificationUI.IsOpen = false;
             };
 
             Button settingsButton =
@@ -167,15 +169,15 @@ namespace CollapseLauncher
                 .WithHorizontalAlignment(HorizontalAlignment.Right)
                 .WithMargin(0d, 4d, 8d, 0d);
 
-            settingsButton.Click += async (_, _) => await SimpleDialogs.Dialog_DownloadSettings(_parentContainer, CurrentGameProperty);
+            settingsButton.Click += async (_, _) => await SimpleDialogs.Dialog_DownloadSettings(parentContainer, currentGameProperty);
 
-            StackPanel controlButtons = _parentContainer.AddElementToStackPanel(
+            StackPanel controlButtons = parentContainer.AddElementToStackPanel(
                 UIElementExtensions.CreateStackPanel(Orientation.Horizontal)
                     .WithHorizontalAlignment(HorizontalAlignment.Right)
             );
             controlButtons.AddElementToStackPanel(settingsButton, cancelButton);
 
-            EventHandler<TotalPerFileProgress> ProgressChangedEventHandler = (_, args) => activity?.Dispatch(() =>
+            EventHandler<TotalPerFileProgress> progressChangedEventHandler = (_, args) => activity?.Dispatch(() =>
             {
                 progressBar.Value = args!.ProgressAllPercentage;
                 progressLeftSubtitle.Text = string.Format(Lang._Misc!.Speed!, ConverterTool.SummarizeSizeSimple(args.ProgressAllSpeed));
@@ -183,7 +185,7 @@ namespace CollapseLauncher
                 progressRightSubtitle.Text = string.Format(Lang._UpdatePage!.UpdateHeader1! + " {0}%", args.ProgressAllPercentage);
             });
 
-            EventHandler<TotalPerFileStatus> StatusChangedEventHandler = (_, args) => activity?.Dispatch(() =>
+            EventHandler<TotalPerFileStatus> statusChangedEventHandler = (_, args) => activity?.Dispatch(() =>
             {
                 progressBar.IsIndeterminate = args!.IsProgressAllIndetermined;
                 progressLeftTitle.Text = args.ActivityStatus;
@@ -192,50 +194,53 @@ namespace CollapseLauncher
                     cancelButton.IsEnabled = false;
                     settingsButton.IsEnabled = false;
                     controlButtons.Visibility = Visibility.Collapsed;
-                    _parentNotifUI.Severity = InfoBarSeverity.Error;
-                    _parentNotifUI.Title = string.Format(Lang._BackgroundNotification.NotifBadge_Error!, activityTitle);
-                    _parentNotifUI.IsClosable = true;
-                    _parentContainer.Margin = containerClosableMargin;
+                    parentNotificationUI.Severity = InfoBarSeverity.Error;
+                    parentNotificationUI.Title = string.Format(Lang._BackgroundNotification.NotifBadge_Error!, activityTitle);
+                    parentNotificationUI.IsClosable = true;
+                    parentContainer.Margin = containerClosableMargin;
                 }
                 if (args.IsCompleted)
                 {
                     cancelButton.IsEnabled = false;
                     settingsButton.IsEnabled = false;
                     controlButtons.Visibility = Visibility.Collapsed;
-                    _parentNotifUI.Severity = InfoBarSeverity.Success;
-                    _parentNotifUI.Title = string.Format(Lang._BackgroundNotification.NotifBadge_Completed!, activityTitle);
-                    _parentNotifUI.IsClosable = true;
-                    _parentContainer.Margin = containerClosableMargin;
+                    parentNotificationUI.Severity = InfoBarSeverity.Success;
+                    parentNotificationUI.Title = string.Format(Lang._BackgroundNotification.NotifBadge_Completed!, activityTitle);
+                    parentNotificationUI.IsClosable = true;
+                    parentContainer.Margin = containerClosableMargin;
                 }
-                if (args.IsRunning)
+
+                if (!args.IsRunning)
                 {
-                    cancelButton.IsEnabled = true;
-                    settingsButton.IsEnabled = true;
-                    controlButtons.Visibility = Visibility.Visible;
-                    _parentNotifUI.Severity = InfoBarSeverity.Informational;
-                    _parentNotifUI.Title = activityTitle;
-                    _parentNotifUI.IsClosable = false;
-                    _parentContainer.Margin = containerNotClosableMargin;
+                    return;
                 }
+
+                cancelButton.IsEnabled          = true;
+                settingsButton.IsEnabled        = true;
+                controlButtons.Visibility       = Visibility.Visible;
+                parentNotificationUI.Severity   = InfoBarSeverity.Informational;
+                parentNotificationUI.Title      = activityTitle;
+                parentNotificationUI.IsClosable = false;
+                parentContainer.Margin          = containerNotClosableMargin;
             });
 
-            activity!.ProgressChanged += ProgressChangedEventHandler;
-            activity!.StatusChanged += StatusChangedEventHandler;
+            activity!.ProgressChanged += progressChangedEventHandler;
+            activity!.StatusChanged += statusChangedEventHandler;
 
             activity.FlushingTrigger += (_, _) =>
             {
-                activity.ProgressChanged -= ProgressChangedEventHandler;
-                activity.StatusChanged -= StatusChangedEventHandler;
+                activity.ProgressChanged -= progressChangedEventHandler;
+                activity.StatusChanged -= statusChangedEventHandler;
             };
 
-            _parentNotifUI.Closing += (_, _) =>
+            parentNotificationUI.Closing += (_, _) =>
             {
-                activity.ProgressChanged -= ProgressChangedEventHandler;
-                activity.StatusChanged -= StatusChangedEventHandler;
+                activity.ProgressChanged -= progressChangedEventHandler;
+                activity.StatusChanged -= statusChangedEventHandler;
                 Detach(hashID);
             };
 
-            NotificationSender.SendCustomNotification(hashID, _parentNotifUI);
+            NotificationSender.SendCustomNotification(hashID, parentNotificationUI);
         }
 
         private static void DetachEventFromNotification(int hashID) => NotificationSender.RemoveCustomNotification(hashID);

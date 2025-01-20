@@ -13,9 +13,9 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.TextElements.Html;
 
 internal class MyBlock : IAddChild
 {
-    private HtmlNode _htmlNode;
-    private Paragraph _paragraph;
-    private List<RichTextBlock> _richTextBlocks;
+    private readonly HtmlNode            _htmlNode;
+    private readonly Paragraph           _paragraph;
+    private readonly List<RichTextBlock> _richTextBlocks;
 
     public TextElement TextElement
     {
@@ -26,15 +26,17 @@ internal class MyBlock : IAddChild
     {
         _htmlNode = block;
         var align = _htmlNode.GetAttributeValue("align", "left");
-        _richTextBlocks = new List<RichTextBlock>();
-        _paragraph = new Paragraph();
-        _paragraph.TextAlignment = align switch
+        _richTextBlocks = [];
+        _paragraph      = new Paragraph
         {
-            "left" => TextAlignment.Left,
-            "right" => TextAlignment.Right,
-            "center" => TextAlignment.Center,
-            "justify" => TextAlignment.Justify,
-            _ => TextAlignment.Left,
+            TextAlignment = align switch
+                            {
+                                "left" => TextAlignment.Left,
+                                "right" => TextAlignment.Right,
+                                "center" => TextAlignment.Center,
+                                "justify" => TextAlignment.Justify,
+                                _ => TextAlignment.Left
+                            }
         };
         StyleBlock();
     }

@@ -93,7 +93,7 @@ namespace CollapseLauncher.Helper.StreamUtility
             if (read == 0)
                 return 0;
 
-            await _redirectStream.WriteAsync(_innerBuffer, 0, read, token);
+            await _redirectStream.WriteAsync(_innerBuffer.AsMemory(0, read), token);
 
             int lastIndexOffset;
             if (_isFieldStart && (lastIndexOffset = EnsureIsEnd(_innerBuffer)) > 0)

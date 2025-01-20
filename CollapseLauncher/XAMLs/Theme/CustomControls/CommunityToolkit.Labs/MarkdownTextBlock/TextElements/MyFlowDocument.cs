@@ -12,7 +12,7 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.TextElements;
 
 public class MyFlowDocument : IAddChild
 {
-    private RichTextBlock _richTextBlock = new RichTextBlock();
+    private RichTextBlock _richTextBlock = new();
 
     // useless property
     public TextElement TextElement { get; set; } = new Run();

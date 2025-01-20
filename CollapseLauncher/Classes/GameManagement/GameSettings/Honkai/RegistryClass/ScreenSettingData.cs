@@ -22,11 +22,11 @@ namespace CollapseLauncher.GameSettings.Honkai
     internal class ScreenSettingData : BaseScreenSettingData, IGameSettingsValue<ScreenSettingData>
     {
         #region Fields
-        private const string _ValueName                        = "GENERAL_DATA_V2_ScreenSettingData_h1916288658";
-        private const string _ValueNameScreenManagerFullscreen = "Screenmanager Is Fullscreen mode_h3981298716";
-        private const string _ValueNameScreenManagerWidth      = "Screenmanager Resolution Width_h182942802";
-        private const string _ValueNameScreenManagerHeight     = "Screenmanager Resolution Height_h2627697771";
-        private static Size currentRes                         = ScreenProp.CurrentResolution;
+        private const           string _ValueName                        = "GENERAL_DATA_V2_ScreenSettingData_h1916288658";
+        private const           string _ValueNameScreenManagerFullscreen = "Screenmanager Is Fullscreen mode_h3981298716";
+        private const           string _ValueNameScreenManagerWidth      = "Screenmanager Resolution Width_h182942802";
+        private const           string _ValueNameScreenManagerHeight     = "Screenmanager Resolution Height_h2627697771";
+        private static readonly Size   currentRes                        = ScreenProp.CurrentResolution;
         #endregion
 
         #region Properties
@@ -38,7 +38,7 @@ namespace CollapseLauncher.GameSettings.Honkai
         [JsonIgnore]
         public override Size sizeRes
         {
-            get => new Size(width, height);
+            get => new(width, height);
             set
             {
                 width = value.Width < 64 ? currentRes.Width : value.Width;
@@ -110,7 +110,7 @@ namespace CollapseLauncher.GameSettings.Honkai
 #if DEBUG
                     LogWriteLine($"Loaded HI3 Settings: {_ValueName}\r\n{Encoding.UTF8.GetString(byteStr.TrimEnd((byte)0))}", LogType.Debug, true);
 #endif
-                    return byteStr.Deserialize(HonkaiSettingsJSONContext.Default.ScreenSettingData) ?? new ScreenSettingData();
+                    return byteStr.Deserialize(HonkaiSettingsJsonContext.Default.ScreenSettingData) ?? new ScreenSettingData();
                 }
             }
             catch (Exception ex)
@@ -134,7 +134,7 @@ namespace CollapseLauncher.GameSettings.Honkai
             {
                 if (RegistryRoot == null) throw new NullReferenceException($"Cannot save {_ValueName} since RegistryKey is unexpectedly not initialized!");
 
-                string data = this.Serialize(HonkaiSettingsJSONContext.Default.ScreenSettingData);
+                string data = this.Serialize(HonkaiSettingsJsonContext.Default.ScreenSettingData);
                 byte[] dataByte = Encoding.UTF8.GetBytes(data);
 
                 RegistryRoot.SetValue(_ValueName, dataByte, RegistryValueKind.Binary);

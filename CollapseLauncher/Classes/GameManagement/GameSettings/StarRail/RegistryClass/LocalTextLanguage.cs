@@ -52,7 +52,7 @@ namespace CollapseLauncher.GameSettings.StarRail
                 "cht" => 3, //chinese traditional
                 "cn" => 2, //chinese simplified
                 "jp" => 1, //japanese
-                _ => 0,//english
+                _ => 0 //english
             };
             set => LocalTextLang = value switch
             {
@@ -68,7 +68,7 @@ namespace CollapseLauncher.GameSettings.StarRail
                 3 => "cht",
                 2 => "cn",
                 1 => "jp",
-                _ => "en",
+                _ => "en"
             };
         }
         #endregion

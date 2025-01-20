@@ -137,7 +137,7 @@ namespace CollapseLauncher.Helper
             where T : HashAlgorithm
         {
             // Create and use hasher. If hmacKey is not null and not empty, then create HMAC hasher
-            using T hashCryptoTransform = hmacKey != null && hmacKey.Length != 0 ?
+            using HashAlgorithm hashCryptoTransform = hmacKey != null && hmacKey.Length != 0 ?
                 CreateHmacCryptoHash<T>(hmacKey) :
                 CreateCryptoHash<T>();
 
@@ -289,7 +289,7 @@ namespace CollapseLauncher.Helper
             where T : NonCryptographicHashAlgorithm, new()
         {
             // Create hasher instance
-            T hashProvider = CreateHash<T>();
+            NonCryptographicHashAlgorithm hashProvider = CreateHash<T>();
 
             // Get length based on stream length or at least if bigger, use the default one
             int bufferLen = BufferLength > stream.Length ? (int)stream.Length : BufferLength;

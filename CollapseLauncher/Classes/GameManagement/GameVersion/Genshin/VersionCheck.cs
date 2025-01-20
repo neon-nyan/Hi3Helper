@@ -12,7 +12,7 @@ namespace CollapseLauncher.GameVersioning
         #endregion
 
         #region Properties
-        public readonly List<string> _audioVoiceLanguageList = new List<string> { "Chinese", "English(US)", "Japanese", "Korean" };
+        public readonly List<string> _audioVoiceLanguageList = ["Chinese", "English(US)", "Japanese", "Korean"];
         #endregion
 
         public GameTypeGenshinVersion(UIElement parentUIElement, RegionResourceProp gameRegionProp, string gameName, string gamePreset)

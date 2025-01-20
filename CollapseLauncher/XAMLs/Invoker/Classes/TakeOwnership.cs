@@ -6,9 +6,10 @@ namespace CollapseLauncher
 {
     public class TakeOwnership
     {
-        public void StartTakingOwnership(string target)
+        public static void StartTakingOwnership(string target)
         {
-            if (target == null) throw new ArgumentNullException(nameof(target));
+            ArgumentException.ThrowIfNullOrEmpty(target, nameof(target));
+
             // ReSharper disable once LocalizableElement
             Console.WriteLine("Trying to append ownership of the folder. Please do not close this console window!");
 

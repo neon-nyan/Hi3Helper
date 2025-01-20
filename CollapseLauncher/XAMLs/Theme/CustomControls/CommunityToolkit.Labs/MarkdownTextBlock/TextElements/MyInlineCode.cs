@@ -13,7 +13,7 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.TextElements;
 
 internal class MyInlineCode : IAddChild
 {
-    private InlineUIContainer _inlineContainer;
+    private readonly InlineUIContainer _inlineContainer;
 
     public TextElement TextElement
     {
@@ -24,21 +24,27 @@ internal class MyInlineCode : IAddChild
     {
         MarkdownConfig _config = config;
         _inlineContainer = new InlineUIContainer();
-        var border = new Border();
-        border.VerticalAlignment = VerticalAlignment.Bottom;
-        border.Background = _config.Themes.InlineCodeBackground;
-        // border.BorderBrush = _config.Themes.InlineCodeBorderBrush;
-        // border.BorderThickness = _config.Themes.InlineCodeBorderThickness;
-        border.CornerRadius = _config.Themes.InlineCodeCornerRadius;
-        border.Padding = _config.Themes.InlineCodePadding;
-        CompositeTransform3D transform = new CompositeTransform3D();
-        transform.TranslateY = 4;
+        var border = new Border
+        {
+            VerticalAlignment = VerticalAlignment.Bottom,
+            Background        = _config.Themes.InlineCodeBackground,
+            // border.BorderBrush = _config.Themes.InlineCodeBorderBrush;
+            // border.BorderThickness = _config.Themes.InlineCodeBorderThickness;
+            CornerRadius      = _config.Themes.InlineCodeCornerRadius,
+            Padding           = _config.Themes.InlineCodePadding
+        };
+        CompositeTransform3D transform = new CompositeTransform3D
+        {
+            TranslateY = 4
+        };
         border.Transform3D = transform;
-        var textBlock = new TextBlock();
-        textBlock.FontFamily = _config.Themes.InlineCodeFontFamily;
-        textBlock.FontSize = _config.Themes.InlineCodeFontSize;
-        textBlock.FontWeight = _config.Themes.InlineCodeFontWeight;
-        textBlock.Text = codeInline.Content;
+        var textBlock = new TextBlock
+        {
+            FontFamily = _config.Themes.InlineCodeFontFamily,
+            FontSize   = _config.Themes.InlineCodeFontSize,
+            FontWeight = _config.Themes.InlineCodeFontWeight,
+            Text       = codeInline.Content
+        };
         border.Child = textBlock;
         _inlineContainer.Child = border;
     }

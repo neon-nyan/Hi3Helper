@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using Hi3Helper.SentryHelper;
+// ReSharper disable InconsistentNaming
 
 namespace CollapseLauncher
 {
@@ -21,14 +22,14 @@ namespace CollapseLauncher
             Registry.SetValue(keyLoc, keyName, target, RegistryValueKind.String);
         }
 
-        public void MoveOperation(string source, string target)
+        private static void MoveOperation(string source, string target)
         {
             Logger.LogWriteLine("Using \"Cross-disk\" method while moving to target", LogType.Default, true);
             string[] fileList = Directory.GetFiles(source, "*", SearchOption.AllDirectories);
 
             for (int i = 0; i < fileList.Length; i++)
             {
-                var basePath   = fileList[i].Substring(source.Length + 1);
+                var basePath   = fileList[i][(source.Length + 1)..];
                 var targetPath = Path.Combine(target, basePath);
 
                 if (!Directory.Exists(Path.GetDirectoryName(targetPath)))
@@ -42,7 +43,7 @@ namespace CollapseLauncher
             }
         }
 
-        public void DoMigrationBHI3L(string version, string registryName, string sourceGame, string targetGame)
+        internal void DoMigrationBHI3L(string version, string registryName, string sourceGame, string targetGame)
         {
             IniFile iniFile = new IniFile();
 
@@ -58,13 +59,13 @@ namespace CollapseLauncher
                         {
                             installed = true,
                             install_path = targetGame,
-                            version = version,
+                            version = version
                         }
                     };
 
                     Registry.CurrentUser.OpenSubKey(@"Software\Bp\Better HI3 Launcher", true)!
                         .SetValue(registryName,
-                        Encoding.UTF8.GetBytes(info.Serialize(InternalAppJSONContext.Default.BHI3LInfo)),
+                        Encoding.UTF8.GetBytes(info.Serialize(BHI3LInfoJsonContext.Default.BHI3LInfo)),
                         RegistryValueKind.Binary);
                 }
                 catch (Exception ex)
@@ -82,7 +83,7 @@ namespace CollapseLauncher
                     { "cps", new IniValue() },
                     { "game_version", new IniValue(version) },
                     { "sub_channel", new IniValue(1) },
-                    { "sdk_version", new IniValue() },
+                    { "sdk_version", new IniValue() }
                 });
                 iniFile.Save(Path.Combine(targetGame, "config.ini"));
             }
@@ -92,41 +93,42 @@ namespace CollapseLauncher
 
         public void DoMigration(string source, string target)
         {
-            string sourceGame, targetGame;
             string configFilePath = Path.Combine(source, "config.ini");
 
-            if (File.Exists(configFilePath))
+            if (!File.Exists(configFilePath))
             {
-                IniFile iniFile = IniFile.LoadFrom(configFilePath);
-                sourceGame = ConverterTool.NormalizePath(iniFile["launcher"]["game_install_path"].ToString());
-                targetGame = Path.Combine(target, Path.GetFileName(sourceGame));
-                Logger.LogWriteLine($"Moving From:\r\n\t{source}\r\nTo Destination:\r\n\t{target}", LogType.Default, true);
-                try
-                {
-                    MoveOperation(sourceGame, targetGame);
-                }
-                // Use move process if the method above throw a fucking nonsense reason even the folder is actually exist...
-                catch (DirectoryNotFoundException)
-                {
-                    Process move = new Process()
-                    {
-                        StartInfo = new ProcessStartInfo()
-                        {
-                            FileName = "cmd.exe",
-                            UseShellExecute = false,
-                            Arguments = $"/c move /Y \"{sourceGame}\" \"{targetGame}\""
-                        }
-                    };
-
-                    move.Start();
-                    move.WaitForExit();
-                }
-
-                StartTakingOwnership(targetGame);
-
-                iniFile["launcher"]["game_install_path"] = targetGame.Replace('\\', '/');
-                iniFile.Save(Path.Combine(source, "config.ini"));
+                return;
             }
+
+            IniFile iniFile    = IniFile.LoadFrom(configFilePath);
+            var     sourceGame = ConverterTool.NormalizePath(iniFile["launcher"]["game_install_path"].ToString());
+            var     targetGame = Path.Combine(target, Path.GetFileName(sourceGame));
+            Logger.LogWriteLine($"Moving From:\r\n\t{source}\r\nTo Destination:\r\n\t{target}", LogType.Default, true);
+            try
+            {
+                MoveOperation(sourceGame, targetGame);
+            }
+            // Use move process if the method above throw a fucking nonsense reason even the folder is actually exist...
+            catch (DirectoryNotFoundException)
+            {
+                Process move = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName        = "cmd.exe",
+                        UseShellExecute = false,
+                        Arguments       = $"/c move /Y \"{sourceGame}\" \"{targetGame}\""
+                    }
+                };
+
+                move.Start();
+                move.WaitForExit();
+            }
+
+            StartTakingOwnership(targetGame);
+
+            iniFile["launcher"]["game_install_path"] = targetGame.Replace('\\', '/');
+            iniFile.Save(Path.Combine(source, "config.ini"));
         }
     }
 }

@@ -8,7 +8,7 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.TextElements;
 
 internal class MyInlineText : IAddChild
 {
-    private Run _run;
+    private readonly Run _run;
 
     public TextElement TextElement
     {
@@ -17,7 +17,7 @@ internal class MyInlineText : IAddChild
 
     public MyInlineText(string text)
     {
-        _run = new Run()
+        _run = new Run
         {
             Text = text
         };

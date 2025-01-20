@@ -4,7 +4,7 @@ using System.Text.Json.Serialization.Metadata;
 
 namespace CollapseLauncher.Interfaces
 {
-    internal interface IGameSettingsValue<T>
+    internal interface IGameSettingsValue<out T>
     {
         static abstract T Load();
         void Save();

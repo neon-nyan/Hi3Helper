@@ -100,12 +100,12 @@ namespace CollapseLauncher.GameSettings.Zenless
             get => fullscreen switch
                    {
                        FullScreenMode.Fullscreen => true,
-                       _ => false,
+                       _ => false
                    };
             set => fullscreen = value switch
                    {
                        true => FullScreenMode.Fullscreen,
-                       false => FullScreenMode.Windowed,
+                       false => FullScreenMode.Windowed
                    };
         }
         #endregion

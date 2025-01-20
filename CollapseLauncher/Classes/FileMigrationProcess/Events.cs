@@ -10,55 +10,57 @@ namespace CollapseLauncher
     {
         private void UpdateCountProcessed(FileMigrationProcessUIRef uiRef, string currentPathProcessed)
         {
-            Interlocked.Add(ref this.CurrentFileCountMoved, 1);
+            Interlocked.Add(ref _currentFileCountMoved, 1);
 
             string fileCountProcessedString = string.Format(Locale.Lang!._Misc!.PerFromTo!,
-            this.CurrentFileCountMoved,
-            this.TotalFileCount);
+            _currentFileCountMoved,
+            _totalFileCount);
 
-            parentUI!.DispatcherQueue!.TryEnqueue(() =>
+            ParentUI!.DispatcherQueue!.TryEnqueue(() =>
             {
-                uiRef.fileCountIndicatorSubtitle.Text = fileCountProcessedString;
-                uiRef.pathActivitySubtitle.Text = currentPathProcessed;
+                uiRef.FileCountIndicatorSubtitle.Text = fileCountProcessedString;
+                uiRef.PathActivitySubtitle.Text = currentPathProcessed;
             });
         }
 
         private async void UpdateSizeProcessed(FileMigrationProcessUIRef uiRef, long currentRead)
         {
-            Interlocked.Add(ref this.CurrentSizeMoved, currentRead);
+            Interlocked.Add(ref _currentSizeMoved, currentRead);
 
-            if (await CheckIfNeedRefreshStopwatch())
+            if (!await CheckIfNeedRefreshStopwatch())
             {
-                double percentage = Math.Round((double)this.CurrentSizeMoved / this.TotalFileSize * 100d, 2);
-                double speed = this.CurrentSizeMoved / this.ProcessStopwatch!.Elapsed.TotalSeconds;
+                return;
+            }
 
-                lock (uiRef.progressBarIndicator)
-                {
-                    this.parentUI!.DispatcherQueue!.TryEnqueue(() =>
-                    {
-                        string speedString = string.Format(Locale.Lang!._Misc!.SpeedPerSec!, ConverterTool.SummarizeSizeSimple(speed));
-                        string sizeProgressString = string.Format(Locale.Lang._Misc.PerFromTo!,
-                            ConverterTool.SummarizeSizeSimple(this.CurrentSizeMoved),
-                            ConverterTool.SummarizeSizeSimple(this.TotalFileSize));
+            double percentage = Math.Round((double)_currentSizeMoved / _totalFileSize * 100d, 2);
+            double speed      = _currentSizeMoved / _processStopwatch!.Elapsed.TotalSeconds;
 
-                        uiRef.speedIndicatorSubtitle.Text = speedString;
-                        uiRef.fileSizeIndicatorSubtitle.Text = sizeProgressString;
-                        uiRef.progressBarIndicator.Value = percentage;
-                        uiRef.progressBarIndicator.IsIndeterminate = false;
-                    });
-                }
+            lock (uiRef.ProgressBarIndicator)
+            {
+                ParentUI.DispatcherQueue.TryEnqueue(() =>
+                                                      {
+                                                          string speedString = string.Format(Locale.Lang!._Misc!.SpeedPerSec!, ConverterTool.SummarizeSizeSimple(speed));
+                                                          string sizeProgressString = string.Format(Locale.Lang._Misc.PerFromTo!,
+                                                                   ConverterTool.SummarizeSizeSimple(_currentSizeMoved),
+                                                                   ConverterTool.SummarizeSizeSimple(_totalFileSize));
+
+                                                          uiRef.SpeedIndicatorSubtitle.Text          = speedString;
+                                                          uiRef.FileSizeIndicatorSubtitle.Text       = sizeProgressString;
+                                                          uiRef.ProgressBarIndicator.Value           = percentage;
+                                                          uiRef.ProgressBarIndicator.IsIndeterminate = false;
+                                                      });
             }
         }
 
         private async ValueTask<bool> CheckIfNeedRefreshStopwatch()
         {
-            if (this.EventsStopwatch!.ElapsedMilliseconds > _refreshInterval)
+            if (_eventsStopwatch!.ElapsedMilliseconds > RefreshInterval)
             {
-                this.EventsStopwatch.Restart();
+                _eventsStopwatch.Restart();
                 return true;
             }
 
-            await Task.Delay(_refreshInterval);
+            await Task.Delay(RefreshInterval);
             return false;
         }
     }

@@ -12,7 +12,7 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.TextElements;
 
 internal class MyEmphasisInline : IAddChild
 {
-    private Span _span;
+    private readonly Span _span;
 
     private bool _isBold;
     private bool _isItalic;

@@ -15,6 +15,7 @@ using static Hi3Helper.Locale;
 using static Hi3Helper.Logger;
 using static Hi3Helper.Shared.Region.LauncherConfig;
 // ReSharper disable RedundantExtendsListEntry
+// ReSharper disable AsyncVoidMethod
 
 namespace CollapseLauncher.Pages
 {
@@ -25,7 +26,7 @@ namespace CollapseLauncher.Pages
         {
             BackgroundImgChanger.ToggleBackground(true);
             CurrentGameProperty = GetCurrentGameProperty();
-            this.InitializeComponent();
+            InitializeComponent();
         }
 
         private void StartGameCheckSplitButton(SplitButton sender, SplitButtonClickEventArgs args)
@@ -249,10 +250,11 @@ namespace CollapseLauncher.Pages
         private void InitializeLoaded(object sender, RoutedEventArgs e)
         {
             BackgroundImgChanger.ToggleBackground(true);
-            if (GameInstallationState == GameInstallStateEnum.NotInstalled
-                || GameInstallationState == GameInstallStateEnum.NeedsUpdate
-                || GameInstallationState == GameInstallStateEnum.InstalledHavePlugin
-                || GameInstallationState == GameInstallStateEnum.GameBroken)
+            if (GameInstallationState
+                is GameInstallStateEnum.NotInstalled
+                or GameInstallStateEnum.NeedsUpdate
+                or GameInstallStateEnum.InstalledHavePlugin
+                or GameInstallStateEnum.GameBroken)
             {
                 Overlay.Visibility = Visibility.Visible;
                 PageContent.Visibility = Visibility.Collapsed;

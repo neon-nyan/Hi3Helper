@@ -1,4 +1,5 @@
-﻿namespace CollapseLauncher
+﻿// ReSharper disable InconsistentNaming
+namespace CollapseLauncher
 {
     internal enum RepairAssetType
     {

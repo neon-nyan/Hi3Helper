@@ -82,21 +82,21 @@ namespace CollapseLauncher.FileDialogCOM
                 goto StartGet;
             }
 
-            if (IsProgramFilesPath(dirPath))
+            if (!IsProgramFilesPath(dirPath))
             {
-                await SpawnInvalidDialog(
-                    Locale.Lang._Dialogs.InvalidGameDirNew6Title,
-                    Locale.Lang._Dialogs.InvalidGameDirNew6Subtitle,
-                    dirPath);
-                goto StartGet;
+                return dirPath;
             }
 
-            return dirPath;
+            await SpawnInvalidDialog(
+                                     Locale.Lang._Dialogs.InvalidGameDirNew6Title,
+                                     Locale.Lang._Dialogs.InvalidGameDirNew6Subtitle,
+                                     dirPath);
+            goto StartGet;
 
 
             async Task SpawnInvalidDialog(string dialogTitle, string message, string selectedPath, bool isUseLegacyFormatting = false)
             {
-                TextBlock textBlock = new TextBlock()
+                TextBlock textBlock = new TextBlock
                 {
                     TextWrapping = Microsoft.UI.Xaml.TextWrapping.Wrap
                 };
@@ -124,37 +124,25 @@ namespace CollapseLauncher.FileDialogCOM
         private static bool IsSystemDirPath(ReadOnlySpan<char> path)
         {
             string? systemRootPath = Environment.GetEnvironmentVariable("SystemRoot");
-            if (path.StartsWith(systemRootPath))
-                return true;
-
-            return false;
+            return path.StartsWith(systemRootPath);
         }
 
         private static bool IsProgramDataPath(ReadOnlySpan<char> path)
         {
             string? programDataPath = Environment.GetEnvironmentVariable("ProgramData");
-            if (path.StartsWith(programDataPath))
-                return true;
-
-            return false;
+            return path.StartsWith(programDataPath);
         }
 
         private static bool IsProgramFilesPath(ReadOnlySpan<char> path)
         {
             string? programFilesPath = Environment.GetEnvironmentVariable("ProgramFiles");
-            if (path.StartsWith(programFilesPath))
-                return true;
-
-            return false;
+            return path.StartsWith(programFilesPath);
         }
 
         private static bool IsCollapseProgramPath(ReadOnlySpan<char> path)
         {
             string collapseProgramPath = LauncherConfig.AppExecutableDir;
-            if (path.StartsWith(collapseProgramPath))
-                return true;
-
-            return false;
+            return path.StartsWith(collapseProgramPath);
         }
 
         /// <summary>
@@ -171,9 +159,9 @@ namespace CollapseLauncher.FileDialogCOM
         private static bool CheckIfFolderIsValidLegacy(string basePath)
         {
             bool isInAppFolderExist = File.Exists(Path.Combine(basePath, LauncherConfig.AppExecutableName))
-                                      || File.Exists(Path.Combine($"{basePath}\\..\\", LauncherConfig.AppExecutableName))
-                                      || File.Exists(Path.Combine($"{basePath}\\..\\..\\", LauncherConfig.AppExecutableName))
-                                      || File.Exists(Path.Combine($"{basePath}\\..\\..\\..\\", LauncherConfig.AppExecutableName));
+                                      || File.Exists(Path.Combine($@"{basePath}\..\", LauncherConfig.AppExecutableName))
+                                      || File.Exists(Path.Combine($@"{basePath}\..\..\", LauncherConfig.AppExecutableName))
+                                      || File.Exists(Path.Combine($@"{basePath}\..\..\..\", LauncherConfig.AppExecutableName));
 
             string? driveLetter = Path.GetPathRoot(basePath);
             if (string.IsNullOrEmpty(driveLetter))

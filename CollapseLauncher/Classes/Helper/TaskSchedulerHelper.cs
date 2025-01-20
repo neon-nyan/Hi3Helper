@@ -7,6 +7,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+// ReSharper disable CommentTypo
+// ReSharper disable StringLiteralTypo
+// ReSharper disable GrammarMistakeInComment
 
 #nullable enable
 namespace CollapseLauncher.Helper

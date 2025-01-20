@@ -3,10 +3,15 @@ using CollapseLauncher.Helper.LauncherApiLoader.Sophon;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
+// ReSharper disable StringLiteralTypo
 
 #nullable enable
 namespace CollapseLauncher.Helper.LauncherApiLoader.HoYoPlay
 {
+    [JsonSourceGenerationOptions(IncludeFields = false, GenerationMode = JsonSourceGenerationMode.Metadata, IgnoreReadOnlyFields = true)]
+    [JsonSerializable(typeof(HoYoPlayLauncherNews))]
+    internal sealed partial class HoYoPlayLauncherNewsJsonContext : JsonSerializerContext;
+
     public class HoYoPlayLauncherNews
     {
         [JsonPropertyName("data")]
@@ -52,23 +57,28 @@ namespace CollapseLauncher.Helper.LauncherApiLoader.HoYoPlay
 
     public class LauncherBackgroundsDetail
     {
-        private LauncherContentData? _backgroundImage;
-        private LauncherContentData? _featuredEventIcon;
-
         [JsonPropertyName("background")]
         public LauncherContentData? BackgroundImage
         {
-            get => string.IsNullOrEmpty(_backgroundImage?.ImageUrl) && string.IsNullOrEmpty(_backgroundImage?.ImageHoverUrl) && string.IsNullOrEmpty(_backgroundImage?.Title)
-                && string.IsNullOrEmpty(_backgroundImage?.ClickLink) && string.IsNullOrEmpty(_backgroundImage?.Date) && _backgroundImage?.ContentType == null ? null : _backgroundImage;
-            set => _backgroundImage = value;
+            get => string.IsNullOrEmpty(field?.ImageUrl) && string.IsNullOrEmpty(field?.ImageHoverUrl) &&
+                   string.IsNullOrEmpty(field?.Title)
+                   && string.IsNullOrEmpty(field?.ClickLink) && string.IsNullOrEmpty(field?.Date) &&
+                   field?.ContentType == null
+                ? null
+                : field;
+            set;
         }
 
         [JsonPropertyName("icon")]
         public LauncherContentData? FeaturedEventIcon
         {
-            get => string.IsNullOrEmpty(_featuredEventIcon?.ImageUrl) && string.IsNullOrEmpty(_featuredEventIcon?.ImageHoverUrl) && string.IsNullOrEmpty(_featuredEventIcon?.Title)
-                && string.IsNullOrEmpty(_featuredEventIcon?.ClickLink) && string.IsNullOrEmpty(_featuredEventIcon?.Date) && _featuredEventIcon?.ContentType == null ? null : _featuredEventIcon;
-            set => _featuredEventIcon = value;
+            get => string.IsNullOrEmpty(field?.ImageUrl) && string.IsNullOrEmpty(field?.ImageHoverUrl) &&
+                   string.IsNullOrEmpty(field?.Title)
+                   && string.IsNullOrEmpty(field?.ClickLink) && string.IsNullOrEmpty(field?.Date) &&
+                   field?.ContentType == null
+                ? null
+                : field;
+            set;
         }
 
         [JsonPropertyName("id")]

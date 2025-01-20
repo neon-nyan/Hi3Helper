@@ -9,6 +9,9 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using WinRT;
 // ReSharper disable PartialTypeWithSinglePart
+// ReSharper disable IdentifierTypo
+// ReSharper disable InconsistentNaming
+// ReSharper disable StringLiteralTypo
 
 namespace CollapseLauncher.Helper.LauncherApiLoader.Sophon
 {
@@ -34,7 +37,11 @@ namespace CollapseLauncher.Helper.LauncherApiLoader.Sophon
         public ILauncherApi? LauncherApi { get; set; }
     }
 
-    public class LauncherGameNews
+    [JsonSourceGenerationOptions(IncludeFields = false, GenerationMode = JsonSourceGenerationMode.Metadata, IgnoreReadOnlyFields = true)]
+    [JsonSerializable(typeof(LauncherGameNews))]
+    internal sealed partial class LauncherGameNewsJsonContext : JsonSerializerContext;
+
+    public sealed class LauncherGameNews
     {
         [JsonPropertyName("retcode")] public int? ReturnCode { get; init; }
 
@@ -43,31 +50,24 @@ namespace CollapseLauncher.Helper.LauncherApiLoader.Sophon
         [JsonPropertyName("data")] public LauncherGameNewsData? Content { get; set; }
     }
 
-    public class LauncherGameNewsData
+    public sealed class LauncherGameNewsData
     {
-        private List<LauncherGameNewsPost>? _newsPostTypeInfo;
-        private List<LauncherGameNewsPost>? _newsPostTypeActivity;
-        private List<LauncherGameNewsPost>? _newsPostTypeAnnouncement;
-
-        private List<LauncherGameNewsCarousel>? _newsCarousel;
-        private List<LauncherGameNewsPost>?     _newsPost;
-
-        public HoYoPlayGameInfoField GameInfoField { get; init; } = new HoYoPlayGameInfoField();
+        public HoYoPlayGameInfoField GameInfoField { get; init; } = new();
 
         [JsonPropertyName("adv")] public LauncherGameNewsBackground? Background { get; set; }
 
         [JsonPropertyName("banner")]
-        public List<LauncherGameNewsCarousel>? NewsCarousel 
+        public List<LauncherGameNewsCarousel>? NewsCarousel
         {
-            get => _newsCarousel;
-            set => _newsCarousel = value?.OrderBy(x => x.CarouselOrder).ToList();
+            get;
+            set => field = value?.OrderBy(x => x.CarouselOrder).ToList();
         }
 
         [JsonPropertyName("post")]
         public List<LauncherGameNewsPost>? NewsPost
         {
-            get => _newsPost;
-            set => _newsPost = value?.OrderBy(x => x.PostOrder).ToList();
+            get;
+            set => field = value?.OrderBy(x => x.PostOrder).ToList();
         }
 
         [JsonPropertyName("icon")] public List<LauncherGameNewsSocialMedia>? SocialMedia { get; set; }
@@ -82,15 +82,15 @@ namespace CollapseLauncher.Helper.LauncherApiLoader.Sophon
                     return null;
                 }
 
-                if (_newsPostTypeInfo != null)
+                if (field != null)
                 {
-                    return _newsPostTypeInfo;
+                    return field;
                 }
 
-                _newsPostTypeInfo = NewsPost.Where(x => x.PostType == LauncherGameNewsPostType.POST_TYPE_INFO)
-                                            .OrderBy(x => x.PostOrder)
-                                            .ToList();
-                return _newsPostTypeInfo;
+                field = NewsPost.Where(x => x.PostType == LauncherGameNewsPostType.POST_TYPE_INFO)
+                                .OrderBy(x => x.PostOrder)
+                                .ToList();
+                return field;
             }
         }
 
@@ -104,15 +104,15 @@ namespace CollapseLauncher.Helper.LauncherApiLoader.Sophon
                     return null;
                 }
 
-                if (_newsPostTypeActivity != null)
+                if (field != null)
                 {
-                    return _newsPostTypeActivity;
+                    return field;
                 }
 
-                _newsPostTypeActivity = NewsPost.Where(x => x.PostType == LauncherGameNewsPostType.POST_TYPE_ACTIVITY)
-                                                .OrderBy(x => x.PostOrder)
-                                                .ToList();
-                return _newsPostTypeActivity;
+                field = NewsPost.Where(x => x.PostType == LauncherGameNewsPostType.POST_TYPE_ACTIVITY)
+                                .OrderBy(x => x.PostOrder)
+                                .ToList();
+                return field;
             }
         }
 
@@ -126,16 +126,16 @@ namespace CollapseLauncher.Helper.LauncherApiLoader.Sophon
                     return null;
                 }
 
-                if (_newsPostTypeAnnouncement != null)
+                if (field != null)
                 {
-                    return _newsPostTypeAnnouncement;
+                    return field;
                 }
 
-                _newsPostTypeAnnouncement = NewsPost
-                                           .Where(x => x.PostType == LauncherGameNewsPostType.POST_TYPE_ANNOUNCE)
-                                           .OrderBy(x => x.PostOrder)
-                                           .ToList();
-                return _newsPostTypeAnnouncement;
+                field = NewsPost
+                       .Where(x => x.PostType == LauncherGameNewsPostType.POST_TYPE_ANNOUNCE)
+                       .OrderBy(x => x.PostOrder)
+                       .ToList();
+                return field;
             }
         }
 
@@ -145,7 +145,7 @@ namespace CollapseLauncher.Helper.LauncherApiLoader.Sophon
             InjectDownloadableItemCancelTokenInner(SocialMedia,  launcherApi, token);
         }
 
-        private void InjectDownloadableItemCancelTokenInner<T>(IEnumerable<T>? prop, ILauncherApi? launcherApi, CancellationToken token)
+        private static void InjectDownloadableItemCancelTokenInner<T>(IEnumerable<T>? prop, ILauncherApi? launcherApi, CancellationToken token)
             where T : ILauncherGameNewsDataTokenized
         {
             if (prop == null)
@@ -206,14 +206,11 @@ namespace CollapseLauncher.Helper.LauncherApiLoader.Sophon
 
         public ILauncherApi? LauncherApi { get; set; }
 
-        private HttpClient? _httpClient;
-        public HttpClient? CurrentHttpClient { get => _httpClient ??= LauncherApi?.ApiResourceHttpClient; }
+        public HttpClient? CurrentHttpClient { get => field ??= LauncherApi?.ApiResourceHttpClient; }
     }
 
     public class LauncherGameNewsCarousel : LauncherUIResourceBase, ILauncherGameNewsDataTokenized
     {
-        private readonly string? _carouselImg;
-
         [JsonIgnore] public CancellationToken? InnerToken { get; set; }
 
         [JsonPropertyName("banner_id")] public string? CarouselId { get; init; }
@@ -226,8 +223,8 @@ namespace CollapseLauncher.Helper.LauncherApiLoader.Sophon
         [JsonConverter(typeof(SanitizeUrlStringConverter))]
         public string? CarouselImg
         {
-            get => ImageLoaderHelper.GetCachedSprites(CurrentHttpClient, _carouselImg, InnerToken ?? default);
-            init => _carouselImg = value;
+            get => ImageLoaderHelper.GetCachedSprites(CurrentHttpClient, field, InnerToken ?? default);
+            init;
         }
 
         [JsonPropertyName("url")]
@@ -244,12 +241,7 @@ namespace CollapseLauncher.Helper.LauncherApiLoader.Sophon
     [GeneratedBindableCustomProperty]
     public partial class LauncherGameNewsSocialMedia : LauncherUIResourceBase, ILauncherGameNewsDataTokenized
     {
-        private readonly string? _qrImg;
-        private readonly List<LauncherGameNewsSocialMediaQrLinks>? _qrLinks;
-        private readonly string? _iconImg;
-        private readonly string? _iconImgHover;
         private readonly string? _socialMediaUrl;
-        private readonly string? _title;
 
         [JsonIgnore] public CancellationToken? InnerToken { get; set; }
 
@@ -259,16 +251,16 @@ namespace CollapseLauncher.Helper.LauncherApiLoader.Sophon
         [JsonConverter(typeof(SanitizeUrlStringConverter))]
         public string? IconImg
         {
-            get => ImageLoaderHelper.GetCachedSprites(CurrentHttpClient, _iconImg, InnerToken ?? default);
-            init => _iconImg = value;
+            get => ImageLoaderHelper.GetCachedSprites(CurrentHttpClient, field, InnerToken ?? default);
+            init;
         }
 
         [JsonPropertyName("img_hover")]
         [JsonConverter(typeof(SanitizeUrlStringConverter))]
         public string? IconImgHover
         {
-            get => ImageLoaderHelper.GetCachedSprites(CurrentHttpClient, _iconImgHover, InnerToken ?? default);
-            init => _iconImgHover = value;
+            get => ImageLoaderHelper.GetCachedSprites(CurrentHttpClient, field, InnerToken ?? default);
+            init;
         }
 
         [JsonPropertyName("url")]
@@ -286,16 +278,16 @@ namespace CollapseLauncher.Helper.LauncherApiLoader.Sophon
         [JsonConverter(typeof(EmptyStringAsNullConverter))]
         public string? Title
         {
-            get => string.IsNullOrEmpty(_title) || (QrLinks?.Any(x => x.Title == _title) ?? false) ? null : _title;
-            init => _title = value;
+            get => string.IsNullOrEmpty(field) || (QrLinks?.Any(x => x.Title == field) ?? false) ? null : field;
+            init;
         }
 
         [JsonPropertyName("qr_img")]
         [JsonConverter(typeof(SanitizeUrlStringConverter))]
         public string? QrImg
         {
-            get => ImageLoaderHelper.GetCachedSprites(CurrentHttpClient, _qrImg, InnerToken ?? default);
-            init => _qrImg = value;
+            get => ImageLoaderHelper.GetCachedSprites(CurrentHttpClient, field, InnerToken ?? default);
+            init;
         }
 
         [JsonPropertyName("qr_desc")]
@@ -305,12 +297,12 @@ namespace CollapseLauncher.Helper.LauncherApiLoader.Sophon
         [JsonPropertyName("links")]
         public List<LauncherGameNewsSocialMediaQrLinks>? QrLinks
         {
-            get => _qrLinks;
+            get;
             init
             {
-                _qrLinks = value?.Where(x => !(string.IsNullOrEmpty(x.Url) || string.IsNullOrEmpty(x.Title))).ToList();
-                if (_qrLinks?.Count == 0)
-                    _qrLinks = null;
+                field = value?.Where(x => !(string.IsNullOrEmpty(x.Url) || string.IsNullOrEmpty(x.Title))).ToList();
+                if (field?.Count == 0)
+                    field = null;
             }
         }
 
@@ -339,8 +331,6 @@ namespace CollapseLauncher.Helper.LauncherApiLoader.Sophon
 
     public class LauncherGameNewsPost
     {
-        private readonly string? _title;
-
         [JsonPropertyName("post_id")]
         public string? PostId { get; init; }
 
@@ -358,8 +348,8 @@ namespace CollapseLauncher.Helper.LauncherApiLoader.Sophon
         [JsonConverter(typeof(EmptyStringAsNullConverter))]
         public string? Title
         {
-            get => string.IsNullOrEmpty(_title) ? PostUrl : _title;
-            init => _title = value;
+            get => string.IsNullOrEmpty(field) ? PostUrl : field;
+            init;
         }
 
         // TODO: Make sure that the value always be a number. If yes, then we

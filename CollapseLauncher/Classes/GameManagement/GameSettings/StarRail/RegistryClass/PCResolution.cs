@@ -22,11 +22,11 @@ namespace CollapseLauncher.GameSettings.StarRail
     internal class PCResolution : BaseScreenSettingData, IGameSettingsValue<PCResolution>
     {
         #region Fields
-        private const string _ValueName                        = "GraphicsSettings_PCResolution_h431323223";
-        private const string _ValueNameScreenManagerWidth      = "Screenmanager Resolution Width_h182942802";
-        private const string _ValueNameScreenManagerHeight     = "Screenmanager Resolution Height_h2627697771";
-        private const string _ValueNameScreenManagerFullscreen = "Screenmanager Fullscreen mode_h3630240806";
-        private static Size currentRes                         = ScreenProp.CurrentResolution;
+        private const           string _ValueName                        = "GraphicsSettings_PCResolution_h431323223";
+        private const           string _ValueNameScreenManagerWidth      = "Screenmanager Resolution Width_h182942802";
+        private const           string _ValueNameScreenManagerHeight     = "Screenmanager Resolution Height_h2627697771";
+        private const           string _ValueNameScreenManagerFullscreen = "Screenmanager Fullscreen mode_h3630240806";
+        private static readonly Size   currentRes                        = ScreenProp.CurrentResolution;
         #endregion
 
         #region Properties
@@ -38,7 +38,7 @@ namespace CollapseLauncher.GameSettings.StarRail
         [JsonIgnore]
         public override Size sizeRes
         {
-            get => new Size(width, height);
+            get => new(width, height);
             set
             {
                 width = value.Width < 64 ? currentRes.Width : value.Width;
@@ -120,7 +120,7 @@ namespace CollapseLauncher.GameSettings.StarRail
 #if DEBUG
                     LogWriteLine($"Loaded StarRail Settings: {_ValueName}\r\n{Encoding.UTF8.GetString(byteStr.TrimEnd((byte)0))}", LogType.Debug, true);
 #endif
-                    return byteStr.Deserialize(StarRailSettingsJSONContext.Default.PCResolution) ?? new PCResolution();
+                    return byteStr.Deserialize(StarRailSettingsJsonContext.Default.PCResolution) ?? new PCResolution();
                 }
             }
             catch (Exception ex)
@@ -144,7 +144,7 @@ namespace CollapseLauncher.GameSettings.StarRail
             {
                 if (RegistryRoot == null) throw new NullReferenceException($"Cannot save {_ValueName} since RegistryKey is unexpectedly not initialized!");
 
-                string data = this.Serialize(StarRailSettingsJSONContext.Default.PCResolution);
+                string data = this.Serialize(StarRailSettingsJsonContext.Default.PCResolution);
                 byte[] dataByte = Encoding.UTF8.GetBytes(data);
 
                 RegistryRoot.SetValue(_ValueName, dataByte, RegistryValueKind.Binary);

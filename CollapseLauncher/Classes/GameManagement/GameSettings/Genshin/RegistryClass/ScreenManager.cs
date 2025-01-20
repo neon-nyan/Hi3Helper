@@ -18,10 +18,10 @@ namespace CollapseLauncher.GameSettings.Genshin
     internal class ScreenManager : BaseScreenSettingData, IGameSettingsValue<ScreenManager>
     {
         #region Fields
-        private const  string _ValueNameScreenManagerWidth      = "Screenmanager Resolution Width_h182942802";
-        private const  string _ValueNameScreenManagerHeight     = "Screenmanager Resolution Height_h2627697771";
-        private const  string _ValueNameScreenManagerFullscreen = "Screenmanager Is Fullscreen mode_h3981298716";
-        private static Size   currentRes                        = ScreenProp.CurrentResolution;
+        private const           string _ValueNameScreenManagerWidth      = "Screenmanager Resolution Width_h182942802";
+        private const           string _ValueNameScreenManagerHeight     = "Screenmanager Resolution Height_h2627697771";
+        private const           string _ValueNameScreenManagerFullscreen = "Screenmanager Is Fullscreen mode_h3981298716";
+        private static readonly Size   currentRes                        = ScreenProp.CurrentResolution;
         #endregion
 
         #region Properties
@@ -32,7 +32,7 @@ namespace CollapseLauncher.GameSettings.Genshin
         /// </summary>
         public override Size sizeRes
         {
-            get => new Size(width, height);
+            get => new(width, height);
             set
             {
                 width = value.Width < 64 ? currentRes.Width : value.Width;
@@ -92,12 +92,12 @@ namespace CollapseLauncher.GameSettings.Genshin
             get => fullscreen switch
             {
                 1 => true,
-                _ => false,
+                _ => false
             };
             set => fullscreen = value switch
             {
                 true => 1,
-                _ => 0,
+                _ => 0
             };
         }
         #endregion
@@ -108,7 +108,7 @@ namespace CollapseLauncher.GameSettings.Genshin
         {
             try
             {
-                if (RegistryRoot == null) throw new NullReferenceException($"Cannot load Genshin Screen Manager settings as RegistryKey is unexpectedly not initialized!");
+                if (RegistryRoot == null) throw new NullReferenceException("Cannot load Genshin Screen Manager settings as RegistryKey is unexpectedly not initialized!");
 
                 object? valueWidth = RegistryRoot.GetValue(_ValueNameScreenManagerWidth, null);
                 object? valueHeight = RegistryRoot.GetValue(_ValueNameScreenManagerHeight, null);

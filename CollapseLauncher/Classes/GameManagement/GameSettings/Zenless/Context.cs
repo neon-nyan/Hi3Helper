@@ -5,4 +5,4 @@ namespace CollapseLauncher.GameSettings.Zenless.Context;
 
 [JsonSourceGenerationOptions(IncludeFields = false, GenerationMode = JsonSourceGenerationMode.Metadata, IgnoreReadOnlyFields = true)]
 [JsonSerializable(typeof(GeneralData))]
-internal sealed partial class ZenlessSettingsJSONContext : JsonSerializerContext {}
+internal sealed partial class ZenlessSettingsJsonContext : JsonSerializerContext {}

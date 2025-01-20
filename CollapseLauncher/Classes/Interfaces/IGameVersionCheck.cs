@@ -5,10 +5,13 @@ using Hi3Helper.Shared.ClassStruct;
 using Microsoft.UI.Xaml;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+// ReSharper disable CommentTypo
+// ReSharper disable GrammarMistakeInComment
+// ReSharper disable IdentifierTypo
 
 namespace CollapseLauncher.Interfaces
 {
-    internal static class IGameVersionCheckExtension
+    internal static class GameVersionCheckExtension
     {
         /// <summary>
         /// Casting the IGameVersionCheck as its origin or another version class.
@@ -67,7 +70,7 @@ namespace CollapseLauncher.Interfaces
         /// <summary>
         /// Returns or set the API properties
         /// </summary>
-        RegionResourceProp GameAPIProp { get; set; }
+        RegionResourceProp GameApiProp { get; set; }
 
         /// <summary>
         /// Returns the type of the game
@@ -88,13 +91,13 @@ namespace CollapseLauncher.Interfaces
         /// Returns the current version of the game as provided by miHoYo's API.
         /// </summary>
         /// <returns>The current version of the game</returns>
-        GameVersion? GetGameVersionAPI();
+        GameVersion? GetGameVersionApi();
 
         /// <summary>
         /// Returns the preload version of the game as provided by miHoYo's API.
         /// </summary>
         /// <returns>The preload version of the game</returns>
-        GameVersion? GetGameVersionAPIPreload();
+        GameVersion? GetGameVersionApiPreload();
 
         /// <summary>
         /// Returns the version of the game installed.<br/>

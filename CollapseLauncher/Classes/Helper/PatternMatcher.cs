@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace CollapseLauncher.Helper
@@ -28,15 +29,7 @@ namespace CollapseLauncher.Helper
         /// <returns>True if the input matches any pattern in the list; otherwise, false.</returns>
         public static bool MatchesAnyPattern(string input, List<string> patterns)
         {
-            foreach (string pattern in patterns)
-            {
-                if (MatchSimpleExpression(input, pattern))
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            return patterns.Any(pattern => MatchSimpleExpression(input, pattern));
         }
     }
 }

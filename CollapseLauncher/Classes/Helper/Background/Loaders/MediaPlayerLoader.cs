@@ -44,9 +44,9 @@ namespace CollapseLauncher.Helper.Background.Loaders
         private FrameworkElement ParentUI          { get; }
         private Compositor       CurrentCompositor { get; }
 
-        private MediaPlayerElement? CurrentMediaPlayerFrame           { get; }
-        private Grid                CurrentMediaPlayerFrameParentGrid { get; }
-        private bool                IsUseVideoBGDynamicColorUpdate    { get => LauncherConfig.IsUseVideoBGDynamicColorUpdate && LauncherConfig.EnableAcrylicEffect; }
+        private        MediaPlayerElement? CurrentMediaPlayerFrame           { get; }
+        private        Grid                CurrentMediaPlayerFrameParentGrid { get; }
+        private static bool                IsUseVideoBgDynamicColorUpdate    { get => LauncherConfig.IsUseVideoBGDynamicColorUpdate && LauncherConfig.EnableAcrylicEffect; }
 
         private Grid AcrylicMask     { get; }
         private Grid OverlayTitleBar { get; }
@@ -90,7 +90,7 @@ namespace CollapseLauncher.Helper.Background.Loaders
 
         ~MediaPlayerLoader()
         {
-            LogWriteLine($"[~MediaPlayerLoader()] MediaPlayerLoader Deconstructor has been called!", LogType.Warning, true);
+            LogWriteLine("[~MediaPlayerLoader()] MediaPlayerLoader Deconstructor has been called!", LogType.Warning, true);
             Dispose();
         }
 
@@ -119,7 +119,7 @@ namespace CollapseLauncher.Helper.Background.Loaders
                 int canvasWidth  = (int)CurrentMediaPlayerFrameParentGrid.ActualWidth;
                 int canvasHeight = (int)CurrentMediaPlayerFrameParentGrid.ActualHeight;
 
-                if (IsUseVideoBGDynamicColorUpdate)
+                if (IsUseVideoBgDynamicColorUpdate)
                 {
                     CanvasDevice ??= CanvasDevice.GetSharedDevice();
                     CurrentFrameBitmap ??= new SoftwareBitmap(BitmapPixelFormat.Rgba8, canvasWidth, canvasHeight,
@@ -197,8 +197,8 @@ namespace CollapseLauncher.Helper.Background.Loaders
                     CurrentFFmpegMediaSource.CurrentVideoStream?.DecoderEngine ?? 0                 // 12
                     ), LogType.Debug, true);
 #endif
-                CurrentMediaPlayer.IsVideoFrameServerEnabled = IsUseVideoBGDynamicColorUpdate;
-                if (IsUseVideoBGDynamicColorUpdate)
+                CurrentMediaPlayer.IsVideoFrameServerEnabled = IsUseVideoBgDynamicColorUpdate;
+                if (IsUseVideoBgDynamicColorUpdate)
                 {
                     CurrentMediaPlayer.VideoFrameAvailable += FrameGrabberEvent;
                 }
@@ -226,7 +226,7 @@ namespace CollapseLauncher.Helper.Background.Loaders
                 CurrentMediaPlayer.VideoFrameAvailable -= FrameGrabberEvent;
             }
 
-            if (IsUseVideoBGDynamicColorUpdate)
+            if (IsUseVideoBgDynamicColorUpdate)
             {
                 while (IsCanvasCurrentlyDrawing)
                 {
@@ -263,7 +263,7 @@ namespace CollapseLauncher.Helper.Background.Loaders
             try
             {
                 if (buffer.AsSpan(4).StartsWith(dashSignature))
-                    throw new FormatException($"The video format is in \"MPEG-DASH\" format, which is unsupported.");
+                    throw new FormatException("The video format is in \"MPEG-DASH\" format, which is unsupported.");
             }
             finally
             {
@@ -282,7 +282,7 @@ namespace CollapseLauncher.Helper.Background.Loaders
                                                        true);
         }
 
-        private async ValueTask<StorageFile> GetFileAsStorageFile(string filePath)
+        private static async ValueTask<StorageFile> GetFileAsStorageFile(string filePath)
             => await StorageFile.GetFileFromPathAsync(filePath);
 
         private void FrameGrabberEvent(MediaPlayer mediaPlayer, object args)
@@ -363,7 +363,7 @@ namespace CollapseLauncher.Helper.Background.Loaders
         {
             if (CurrentMediaPlayerFrameParentGrid.Opacity > 0f) return;
 
-            if (!IsUseVideoBGDynamicColorUpdate)
+            if (!IsUseVideoBgDynamicColorUpdate)
             {
                 App.ToggleBlurBackdrop(false);
             }
@@ -385,7 +385,7 @@ namespace CollapseLauncher.Helper.Background.Loaders
         {
             bool isLastAcrylicEnabled = LauncherConfig.GetAppConfigValue("EnableAcrylicEffect").ToBool();
 
-            if (!IsUseVideoBGDynamicColorUpdate)
+            if (!IsUseVideoBgDynamicColorUpdate)
             {
                 App.ToggleBlurBackdrop(isLastAcrylicEnabled);
             }
@@ -406,7 +406,14 @@ namespace CollapseLauncher.Helper.Background.Loaders
 
         public async void WindowUnfocused()
         {
-            await (BackgroundMediaUtility.SharedActionBlockQueue?.SendAsync(WindowUnfocusedInner()) ?? Task.CompletedTask);
+            try
+            {
+                await (BackgroundMediaUtility.SharedActionBlockQueue?.SendAsync(WindowUnfocusedInner()) ?? Task.CompletedTask);
+            }
+            catch (Exception)
+            {
+                // ignored
+            }
         }
 
         private async Task WindowUnfocusedInner()
@@ -418,7 +425,14 @@ namespace CollapseLauncher.Helper.Background.Loaders
 
         public async void WindowFocused()
         {
-            await (BackgroundMediaUtility.SharedActionBlockQueue?.SendAsync(WindowFocusedInner()) ?? Task.CompletedTask);
+            try
+            {
+                await (BackgroundMediaUtility.SharedActionBlockQueue?.SendAsync(WindowFocusedInner()) ?? Task.CompletedTask);
+            }
+            catch (Exception)
+            {
+                // ignored
+            }
         }
 
         private async Task WindowFocusedInner()
@@ -459,14 +473,11 @@ namespace CollapseLauncher.Helper.Background.Loaders
             CurrentMediaPlayer.Volume =  current;
 
             await Task.Delay(10);
-            if (isMute && current > tTo - inc)
+            switch (isMute)
             {
-                goto Loops;
-            }
-
-            if (!isMute && current < tTo - inc)
-            {
-                goto Loops;
+                case true when current > tTo - inc:
+                case false when current < tTo - inc:
+                    goto Loops;
             }
 
             CurrentMediaPlayer.Volume = tTo;

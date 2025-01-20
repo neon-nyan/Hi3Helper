@@ -30,6 +30,12 @@ using static Hi3Helper.Data.ConverterTool;
 using static Hi3Helper.Locale;
 using static Hi3Helper.Logger;
 using static Hi3Helper.Shared.Region.LauncherConfig;
+// ReSharper disable InconsistentNaming
+// ReSharper disable CommentTypo
+// ReSharper disable IdentifierTypo
+// ReSharper disable GrammarMistakeInComment
+// ReSharper disable StringLiteralTypo
+#pragma warning disable CA1068
 
 namespace CollapseLauncher
 {
@@ -50,13 +56,13 @@ namespace CollapseLauncher
     {
         private          string?      _mainMetaRepoUrl;
         private readonly byte[]       _collapseHeader        = "Collapse"u8.ToArray();
-        private readonly List<string> _ignoredUnusedFileList = new();
+        private readonly List<string> _ignoredUnusedFileList = [];
 
         private async Task Fetch(List<FilePropertiesRemote> assetIndex, CancellationToken token)
         {
             // Set total activity string as "Loading Indexes..."
-            _status.ActivityStatus = Lang!._GameRepairPage!.Status2!;
-            _status.IsProgressAllIndetermined = true;
+            Status.ActivityStatus = Lang!._GameRepairPage!.Status2!;
+            Status.IsProgressAllIndetermined = true;
             UpdateStatus();
 
             // Initialize the Senadina File Identifier
@@ -67,8 +73,8 @@ namespace CollapseLauncher
 
             // Initialize new proxy-aware HttpClient
             using HttpClient client = new HttpClientBuilder()
-                .UseLauncherConfig(_downloadThreadCount + _downloadThreadCountReserved)
-                .SetUserAgent(_userAgent)
+                .UseLauncherConfig(DownloadThreadCount + DownloadThreadCountReserved)
+                .SetUserAgent(UserAgent)
                 .SetAllowedDecompression(DecompressionMethods.None)
                 .Create();
 
@@ -78,11 +84,11 @@ namespace CollapseLauncher
             try
             {
                 // Subscribe the fetching progress and subscribe cacheUtil progress to adapter
-                _cacheUtil!.ProgressChanged += _innerObject_ProgressAdapter;
-                _cacheUtil!.StatusChanged += _innerObject_StatusAdapter;
+                CacheUtil!.ProgressChanged += _innerObject_ProgressAdapter;
+                CacheUtil!.StatusChanged += _innerObject_StatusAdapter;
 
-                // Update thee progress bar state
-                _status.IsProgressPerFileIndetermined = true;
+                // Update the progress bar state
+                Status.IsProgressPerFileIndetermined = true;
                 UpdateStatus();
 
                 // Region: XMFAndAssetIndex
@@ -90,10 +96,12 @@ namespace CollapseLauncher
                 Dictionary<string, string> manifestDict = await FetchMetadata(token);
 
                 // Check for manifest. If it doesn't exist, then throw and warn the user
-                if (!manifestDict.ContainsKey(_gameVersion.VersionString!))
+                if (!manifestDict.TryGetValue(GameVersion.VersionString!, out string? gameRepoUrl))
                 {
-                    throw new VersionNotFoundException($"Manifest for {_gameVersionManager!.GamePreset!.ZoneName} (version: {_gameVersion.VersionString}) doesn't exist! Please contact @neon-nyan or open an issue for this!");
+                    throw new VersionNotFoundException($"Manifest for {GameVersionManager!.GamePreset!.ZoneName} (version: {GameVersion.VersionString}) doesn't exist! Please contact @neon-nyan or open an issue for this!");
                 }
+
+                GameRepoURL = gameRepoUrl;
 
                 // Initialize local audio manifest, blocks and patchConfig stream.
                 SenadinaFileIdentifier? audioManifestSenadinaFileIdentifier = null;
@@ -104,14 +112,14 @@ namespace CollapseLauncher
                 _mainMetaRepoUrl = null;
 
                 // Get the status if the current game is Senadina version.
-                GameTypeHonkaiVersion gameVersionKind = _gameVersionManager!.CastAs<GameTypeHonkaiVersion>()!;
-                int[] versionArray = gameVersionKind.GetGameVersionAPI()?.VersionArray!;
+                GameTypeHonkaiVersion gameVersionKind = GameVersionManager!.CastAs<GameTypeHonkaiVersion>()!;
+                int[] versionArray = gameVersionKind.GetGameVersionApi()?.VersionArray!;
                 bool IsSenadinaVersion = gameVersionKind.IsCurrentSenadinaVersion;
 
                 // TODO: Use FallbackCDNUtil to fetch the stream.
-                if (IsSenadinaVersion && !_isOnlyRecoverMain)
+                if (IsSenadinaVersion && !IsOnlyRecoverMain)
                 {
-                    _mainMetaRepoUrl = $"https://r2.bagelnl.my.id/cl-meta/pustaka/{_gameVersionManager!.GamePreset!.ProfileName}/{string.Join('.', versionArray)}";
+                    _mainMetaRepoUrl = $"https://r2.bagelnl.my.id/cl-meta/pustaka/{GameVersionManager!.GamePreset!.ProfileName}/{string.Join('.', versionArray)}";
 
                     // Get the Senadina File Identifier Dictionary and its file references
                     senadinaFileIdentifier = await GetSenadinaIdentifierDictionary(client, _mainMetaRepoUrl, token);
@@ -127,7 +135,7 @@ namespace CollapseLauncher
                                                                                                 SenadinaKind.wandCurrent, versionArray, _mainMetaRepoUrl, true, token);
                 }
 
-                if (!_isOnlyRecoverMain)
+                if (!IsOnlyRecoverMain)
                 {
                     // Get the list of ignored assets
                     HonkaiRepairAssetIgnore IgnoredAssetIDs = GetIgnoredAssetsProperty();
@@ -135,8 +143,8 @@ namespace CollapseLauncher
                     // Region: VideoIndex via External -> _cacheUtil: Data Fetch
                     // Fetch video index and also fetch the gateway URL
                     (string, string) gatewayURL = await FetchVideoAndGateway(downloadClient, assetIndex, IgnoredAssetIDs, token);
-                    _assetBaseURL = "http://" + gatewayURL.Item1 + '/';
-                    _gameServer = _cacheUtil?.GetCurrentGateway()!;
+                    AssetBaseURL = "http://" + gatewayURL.Item1 + '/';
+                    GameServer = CacheUtil?.GetCurrentGateway()!;
 
                     // Region: AudioIndex
                     // Try check audio manifest.m file and fetch it if it doesn't exist
@@ -144,19 +152,19 @@ namespace CollapseLauncher
                 }
 
                 // Assign the URL based on the version
-                _gameRepoURL = manifestDict[_gameVersion.VersionString!];
+                GameRepoURL = manifestDict[GameVersion.VersionString!];
 
                 // Region: XMFAndAssetIndex
                 // Fetch asset index
                 await FetchAssetIndex(assetIndex, token);
 
-                if (!_isOnlyRecoverMain)
+                if (!IsOnlyRecoverMain)
                 {
                     // Region: XMFAndAssetIndex
                     // Try check XMF file and fetch it if it doesn't exist
                     await FetchXMFFile(client, assetIndex, blocksPlatformManifestSenadinaFileIdentifier,
                         blocksBaseManifestSenadinaFileIdentifier!, blocksCurrentManifestSenadinaFileIdentifier!,
-                        patchConfigManifestSenadinaFileIdentifier!, manifestDict[_gameVersion.VersionString!], token);
+                        patchConfigManifestSenadinaFileIdentifier!, manifestDict[GameVersion.VersionString!], token);
 
                     // Remove plugin from assetIndex
                     // Skip the removal for Delta-Patch
@@ -166,8 +174,8 @@ namespace CollapseLauncher
             finally
             {
                 // Unsubscribe the fetching progress and dispose it and unsubscribe cacheUtil progress to adapter
-                _cacheUtil!.ProgressChanged -= _innerObject_ProgressAdapter;
-                _cacheUtil.StatusChanged -= _innerObject_StatusAdapter;
+                CacheUtil!.ProgressChanged -= _innerObject_ProgressAdapter;
+                CacheUtil.StatusChanged -= _innerObject_StatusAdapter;
                 senadinaFileIdentifier?.Clear();
             }
         }
@@ -183,9 +191,9 @@ namespace CollapseLauncher
             using StreamReader rd = new StreamReader(fileIdentifierStreamDecoder);
             string response = await rd.ReadToEndAsync(token);
             LogWriteLine($"[HonkaiRepair::GetSenadinaIdentifierDictionary() Dictionary Response:\r\n{response}", LogType.Debug, true);
-            return response.Deserialize(SenadinaJSONContext.Default.DictionaryStringSenadinaFileIdentifier);
+            return response.Deserialize(SenadinaJsonContext.Default.DictionaryStringSenadinaFileIdentifier);
 #else
-            return await fileIdentifierStreamDecoder.DeserializeAsync(SenadinaJSONContext.Default.DictionaryStringSenadinaFileIdentifier, token);
+            return await fileIdentifierStreamDecoder.DeserializeAsync(SenadinaJsonContext.Default.DictionaryStringSenadinaFileIdentifier, token: token);
 #endif
         }
 
@@ -216,7 +224,7 @@ namespace CollapseLauncher
         }
         #nullable disable
         
-        private async ValueTask ThrowIfFileIsNotSenadina(Stream stream, CancellationToken token)
+        private async Task ThrowIfFileIsNotSenadina(Stream stream, CancellationToken token)
         {
             ArgumentNullException.ThrowIfNull(stream);
             
@@ -228,7 +236,7 @@ namespace CollapseLauncher
 
         private void EliminatePluginAssetIndex(List<FilePropertiesRemote> assetIndex)
         {
-            _gameVersionManager.GameAPIProp.data!.plugins?.ForEach(plugin =>
+            GameVersionManager.GameApiProp.data!.plugins?.ForEach(plugin =>
               {
                   if (plugin.package?.validate == null) return;
                   assetIndex.RemoveAll(asset =>
@@ -249,7 +257,7 @@ namespace CollapseLauncher
         private HonkaiRepairAssetIgnore GetIgnoredAssetsProperty()
         {
             // Try get the parent registry key
-            RegistryKey? keys = Registry.CurrentUser.OpenSubKey(_gameVersionManager!.GamePreset!.ConfigRegistryLocation);
+            RegistryKey? keys = Registry.CurrentUser.OpenSubKey(GameVersionManager!.GamePreset!.ConfigRegistryLocation);
             if (keys == null) return HonkaiRepairAssetIgnore.CreateEmpty(); // Return an empty property if the parent key doesn't exist
 
             // Initialize the property
@@ -261,16 +269,21 @@ namespace CollapseLauncher
             if (objIgnoredAudioPCKTypes != null)
             {
                 ReadOnlySpan<byte> bytesIgnoredAudioPckTypes = (byte[])objIgnoredAudioPCKTypes;
-                IgnoredAudioPCKTypes = bytesIgnoredAudioPckTypes.Deserialize(InternalAppJSONContext.Default.AudioPCKTypeArray) ?? IgnoredAudioPCKTypes;
+                IgnoredAudioPCKTypes = bytesIgnoredAudioPckTypes.Deserialize(GenericJsonContext.Default.AudioPCKTypeArray) ?? IgnoredAudioPCKTypes;
             }
 
             // Try get the values of the registry key of the Video CG ignored list
             object? objIgnoredVideoCGSubCategory = keys.GetValue("GENERAL_DATA_V2_DeletedCGPackages_h2282700200");
-            if (objIgnoredVideoCGSubCategory != null)
+            if (objIgnoredVideoCGSubCategory == null)
             {
-                ReadOnlySpan<byte> bytesIgnoredVideoCGSubCategory = (byte[])objIgnoredVideoCGSubCategory;
-                IgnoredVideoCGSubCategory = bytesIgnoredVideoCGSubCategory.Deserialize(InternalAppJSONContext.Default.Int32Array) ?? IgnoredVideoCGSubCategory;
+                return new HonkaiRepairAssetIgnore
+                {
+                    IgnoredAudioPCKType = IgnoredAudioPCKTypes, IgnoredVideoCGSubCategory = IgnoredVideoCGSubCategory
+                };
             }
+
+            ReadOnlySpan<byte> bytesIgnoredVideoCGSubCategory = (byte[])objIgnoredVideoCGSubCategory;
+            IgnoredVideoCGSubCategory = bytesIgnoredVideoCGSubCategory.Deserialize(GenericJsonContext.Default.Int32Array) ?? IgnoredVideoCGSubCategory;
 
             // Return the property value
             return new HonkaiRepairAssetIgnore { IgnoredAudioPCKType = IgnoredAudioPCKTypes, IgnoredVideoCGSubCategory = IgnoredVideoCGSubCategory };
@@ -282,16 +295,18 @@ namespace CollapseLauncher
         private async Task<(string, string)> FetchVideoAndGateway(DownloadClient downloadClient, List<FilePropertiesRemote> assetIndex, HonkaiRepairAssetIgnore ignoredAssetIDs, CancellationToken token)
         {
             // Fetch data cache file only and get the gateway
-            (List<CacheAsset>, string, string, int) cacheProperty = await _cacheUtil!.GetCacheAssetList(downloadClient, CacheAssetType.Data, token);
+            (List<CacheAsset>, string, string, int) cacheProperty = await CacheUtil!.GetCacheAssetList(downloadClient, CacheAssetType.Data, token);
 
-            if (!_isOnlyRecoverMain)
+            if (IsOnlyRecoverMain)
             {
-                // Find the cache asset. If null, then return
-                CacheAsset cacheAsset = cacheProperty.Item1.Where(x => x!.N!.EndsWith($"{HashID.CGMetadata}")).FirstOrDefault();
-
-                // Deserialize and build video index into asset index
-                await BuildVideoIndex(downloadClient, cacheAsset, cacheProperty.Item2, assetIndex, ignoredAssetIDs, cacheProperty.Item4, token);
+                return (cacheProperty.Item2, cacheProperty.Item3);
             }
+
+            // Find the cache asset. If null, then return
+            CacheAsset cacheAsset = cacheProperty.Item1.FirstOrDefault(x => x!.N!.EndsWith($"{HashID.CGMetadata}"));
+
+            // Deserialize and build video index into asset index
+            await BuildVideoIndex(downloadClient, cacheAsset, cacheProperty.Item2, assetIndex, ignoredAssetIDs, cacheProperty.Item4, token);
 
             // Return the gateway URL including asset bundle and asset cache
             return (cacheProperty.Item2, cacheProperty.Item3);
@@ -300,18 +315,25 @@ namespace CollapseLauncher
         private async Task BuildVideoIndex(DownloadClient downloadClient, CacheAsset cacheAsset, string assetBundleURL, List<FilePropertiesRemote> assetIndex, HonkaiRepairAssetIgnore ignoredAssetIDs, int luckyNumber, CancellationToken token)
         {
             // Get the remote stream and use CacheStream
-            await using Stream memoryStream = new MemoryStream();
-            if (downloadClient == null) throw new ObjectDisposedException("RepairManagement::Honkai::Fetch:BuildVideoIndex() error!" +
-                                                                          "\r\n downloadClient is unexpectedly disposed.");
-            ArgumentNullException.ThrowIfNull(cacheAsset);
-            // Download the cache and store it to MemoryStream
-            await downloadClient.DownloadAsync(cacheAsset.ConcatURL, memoryStream, false, cancelToken: token);
-            memoryStream.Position = 0;
+            await using MemoryStream memoryStream = new MemoryStream();
+            if (downloadClient != null)
+            {
+                ArgumentNullException.ThrowIfNull(cacheAsset);
+                // Download the cache and store it to MemoryStream
+                await downloadClient.DownloadAsync(cacheAsset.ConcatURL, memoryStream, false, cancelToken: token);
+                memoryStream.Position = 0;
 
-            // Use CacheStream to decrypt and read it as Stream
-            await using CacheStream cacheStream = new CacheStream(memoryStream, true, luckyNumber);
-            // Enumerate and iterate the metadata to asset index
-            await BuildAndEnumerateVideoVersioningFile(token, CGMetadata.Enumerate(cacheStream, Encoding.UTF8), assetIndex, ignoredAssetIDs, assetBundleURL);
+                // Use CacheStream to decrypt and read it as Stream
+                await using CacheStream cacheStream = new CacheStream(memoryStream, true, luckyNumber);
+                // Enumerate and iterate the metadata to asset index
+                await BuildAndEnumerateVideoVersioningFile(token,      CGMetadata.Enumerate(cacheStream, Encoding.UTF8),
+                                                           assetIndex, ignoredAssetIDs, assetBundleURL);
+            }
+            else
+            {
+                throw new ObjectDisposedException("RepairManagement::Honkai::Fetch:BuildVideoIndex() error!" +
+                                                  "\r\n downloadClient is unexpectedly disposed.");
+            }
         }
 
         private async Task BuildAndEnumerateVideoVersioningFile(CancellationToken token, IEnumerable<CGMetadata> enumEntry, List<FilePropertiesRemote> assetIndex, HonkaiRepairAssetIgnore ignoredAssetIDs, string assetBundleURL)
@@ -322,21 +344,21 @@ namespace CollapseLauncher
             string baseURL = CombineURLFromString((GetAppConfigValue("EnableHTTPRepairOverride").ToBool() ? "http://" : "https://") + assetBundleURL, "/Video/");
 
             // Get FileInfo of the version.txt file
-            FileInfo fileInfo = new FileInfo(Path.Combine(_gamePath!, NormalizePath(_videoBaseLocalPath)!, "Version.txt"))
+            FileInfo fileInfo = new FileInfo(Path.Combine(GamePath!, NormalizePath(VideoBaseLocalPath)!, "Version.txt"))
                 .EnsureCreationOfDirectory()
                 .EnsureNoReadOnly();
 
             // Build video versioning file
-            await using TextWriter sw = fileInfo.CreateText();
+            await using StreamWriter sw = fileInfo.CreateText();
 
             // Initialize concurrent queue for video metadata
-            ConcurrentDictionary<string, CGMetadata> videoMetadataQueue = new ConcurrentDictionary<string, CGMetadata>();
+            ConcurrentDictionary<string, CGMetadata> videoMetadataQueue = new();
 
             // Iterate the metadata to be converted into asset index
             await Parallel.ForEachAsync(enumEntry!, new ParallelOptions
             {
                 CancellationToken      = token,
-                MaxDegreeOfParallelism = _threadCount
+                MaxDegreeOfParallelism = ThreadCount
             }, async (metadata, tokenInternal) =>
                {
                    // Only add remote available videos (not build-in) and check if the CG file is available in the server
@@ -347,12 +369,12 @@ namespace CollapseLauncher
 
                #if DEBUG
                    if (isCGIgnored)
-                       LogWriteLine($"Ignoring CG Category: {metadata.CgSubCategory} {(_audioLanguage == AudioLanguageType.Japanese ? metadata.CgPathHighBitrateJP : metadata.CgPathHighBitrateCN)}", LogType.Debug, true);
+                       LogWriteLine($"Ignoring CG Category: {metadata.CgSubCategory} {(AudioLanguage == AudioLanguageType.Japanese ? metadata.CgPathHighBitrateJP : metadata.CgPathHighBitrateCN)}", LogType.Debug, true);
                #endif
 
                    if (!metadata.InStreamingAssets && isCGAvailable && !isCGIgnored)
                    {
-                       string name = (_audioLanguage == AudioLanguageType.Japanese ? metadata.CgPathHighBitrateJP : metadata.CgPathHighBitrateCN) + ".usm";
+                       string name = (AudioLanguage == AudioLanguageType.Japanese ? metadata.CgPathHighBitrateJP : metadata.CgPathHighBitrateCN) + ".usm";
                        _ = videoMetadataQueue.TryAdd(name, metadata);
                    }
                });
@@ -361,16 +383,16 @@ namespace CollapseLauncher
             {
                 assetIndex.Add(new FilePropertiesRemote
                 {
-                    N = CombineURLFromString(_videoBaseLocalPath, metadata.Key),
+                    N = CombineURLFromString(VideoBaseLocalPath, metadata.Key),
                     RN = CombineURLFromString(baseURL, metadata.Key),
-                    S = _audioLanguage == AudioLanguageType.Japanese ? metadata.Value.FileSizeHighBitrateJP : metadata.Value.FileSizeHighBitrateCN,
+                    S = AudioLanguage == AudioLanguageType.Japanese ? metadata.Value.FileSizeHighBitrateJP : metadata.Value.FileSizeHighBitrateCN,
                     FT = FileType.Video
                 });
 
                 if (!metadata.Value.InStreamingAssets)
                 {
                     // Append the versioning list
-                    await sw.WriteLineAsync("Video/" + (_audioLanguage == AudioLanguageType.Japanese ? metadata.Value.CgPathHighBitrateJP : metadata.Value.CgPathHighBitrateCN) + ".usm\t1");
+                    await sw.WriteLineAsync("Video/" + (AudioLanguage == AudioLanguageType.Japanese ? metadata.Value.CgPathHighBitrateJP : metadata.Value.CgPathHighBitrateCN) + ".usm\t1");
                 }
             }
         }
@@ -381,16 +403,16 @@ namespace CollapseLauncher
             if (cgInfo!.AppointmentDownloadScheduleID == 0) return true;
 
             // Update the status
-            _status.ActivityStatus = string.Format(Lang._GameRepairPage.Status14, cgInfo.CgExtraKey);
-            _status.IsProgressAllIndetermined = true;
-            _status.IsProgressPerFileIndetermined = true;
+            Status.ActivityStatus = string.Format(Lang._GameRepairPage.Status14, cgInfo.CgExtraKey);
+            Status.IsProgressAllIndetermined = true;
+            Status.IsProgressPerFileIndetermined = true;
             UpdateStatus();
 
             // Set the URL and try get the status
-            string cgURL = CombineURLFromString(baseURL, (_audioLanguage == AudioLanguageType.Japanese ? cgInfo.CgPathHighBitrateJP : cgInfo.CgPathHighBitrateCN) + ".usm");
+            string cgURL = CombineURLFromString(baseURL, (AudioLanguage == AudioLanguageType.Japanese ? cgInfo.CgPathHighBitrateJP : cgInfo.CgPathHighBitrateCN) + ".usm");
             UrlStatus urlStatus = await FallbackCDNUtil.GetURLStatusCode(cgURL, token);
 
-            LogWriteLine($"The CG asset: {(_audioLanguage == AudioLanguageType.Japanese ? cgInfo.CgPathHighBitrateJP : cgInfo.CgPathHighBitrateCN)} " + 
+            LogWriteLine($"The CG asset: {(AudioLanguage == AudioLanguageType.Japanese ? cgInfo.CgPathHighBitrateJP : cgInfo.CgPathHighBitrateCN)} " + 
                          (urlStatus!.IsSuccessStatusCode ? "is" : "is not") + $" available (Status code: {urlStatus.StatusCode})", LogType.Default, true);
 
             return urlStatus.IsSuccessStatusCode;
@@ -402,16 +424,16 @@ namespace CollapseLauncher
         private async Task FetchAudioIndex(HttpClient httpClient, List<FilePropertiesRemote> assetIndex, HonkaiRepairAssetIgnore ignoredAssetIDs, SenadinaFileIdentifier senadinaFileIdentifier, CancellationToken token)
         {
             // If the gameServer is null, then just leave
-            if (_gameServer == null)
+            if (GameServer == null)
             {
                 LogWriteLine("We found that the Dispatch/GameServer has return a null. Please report this issue to Collapse's Contributor or submit an issue!", LogType.Warning, true);
                 return;
             }
 
             // Set manifest.m local path and remote URL
-            string manifestLocalPath = Path.Combine(_gamePath!, NormalizePath(_audioBaseLocalPath)!, "manifest.m");
-            string manifestRemotePath = string.Format(CombineURLFromString(_audioBaseRemotePath, _gameServer.Manifest!.ManifestAudio!.ManifestAudioPlatform!.ManifestWindows!)!, 
-                                                      $"{_gameVersion.Major}_{_gameVersion.Minor}", _gameServer.Manifest.ManifestAudio.ManifestAudioRevision);
+            string manifestLocalPath = Path.Combine(GamePath!, NormalizePath(AudioBaseLocalPath)!, "manifest.m");
+            string manifestRemotePath = string.Format(CombineURLFromString(AudioBaseRemotePath, GameServer.Manifest!.ManifestAudio!.ManifestAudioPlatform!.ManifestWindows!)!, 
+                                                      $"{GameVersion.Major}_{GameVersion.Minor}", GameServer.Manifest.ManifestAudio.ManifestAudioRevision);
 
             try
             {
@@ -427,7 +449,7 @@ namespace CollapseLauncher
             // If a throw was thrown, then try to redownload the manifest.m file and try deserialize it again
             catch (Exception ex)
             {
-                SentryHelper.ExceptionHandler(ex, SentryHelper.ExceptionType.UnhandledOther);
+                await SentryHelper.ExceptionHandlerAsync(ex, SentryHelper.ExceptionType.UnhandledOther);
                 LogWriteLine($"Exception was thrown while reading audio manifest file!\r\n{ex}", LogType.Warning, true);
             }
         }
@@ -435,13 +457,13 @@ namespace CollapseLauncher
         private void BuildAudioVersioningFile(KianaAudioManifest audioManifest, HonkaiRepairAssetIgnore ignoredAssetIDs)
         {
             // Build audio versioning file
-            using StreamWriter sw = new StreamWriter(Path.Combine(_gamePath!, NormalizePath(_audioBaseLocalPath)!, "Version.txt"), false);
+            using StreamWriter sw = new StreamWriter(Path.Combine(GamePath!, NormalizePath(AudioBaseLocalPath)!, "Version.txt"), false);
             // Edit: 2023-12-09
             // Starting from 7.1, the Audio Packages that have included in ignoredAssetIDs (which is marked as deleted) will be ignored.
             foreach (ManifestAssetInfo audioAsset in audioManifest!
                                                     .AudioAssets!
                                                     .Where(audioInfo => (audioInfo!.Language == AudioLanguageType.Common
-                                                                         || audioInfo!.Language == _audioLanguage)
+                                                                         || audioInfo!.Language == AudioLanguage)
                                                                         && !ignoredAssetIDs.IgnoredAudioPCKType.Contains(audioInfo.PckType)))
             {
                 // Only add common and language specific audio file
@@ -457,12 +479,12 @@ namespace CollapseLauncher
             await Parallel.ForEachAsync(audioManifest!
                 .AudioAssets!
                 .Where(audioInfo => (audioInfo!.Language == AudioLanguageType.Common
-                                  || audioInfo!.Language == _audioLanguage)
+                                  || audioInfo!.Language == AudioLanguage)
                                   && !ignoredAssetIDs.IgnoredAudioPCKType.Contains(audioInfo.PckType)),
                 new ParallelOptions
                 {
                     CancellationToken = token,
-                    MaxDegreeOfParallelism = _threadCount
+                    MaxDegreeOfParallelism = ThreadCount
                 }, async (audioInfo, _tokenInternal) =>
                 {
                     // Try get the availability of the audio asset
@@ -477,7 +499,7 @@ namespace CollapseLauncher
                                 if (audioInfo.IsHasPatch)
                                 {
                                     // Get the local file name and add it to ignored unused file list
-                                    string localPath = Path.Combine(_gamePath!, NormalizePath(_audioBaseLocalPath)!, audioInfo.Name + ".pck");
+                                    string localPath = Path.Combine(GamePath!, NormalizePath(AudioBaseLocalPath)!, audioInfo.Name + ".pck");
                                     _ignoredUnusedFileList.Add(localPath);
                                 }
 
@@ -485,7 +507,7 @@ namespace CollapseLauncher
                                 FilePropertiesRemote audioAsset = new FilePropertiesRemote
                                 {
                                     RN = audioInfo.Path,
-                                    N = CombineURLFromString(_audioBaseLocalPath, audioInfo.Name + ".pck"),
+                                    N = CombineURLFromString(AudioBaseLocalPath, audioInfo.Name + ".pck"),
                                     S = audioInfo.Size,
                                     FT = FileType.Audio,
                                     CRC = audioInfo.HashString,
@@ -507,13 +529,13 @@ namespace CollapseLauncher
 
             // Update the status
             // TODO: Localize
-            _status.ActivityStatus = string.Format(Lang._GameRepairPage.Status15, audioInfo.Path);
-            _status.IsProgressAllIndetermined = true;
-            _status.IsProgressPerFileIndetermined = true;
+            Status.ActivityStatus = string.Format(Lang._GameRepairPage.Status15, audioInfo.Path);
+            Status.IsProgressAllIndetermined = true;
+            Status.IsProgressPerFileIndetermined = true;
             UpdateStatus();
 
             // Set the URL and try get the status
-            string audioURL = CombineURLFromString(string.Format(_audioBaseRemotePath!, $"{_gameVersion.Major}_{_gameVersion.Minor}", _gameServer!.Manifest!.ManifestAudio!.ManifestAudioRevision), audioInfo.Path);
+            string audioURL = CombineURLFromString(string.Format(AudioBaseRemotePath!, $"{GameVersion.Major}_{GameVersion.Minor}", GameServer!.Manifest!.ManifestAudio!.ManifestAudioRevision), audioInfo.Path);
             UrlStatus urlStatus = await FallbackCDNUtil.GetURLStatusCode(audioURL, token);
 
             LogWriteLine($"The audio asset: {audioInfo.Path} " + (urlStatus!.IsSuccessStatusCode ? "is" : "is not") + $" available (Status code: {urlStatus.StatusCode})", LogType.Default, true);
@@ -530,13 +552,13 @@ namespace CollapseLauncher
             // Start downloading manifest.m
             if (originalFile != null)
             {
-                await DoCopyStreamProgress(originalFile, localFile, token);
+                await DoCopyStreamProgress(originalFile, localFile, token: token);
             }
 
             Stream networkStream = senadinaFileIdentifier.fileStream;
 
             // Deserialize the manifest
-            return new KianaAudioManifest(networkStream, _gameVersion.VersionArrayManifest, true);
+            return new KianaAudioManifest(networkStream, GameVersion.VersionArrayManifest, true);
         }
         #endregion
 
@@ -545,17 +567,17 @@ namespace CollapseLauncher
         private async Task<Dictionary<string, string>> FetchMetadata(CancellationToken token)
         {
             // Set metadata URL
-            string urlMetadata = string.Format(AppGameRepoIndexURLPrefix, _gameVersionManager!.GamePreset!.ProfileName);
+            string urlMetadata = string.Format(AppGameRepoIndexURLPrefix, GameVersionManager!.GamePreset!.ProfileName);
 
             // Start downloading metadata using FallbackCDNUtil
             await using BridgedNetworkStream stream = await FallbackCDNUtil.TryGetCDNFallbackStream(urlMetadata, token);
-            return await stream!.DeserializeAsync(CoreLibraryJSONContext.Default.DictionaryStringString, token);
+            return await stream!.DeserializeAsync(CoreLibraryJsonContext.Default.DictionaryStringString, token: token);
         }
 
         private async Task FetchAssetIndex(List<FilePropertiesRemote> assetIndex, CancellationToken token)
         {
             // Set asset index URL
-            string urlIndex = string.Format(AppGameRepairIndexURLPrefix, _gameVersionManager!.GamePreset!.ProfileName, _gameVersion.VersionString) + ".binv2";
+            string urlIndex = string.Format(AppGameRepairIndexURLPrefix, GameVersionManager!.GamePreset!.ProfileName, GameVersion.VersionString) + ".binv2";
 
             // Start downloading asset index using FallbackCDNUtil
             await using BridgedNetworkStream stream = await FallbackCDNUtil.TryGetCDNFallbackStream(urlIndex, token);
@@ -571,26 +593,29 @@ namespace CollapseLauncher
             LogWriteLine($"[HonkaiRepair::DeserializeAssetIndexV2()] Asset index V2 has been deserialized with: {pkgVersionEntries!.Count} assets found." +
                          $"Asset index was generated at: {timestamp} (UTC)", LogType.Default, true);
 
-            bool isOnlyRecoverMain = _isOnlyRecoverMain;
+            bool isOnlyRecoverMain = IsOnlyRecoverMain;
 
-            foreach (PkgVersionProperties pkgVersionEntry in pkgVersionEntries)
+            for (var index = pkgVersionEntries.Count - 1; index >= 0; index--)
             {
+                var pkgVersionEntry = pkgVersionEntries[index];
                 // Skip the .wmv file if main recovery check only is not performed
-                if (!isOnlyRecoverMain && Path.GetExtension(pkgVersionEntry!.remoteName)!.ToLower() == ".wmv")
+                if (!isOnlyRecoverMain && (Path.GetExtension(pkgVersionEntry!.remoteName)?
+                       .Equals(".wmv", StringComparison.OrdinalIgnoreCase) ?? false))
                     continue;
 
                 FilePropertiesRemote assetInfo = new FilePropertiesRemote
                 {
-                    FT = FileType.Generic,
-                    N = pkgVersionEntry!.remoteName,
-                    S = pkgVersionEntry!.fileSize,
+                    FT  = FileType.Generic,
+                    N   = pkgVersionEntry!.remoteName,
+                    S   = pkgVersionEntry!.fileSize,
                     CRC = pkgVersionEntry.md5,
-                    RN = CombineURLFromString(_gameRepoURL, pkgVersionEntry.remoteName)
+                    RN  = CombineURLFromString(GameRepoURL, pkgVersionEntry.remoteName)
                 };
 
-#if DEBUG
-                LogWriteLine($"[HonkaiRepair::DeserializeAssetIndexV2()] {assetInfo.PrintSummary()} found in manifest", LogType.Default, true);
-#endif
+            #if DEBUG
+                LogWriteLine($"[HonkaiRepair::DeserializeAssetIndexV2()] {assetInfo.PrintSummary()} found in manifest",
+                             LogType.Default, true);
+            #endif
                 assetIndexList!.Add(assetInfo);
             }
         }
@@ -603,12 +628,12 @@ namespace CollapseLauncher
                                         SenadinaFileIdentifier? patchConfigIdentifier, string _repoURL, CancellationToken token)
         {
             // Set Primary XMF Path
-            string xmfPriPath = Path.Combine(_gamePath!, "BH3_Data\\StreamingAssets\\Asb\\pc\\Blocks.xmf");
+            string xmfPriPath = Path.Combine(GamePath!, @"BH3_Data\StreamingAssets\Asb\pc\Blocks.xmf");
             // Set Secondary XMF Path
-            string xmfSecPath = Path.Combine(_gamePath!, $"BH3_Data\\StreamingAssets\\Asb\\pc\\Blocks_{_gameVersion.Major}_{_gameVersion.Minor}.xmf");
+            string xmfSecPath = Path.Combine(GamePath!, $@"BH3_Data\StreamingAssets\Asb\pc\Blocks_{GameVersion.Major}_{GameVersion.Minor}.xmf");
 
             // Set Manifest Platform XMF Path
-            string xmfPlatformPath = Path.Combine(_gamePath!, @"BH3_Data\StreamingAssets\Asb\pc\BlockMeta.xmf");
+            string xmfPlatformPath = Path.Combine(GamePath!, @"BH3_Data\StreamingAssets\Asb\pc\BlockMeta.xmf");
 
             // Initialize patch config info variable
             BlockPatchManifest? patchConfigInfo = null;
@@ -621,50 +646,50 @@ namespace CollapseLauncher
             using MemoryStream tempXMFStream = new();
             using MemoryStream tempXMFMetaStream = new();
 
-            await using Stream? metaBaseXMFStream = !_isOnlyRecoverMain && isPlatformXMFStreamExist ?
+            await using Stream? metaBaseXMFStream = !IsOnlyRecoverMain && isPlatformXMFStreamExist ?
                 await xmfPlatformIdentifier!.GetOriginalFileStream(_httpClient, token) :
                 null;
             if (xmfPlatformIdentifier != null)
             {
-                await using Stream? metaDataXMFStream = !_isOnlyRecoverMain ? xmfPlatformIdentifier.fileStream : null;
+                await using Stream? metaDataXMFStream = !IsOnlyRecoverMain ? xmfPlatformIdentifier.fileStream : null;
 
                 bool isEitherXMFExist = !(xmfBaseIdentifier == null && xmfCurrentIdentifier == null);
 
                 if (isEitherXMFExist)
                 {
-                    await using Stream? baseXMFStream = !_isOnlyRecoverMain && isSecondaryXMFStreamExist ?
+                    await using Stream? baseXMFStream = !IsOnlyRecoverMain && isSecondaryXMFStreamExist ?
                         await xmfCurrentIdentifier!.GetOriginalFileStream(_httpClient, token) :
                         await xmfBaseIdentifier!.GetOriginalFileStream(_httpClient, token);
                     if (xmfCurrentIdentifier != null)
                     {
-                        await using Stream? dataXMFStream = !_isOnlyRecoverMain ? xmfCurrentIdentifier.fileStream : xmfBaseIdentifier?.fileStream;
+                        await using Stream? dataXMFStream = !IsOnlyRecoverMain ? xmfCurrentIdentifier.fileStream : xmfBaseIdentifier?.fileStream;
 
                         // Fetch only RecoverMain is disabled
-                        await using (FileStream fs1 = new FileStream(EnsureCreationOfDirectory(!_isOnlyRecoverMain ? xmfSecPath : xmfPriPath), FileMode.Create, FileAccess.ReadWrite))
+                        await using (FileStream fs1 = new FileStream(EnsureCreationOfDirectory(!IsOnlyRecoverMain ? xmfSecPath : xmfPriPath), FileMode.Create, FileAccess.ReadWrite))
                         {
                             // Download the secondary XMF into MemoryStream
                             if (baseXMFStream != null)
                             {
-                                await DoCopyStreamProgress(baseXMFStream, fs1, token);
+                                await DoCopyStreamProgress(baseXMFStream, fs1, token: token);
                             }
 
                             // Copy the secondary XMF into primary XMF if _isOnlyRecoverMain == false
-                            if (!_isOnlyRecoverMain)
+                            if (!IsOnlyRecoverMain)
                             {
                                 await using FileStream fs2 = new FileStream(EnsureCreationOfDirectory(xmfPriPath), FileMode.Create, FileAccess.Write);
                                 fs1.Position = 0;
-                                await fs1.CopyToAsync(fs2);
+                                await fs1.CopyToAsync(fs2, token);
                             }
                         }
 
                         // Get the estimated size of the local xmf size
-                        FileInfo xmfFileInfoLocal = new FileInfo(_isOnlyRecoverMain ? xmfPriPath : xmfSecPath);
+                        FileInfo xmfFileInfoLocal = new FileInfo(IsOnlyRecoverMain ? xmfPriPath : xmfSecPath);
                         long?    estimatedXmfSize = !xmfFileInfoLocal.Exists ? null : xmfFileInfoLocal.Length;
 
                         // Copy the source stream into temporal stream
                         if (dataXMFStream != null)
                         {
-                            await DoCopyStreamProgress(dataXMFStream, tempXMFStream, token, estimatedXmfSize);
+                            await DoCopyStreamProgress(dataXMFStream, tempXMFStream, estimatedXmfSize, token);
                         }
                     }
 
@@ -672,7 +697,7 @@ namespace CollapseLauncher
                 }
 
                 // Download the platform XMF file if exist
-                if (!_isOnlyRecoverMain)
+                if (!IsOnlyRecoverMain)
                 {
                     // Create the filestream
                     await using FileStream fsMeta = new FileStream(EnsureCreationOfDirectory(xmfPlatformPath), FileMode.Create, FileAccess.Write);
@@ -680,7 +705,7 @@ namespace CollapseLauncher
                     // Download the platform XMF (RAW) into FileStream
                     if (metaBaseXMFStream != null)
                     {
-                        await DoCopyStreamProgress(metaBaseXMFStream, fsMeta, token);
+                        await DoCopyStreamProgress(metaBaseXMFStream, fsMeta, token: token);
                     }
 
                     // Download the platform XMF (Data) into FileStream
@@ -689,21 +714,21 @@ namespace CollapseLauncher
                 }
 
                 // Fetch for PatchConfig.xmf file if available (Block patch metadata)
-                if (!_isOnlyRecoverMain && isPatchConfigXMFStreamExist)
+                if (!IsOnlyRecoverMain && isPatchConfigXMFStreamExist)
                 {
                     patchConfigInfo = await FetchPatchConfigXMFFile(isEitherXMFExist ? tempXMFStream : tempXMFMetaStream, patchConfigIdentifier, _httpClient, token);
                 }
 
                 // After all completed, then Deserialize the XMF to build the asset index
-                BuildBlockIndex(assetIndex, patchConfigInfo, _isOnlyRecoverMain ? xmfPriPath : xmfSecPath, isEitherXMFExist ? tempXMFStream : tempXMFMetaStream, !isEitherXMFExist);
+                BuildBlockIndex(assetIndex, patchConfigInfo, IsOnlyRecoverMain ? xmfPriPath : xmfSecPath, isEitherXMFExist ? tempXMFStream : tempXMFMetaStream, !isEitherXMFExist);
             }
 
         #nullable restore
         }
 
         // ReSharper disable once UnusedParameter.Local
-        private async Task<BlockPatchManifest> FetchPatchConfigXMFFile(Stream xmfStream, SenadinaFileIdentifier patchConfigFileIdentifier, 
-                                                                       HttpClient httpClient, CancellationToken token)
+        private static async Task<BlockPatchManifest> FetchPatchConfigXMFFile(Stream xmfStream, SenadinaFileIdentifier patchConfigFileIdentifier, 
+                                                                              HttpClient httpClient, CancellationToken token)
         {
             // Start downloading XMF and load it to MemoryStream first
             using MemoryStream mfs = new MemoryStream();
@@ -733,9 +758,8 @@ namespace CollapseLauncher
                 // Check if the patch info exist for current block, then assign blockPatchInfo
                 BlockPatchInfo? blockPatchInfo = null;
 
-                if (patchInfo != null && patchInfo.NewBlockCatalog!.ContainsKey(xmfParser.BlockEntry![i]!.HashString!))
+                if (patchInfo != null && patchInfo.NewBlockCatalog!.TryGetValue(xmfParser.BlockEntry![i]!.HashString!, out int blockPatchInfoIndex))
                 {
-                    int blockPatchInfoIndex = patchInfo.NewBlockCatalog[xmfParser.BlockEntry[i]!.HashString!];
                     blockPatchInfo = patchInfo.PatchAsset![blockPatchInfoIndex];
                 }
 
@@ -743,11 +767,13 @@ namespace CollapseLauncher
                 if (blockPatchInfo.HasValue)
                 {
                     // Enumerate the pairs to get the old file names
-                    foreach (BlockOldPatchInfo pairs in blockPatchInfo.Value.PatchPairs)
+                    for (var index = blockPatchInfo.Value.PatchPairs.Count - 1; index >= 0; index--)
                     {
+                        var pairs = blockPatchInfo.Value.PatchPairs[index];
                         // Get the local path and check if the file exists and does not listed into ignored list,
                         // then add the file into the ignored list
-                        string localPath = Path.Combine(_gamePath!, NormalizePath(_blockBasePath)!, pairs.OldHashStr + ".wmv");
+                        string localPath =
+                            Path.Combine(GamePath!, NormalizePath(BlockBasePath)!, pairs.OldHashStr + ".wmv");
                         if (File.Exists(localPath) && !_ignoredUnusedFileList.Contains(localPath))
                             _ignoredUnusedFileList.Add(localPath);
                     }
@@ -756,8 +782,8 @@ namespace CollapseLauncher
                 // Assign as FilePropertiesRemote
                 FilePropertiesRemote assetInfo = new FilePropertiesRemote
                 {
-                    N = CombineURLFromString(_blockBasePath, xmfParser.BlockEntry![i]!.HashString + ".wmv")!,
-                    RN = CombineURLFromString(_blockAsbBaseURL, xmfParser.BlockEntry[i]!.HashString + ".wmv")!,
+                    N = CombineURLFromString(BlockBasePath, xmfParser.BlockEntry![i]!.HashString + ".wmv")!,
+                    RN = CombineURLFromString(BlockAsbBaseURL, xmfParser.BlockEntry[i]!.HashString + ".wmv")!,
                     S = xmfParser.BlockEntry[i]!.Size,
                     CRC = xmfParser.BlockEntry[i]!.HashString!,
                     FT = FileType.Block,
@@ -769,7 +795,7 @@ namespace CollapseLauncher
             }
 
             // Write the blockVerifiedVersion based on secondary XMF
-            File.WriteAllText(Path.Combine(_gamePath!, NormalizePath(_blockBasePath)!, "blockVerifiedVersion.txt"), string.Join('_', xmfParser.Version!));
+            File.WriteAllText(Path.Combine(GamePath!, NormalizePath(BlockBasePath)!, "blockVerifiedVersion.txt"), string.Join('_', xmfParser.Version!));
         }
 #nullable disable
 
@@ -779,10 +805,10 @@ namespace CollapseLauncher
             List<FilePropertiesRemote> assetIndexFiltered = assetIndex!.Where(x => x!.FT != FileType.Video).ToList();
 
             // Sum the assetIndex size and assign to _progressAllSize
-            _progressAllSizeTotal = assetIndexFiltered.Sum(x => x!.S);
+            ProgressAllSizeTotal = assetIndexFiltered.Sum(x => x!.S);
 
             // Assign the assetIndex count to _progressAllCount
-            _progressAllCountTotal = assetIndexFiltered.Count;
+            ProgressAllCountTotal = assetIndexFiltered.Count;
         }
         #endregion
     }

@@ -28,7 +28,7 @@ namespace CollapseLauncher.InstallManager.Genshin
     {
         #region Override Properties
 
-        protected override int _gameVoiceLanguageID => _gameVersionManager.GamePreset.GetVoiceLanguageID();
+        protected override int _gameVoiceLanguageID => GameVersionManager.GamePreset.GetVoiceLanguageID();
 
         #endregion
 
@@ -75,7 +75,7 @@ namespace CollapseLauncher.InstallManager.Genshin
         public override async ValueTask<bool> IsPreloadCompleted(CancellationToken token)
         {
             // Get the primary file first check
-            List<RegionResourceVersion>? resource = _gameVersionManager.GetGamePreloadZip();
+            List<RegionResourceVersion>? resource = GameVersionManager.GetGamePreloadZip();
 
             // Sanity Check: throw if resource returns null
             if (resource == null)
@@ -90,7 +90,7 @@ namespace CollapseLauncher.InstallManager.Genshin
                                                  if (string.IsNullOrEmpty(name))
                                                      return false;
 
-                                                 string path = Path.Combine(_gamePath, name);
+                                                 string path = Path.Combine(GamePath, name);
                                                  return File.Exists(path);
                                              });
 
@@ -126,7 +126,7 @@ namespace CollapseLauncher.InstallManager.Genshin
 
             // Then start on processing hdifffiles list and deletefiles list
             await ApplyHdiffListPatch();
-            await ApplyDeleteFileActionAsync(_token.Token);
+            await ApplyDeleteFileActionAsync(Token.Token);
         }
 
         private void EnsureMoveOldToNewAudioDirectory()
@@ -173,13 +173,13 @@ namespace CollapseLauncher.InstallManager.Genshin
 
         protected override UninstallGameProperty AssignUninstallFolders()
         {
-            string execName = _gameVersionManager.GamePreset.ZoneName switch
+            string execName = GameVersionManager.GamePreset.ZoneName switch
             {
                 "Global" => "GenshinImpact",
                 "Mainland China" => "YuanShen",
                 "Bilibili" => "YuanShen",
                 "Google Play" => "GenshinImpact",
-                _ => throw new NotSupportedException($"Unknown GI Game Region!: {_gameVersionManager.GamePreset.ZoneName}")
+                _ => throw new NotSupportedException($"Unknown GI Game Region!: {GameVersionManager.GamePreset.ZoneName}")
             };
 
             return new UninstallGameProperty
@@ -191,7 +191,7 @@ namespace CollapseLauncher.InstallManager.Genshin
                     "HoYoKProtect.sys", "pkg_version", $"{execName}.exe", "UnityPlayer.dll", "config.ini", "^mhyp.*",
                     "^Audio.*"
                 ],
-                foldersToKeepInData = Array.Empty<string>()
+                foldersToKeepInData = []
             };
         }
 

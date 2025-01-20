@@ -16,31 +16,30 @@ using static Hi3Helper.Data.ConverterTool;
 using static Hi3Helper.Locale;
 using static Hi3Helper.Logger;
 using static Hi3Helper.Shared.Region.LauncherConfig;
+// ReSharper disable StringLiteralTypo
 
 namespace CollapseLauncher;
 
 public sealed partial class UpdaterWindow
 {
-    private static string execPath   = Process.GetCurrentProcess().MainModule!.FileName;
+    public static string WorkingDir { get; } = AppExecutableDir;
+    public static string SourcePath { get; } = AppExecutablePath;
+    public static string ApplyPath  { get; } = Path.Combine(WorkingDir, "ApplyUpdate.exe");
     
-    public static  string workingDir = Path.GetDirectoryName(execPath);
-    public static  string sourcePath = Path.Combine(workingDir, Path.GetFileName(execPath)!);
-    public static  string applyPath  = Path.Combine(workingDir, $"ApplyUpdate.exe");
-    
-    private static string applyElevatedPath = Path.Combine(workingDir, "..\\", $"ApplyUpdate.exe");
+    private static readonly string ApplyElevatedPath = Path.Combine(WorkingDir, "..\\", "ApplyUpdate.exe");
 
-    public static string elevatedPath =
-        Path.Combine(workingDir, Path.GetFileNameWithoutExtension(sourcePath) + ".Elevated.exe");
-    public static string launcherPath = Path.Combine(workingDir, "CollapseLauncher.exe");
+    public static string ElevatedPath { get; } = Path.Combine(WorkingDir, Path.GetFileNameWithoutExtension(SourcePath) + ".Elevated.exe");
 
-    private static Stopwatch CurrentStopwatch = Stopwatch.StartNew();
+    public static string LauncherPath { get; } = Path.Combine(WorkingDir, "CollapseLauncher.exe");
+
+    private static readonly Stopwatch CurrentStopwatch = Stopwatch.StartNew();
 
     public UpdaterWindow()
     {
         InitializeComponent();
         InitializeWindowSettings();
 // ReSharper disable RedundantAssignment
-        var title = $"Collapse Launcher Updater";
+        var title = "Collapse Launcher Updater";
         if (IsPreview)
             Title = title += "[PREVIEW]";
     #if DEBUG
@@ -68,7 +67,7 @@ public sealed partial class UpdaterWindow
                     FallbackCDNUtil
                        .TryGetCDNFallbackStream($"{m_arguments.Updater.UpdateChannel.ToString().ToLower()}/fileindex.json");
             var updateInfo =
-                await metadataStream.DeserializeAsync(InternalAppJSONContext.Default.AppUpdateVersionProp, default);
+                await metadataStream.DeserializeAsync(AppUpdateVersionPropJsonContext.Default.AppUpdateVersionProp);
             NewVersionLabel.Text = updateInfo!.VersionString;
 
             // Initialize new proxy-aware HttpClient
@@ -82,7 +81,7 @@ public sealed partial class UpdaterWindow
             CurrentStopwatch.Restart();
 
             FallbackCDNUtil.DownloadProgress += FallbackCDNUtil_DownloadProgress;
-            await FallbackCDNUtil.DownloadCDNFallbackContent(downloadClient, applyElevatedPath,
+            await FallbackCDNUtil.DownloadCDNFallbackContent(downloadClient, ApplyElevatedPath,
                                                              Environment.ProcessorCount > 8
                                                                  ? 8
                                                                  : Environment.ProcessorCount,
@@ -90,7 +89,7 @@ public sealed partial class UpdaterWindow
                                                              default);
             FallbackCDNUtil.DownloadProgress -= FallbackCDNUtil_DownloadProgress;
 
-            await File.WriteAllTextAsync(Path.Combine(workingDir, "..\\", "release"),
+            await File.WriteAllTextAsync(Path.Combine(WorkingDir, "..\\", "release"),
                                          m_arguments.Updater.UpdateChannel.ToString().ToLower());
             if (updateInfo.Version != null)
             {
@@ -103,11 +102,11 @@ public sealed partial class UpdaterWindow
             await File.WriteAllTextAsync(newVerTagPath, updateInfo.VersionString);
 
             await Task.Delay(5000);
-            var applyUpdate = new Process()
+            var applyUpdate = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
-                    FileName = applyElevatedPath,
+                    FileName = ApplyElevatedPath,
                     UseShellExecute = true
                 }
             };
@@ -145,7 +144,7 @@ public sealed partial class UpdaterWindow
     {
         InitializeComponent();
         Activate();
-        WindowUtility.RegisterWindow(this);
+        this.RegisterWindow();
     }
 
     private void InitializeWindowSettings()

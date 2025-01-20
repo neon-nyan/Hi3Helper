@@ -2,9 +2,17 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
+// ReSharper disable UnusedMember.Global
+// ReSharper disable InconsistentNaming
+// ReSharper disable CommentTypo
+// ReSharper disable IdentifierTypo
 
 namespace CollapseLauncher.Helper.Metadata
 {
+    [JsonSourceGenerationOptions(IncludeFields = false, GenerationMode = JsonSourceGenerationMode.Metadata, IgnoreReadOnlyFields = true)]
+    [JsonSerializable(typeof(GeneralDataProp))]
+    internal sealed partial class GeneralDataPropJsonContext : JsonSerializerContext;
+
     // WARNING!!!
     // This feature is only available for Genshin.
     [SuppressMessage("ReSharper", "RedundantDefaultMemberInitializer")]
@@ -69,8 +77,8 @@ namespace CollapseLauncher.Helper.Metadata
         public double       uiPaperWhite                                  { get; set; } = 0.0f;
         public double       scenePaperWhite                               { get; set; } = 0.0f;
         public double       gammaValue                                    { get; set; } = 2.200000047683716;
-        public List<string> _overrideControllerMapKeyList                 { get; set; } = new();
-        public List<string> _overrideControllerMapValueList               { get; set; } = new();
+        public List<string> _overrideControllerMapKeyList                 { get; set; } = [];
+        public List<string> _overrideControllerMapValueList               { get; set; } = [];
         public bool         rewiredDisableKeyboard                        { get; set; } = false;
         public bool         rewiredEnableKeyboard                         { get; set; } = false;
         public bool         rewiredEnableEDS                              { get; set; } = false;
@@ -89,10 +97,10 @@ namespace CollapseLauncher.Helper.Metadata
         public int          mtrAutoTraceInterval                          { get; set; } = 3600;
         public int          mtrTraceCDEachReason                          { get; set; } = 600;
         public int          mtrTimeInterval                               { get; set; } = 1000;
-        public List<string> mtrBanReasons                                 { get; set; } = new();
-        public List<string> _customDataKeyList                            { get; set; } = new();
-        public List<string> _customDataValueList                          { get; set; } = new();
-        public List<int>    _serializedCodeSwitches                       { get; set; } = new();
+        public List<string> mtrBanReasons                                 { get; set; } = [];
+        public List<string> _customDataKeyList                            { get; set; } = [];
+        public List<string> _customDataValueList                          { get; set; } = [];
+        public List<int>    _serializedCodeSwitches                       { get; set; } = [];
         public bool         urlCheckCached                                { get; set; } = false;
         public bool         urlCheckIsOpen                                { get; set; } = false;
         public bool         urlCheckAllIP                                 { get; set; } = false;
@@ -102,7 +110,7 @@ namespace CollapseLauncher.Helper.Metadata
         public int          urlCheckAbortTimeOutCount                     { get; set; } = 3;
         public int          urlCheckTimeInterval                          { get; set; } = 1000;
         public int          urlCheckCDEachReason                          { get; set; } = 600;
-        public List<string> urlCheckBanReasons                            { get; set; } = new();
+        public List<string> urlCheckBanReasons                            { get; set; } = [];
         public bool         mtrUseOldWinVersion                           { get; set; } = false;
     }
 }

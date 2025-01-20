@@ -2,14 +2,18 @@
 using CollapseLauncher.GameSettings;
 using CollapseLauncher.GameSettings.Honkai;
 using CollapseLauncher.GameSettings.Honkai.Enums;
+using Hi3Helper.SentryHelper;
 using Hi3Helper.Win32.Screen;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Runtime.CompilerServices;
+// ReSharper disable InconsistentNaming
+// ReSharper disable IdentifierTypo
 
 namespace CollapseLauncher.Pages
 {
@@ -18,7 +22,7 @@ namespace CollapseLauncher.Pages
     public partial class HonkaiGameSettingsPage : INotifyPropertyChanged
     {
         #region Fields
-        private int prevGraphSelect;
+        private int _prevGraphSelect;
         #endregion
 
         #region Methods
@@ -26,7 +30,7 @@ namespace CollapseLauncher.Pages
         private void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             // Raise the PropertyChanged event, passing the name of the property whose value has changed.
-            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
         #endregion
 
@@ -72,16 +76,16 @@ namespace CollapseLauncher.Pages
 
         private void ToggleRenderingSettings(bool isEnable = true)
         {
-            RenderingAccuracySelector.IsEnabled = isEnable;
-            ShadowQualitySelector.IsEnabled = isEnable;
-            ReflectionQualitySelector.IsEnabled = isEnable;
-            GameFXPostProcExpander.IsEnabled = isEnable;
-            GlobalIlluminationSelector.IsEnabled = isEnable;
-            AmbientOcclusionSelector.IsEnabled = isEnable;
-            LevelOfDetailSelector.IsEnabled = isEnable;
+            RenderingAccuracySelector.IsEnabled   = isEnable;
+            ShadowQualitySelector.IsEnabled       = isEnable;
+            ReflectionQualitySelector.IsEnabled   = isEnable;
+            GameFXPostProcExpander.IsEnabled      = isEnable;
+            GlobalIlluminationSelector.IsEnabled  = isEnable;
+            AmbientOcclusionSelector.IsEnabled    = isEnable;
+            LevelOfDetailSelector.IsEnabled       = isEnable;
             GameVolumetricLightSelector.IsEnabled = isEnable;
-            GameMaxFPSInCombatValue.IsEnabled = isEnable;
-            GameMaxFPSInMainMenuValue.IsEnabled = isEnable;
+            GameMaxFPSInCombatValue.IsEnabled     = isEnable;
+            GameMaxFPSInMainMenuValue.IsEnabled   = isEnable;
         }
 
         private void UpdatePresetRenderingSettings()
@@ -100,16 +104,16 @@ namespace CollapseLauncher.Pages
                 Settings.SettingsScreen.isfullScreen = value;
                 if (value)
                 {
-                    GameWindowResizable.IsEnabled = false;
-                    GameWindowResizable.IsChecked = false;
+                    GameWindowResizable.IsEnabled               = false;
+                    GameWindowResizable.IsChecked               = false;
                     GameResolutionFullscreenExclusive.IsEnabled = !IsCustomResolutionEnabled;
-                    GameResolutionBorderless.IsChecked = false;
+                    GameResolutionBorderless.IsChecked          = false;
                     return;
                 }
-                GameWindowResizable.IsEnabled = true;
+                GameWindowResizable.IsEnabled               = true;
                 GameResolutionFullscreenExclusive.IsEnabled = false;
                 GameResolutionFullscreenExclusive.IsChecked = false;
-                GameResolutionBorderless.IsEnabled = true;
+                GameResolutionBorderless.IsEnabled          = true;
             }
         }
 
@@ -121,14 +125,14 @@ namespace CollapseLauncher.Pages
                 Settings.SettingsCollapseScreen.UseBorderlessScreen = value;
                 if (value)
                 {
-                    GameWindowResizable.IsEnabled = false;
-                    GameWindowResizable.IsChecked = false;
+                    GameWindowResizable.IsEnabled      = false;
+                    GameWindowResizable.IsChecked      = false;
                     GameResolutionFullscreen.IsEnabled = false;
                     GameResolutionFullscreen.IsChecked = false;
                 }
                 else
                 {
-                    GameWindowResizable.IsEnabled = true;
+                    GameWindowResizable.IsEnabled      = true;
                     GameResolutionFullscreen.IsEnabled = true;
                 }
             }
@@ -147,9 +151,9 @@ namespace CollapseLauncher.Pages
                     GameCustomResolutionWidth.IsEnabled = true;
                     GameCustomResolutionHeight.IsEnabled = true;
 
-                    string[] _size = ResolutionSelected.Split('x');
-                    GameCustomResolutionWidth.Value = int.Parse(_size[0]);
-                    GameCustomResolutionHeight.Value = int.Parse(_size[1]);
+                    string[] sizes = ResolutionSelected.Split('x');
+                    GameCustomResolutionWidth.Value = int.Parse(sizes[0]);
+                    GameCustomResolutionHeight.Value = int.Parse(sizes[1]);
 
                     return;
                 }
@@ -172,11 +176,7 @@ namespace CollapseLauncher.Pages
         {
             get
             {
-                if (!IsFullscreenEnabled)
-                {
-                    return false;
-                }
-                return Settings.SettingsCollapseScreen.UseExclusiveFullscreen;
+                return IsFullscreenEnabled && Settings.SettingsCollapseScreen.UseExclusiveFullscreen;
             }
             set
             {
@@ -226,12 +226,13 @@ namespace CollapseLauncher.Pages
             get
             {
                 string res = Settings.SettingsScreen.sizeResString;
-                if (string.IsNullOrEmpty(res))
+                if (!string.IsNullOrEmpty(res))
                 {
-                    Size size = ScreenProp.CurrentResolution;
-                    return $"{size.Width}x{size.Height}";
+                    return res;
                 }
-                return res;
+
+                Size size = ScreenProp.CurrentResolution;
+                return $"{size.Width}x{size.Height}";
             }
             set => Settings.SettingsScreen.sizeResString = value;
         }
@@ -240,8 +241,8 @@ namespace CollapseLauncher.Pages
         #region FPS
         private void UpdatePresetFPS()
         {
-            OnPropertyChanged("FPSInCombat");
-            OnPropertyChanged("FPSInMainMenu");
+            OnPropertyChanged(nameof(FPSInCombat));
+            OnPropertyChanged(nameof(FPSInMainMenu));
         }
         public short FPSInCombat
         {
@@ -259,19 +260,19 @@ namespace CollapseLauncher.Pages
         #region Rendering
         private void UpdatePresetRendering()
         {
-            OnPropertyChanged("GraphicsRenderingAccuracy");
-            OnPropertyChanged("GraphicsShadowQuality");
-            OnPropertyChanged("GraphicsReflectionQuality");
-            OnPropertyChanged("IsGraphicsPostFXEnabled");
-            OnPropertyChanged("IsGraphicsPhysicsEnabled");
-            OnPropertyChanged("IsGraphicsFXHDREnabled");
-            OnPropertyChanged("IsGraphicsFXHighQualityEnabled");
-            OnPropertyChanged("IsGraphicsFXFXAAEnabled");
-            OnPropertyChanged("IsGraphicsFXDistortionEnabled");
-            OnPropertyChanged("GraphicsGlobalIllumination");
-            OnPropertyChanged("GraphicsAmbientOcclusion");
-            OnPropertyChanged("GraphicsLevelOfDetail");
-            OnPropertyChanged("GraphicsVolumetricLight");
+            OnPropertyChanged(nameof(GraphicsRenderingAccuracy));
+            OnPropertyChanged(nameof(GraphicsShadowQuality));
+            OnPropertyChanged(nameof(GraphicsReflectionQuality));
+            OnPropertyChanged(nameof(IsGraphicsPostFXEnabled));
+            OnPropertyChanged(nameof(IsGraphicsPhysicsEnabled));
+            OnPropertyChanged(nameof(IsGraphicsFXHDREnabled));
+            OnPropertyChanged(nameof(IsGraphicsFXHighQualityEnabled));
+            OnPropertyChanged(nameof(IsGraphicsFXFXAAEnabled));
+            OnPropertyChanged(nameof(IsGraphicsFXDistortionEnabled));
+            OnPropertyChanged(nameof(GraphicsGlobalIllumination));
+            OnPropertyChanged(nameof(GraphicsAmbientOcclusion));
+            OnPropertyChanged(nameof(GraphicsLevelOfDetail));
+            OnPropertyChanged(nameof(GraphicsVolumetricLight));
         }
 
         /// <summary>
@@ -279,26 +280,33 @@ namespace CollapseLauncher.Pages
         /// </summary>
         public int GraphicsRenderingAccuracy
         {
-            get => prevGraphSelect = (int)Settings.SettingsGraphics.ResolutionQuality;
+            get => _prevGraphSelect = (int)Settings.SettingsGraphics.ResolutionQuality;
             set => TryChallengeRenderingAccuracySet(value, value < 9);
         }
 
         private async void TryChallengeRenderingAccuracySet(int value, bool BypassChallenge = false)
         {
-            if (!BypassChallenge)
+            try
             {
-                prevGraphSelect = (int)Settings.SettingsGraphics.ResolutionQuality;
-                var result = await SimpleDialogs.Dialog_GraphicsVeryHighWarning(Content);
-
-                switch (result)
+                if (!BypassChallenge)
                 {
-                    case ContentDialogResult.Secondary:
-                        RenderingAccuracySelector.SelectedIndex = prevGraphSelect;
-                        break;
-                }
-            }
+                    _prevGraphSelect = (int)Settings.SettingsGraphics.ResolutionQuality;
+                    var result = await SimpleDialogs.Dialog_GraphicsVeryHighWarning(Content);
 
-            Settings.SettingsGraphics.ResolutionQuality = (SelectResolutionQuality)value;
+                    RenderingAccuracySelector.SelectedIndex = result switch
+                                                              {
+                                                                  ContentDialogResult.Secondary => _prevGraphSelect,
+                                                                  _ => RenderingAccuracySelector.SelectedIndex
+                                                              };
+                }
+
+                Settings.SettingsGraphics.ResolutionQuality = (SelectResolutionQuality)value;
+            }
+            catch (Exception e)
+            {
+                // ignored
+                await SentryHelper.ExceptionHandlerAsync(e);
+            }
         }
 
         /// <summary>
@@ -402,7 +410,7 @@ namespace CollapseLauncher.Pages
         /// </summary>
         public bool IsGraphicsFXHDREnabled
         {
-            get => !IsGraphicsPostFXEnabled ? false : Settings.SettingsGraphics.UseHDR;
+            get => IsGraphicsPostFXEnabled && Settings.SettingsGraphics.UseHDR;
             set => Settings.SettingsGraphics.UseHDR = value;
         }
 
@@ -411,7 +419,7 @@ namespace CollapseLauncher.Pages
         /// </summary>
         public bool IsGraphicsFXHighQualityEnabled
         {
-            get => !IsGraphicsPostFXEnabled ? false : Settings.SettingsGraphics.PostFXGradeBool;
+            get => IsGraphicsPostFXEnabled && Settings.SettingsGraphics.PostFXGradeBool;
             set => Settings.SettingsGraphics.PostFXGradeBool = value;
         }
 
@@ -420,7 +428,7 @@ namespace CollapseLauncher.Pages
         /// </summary>
         public bool IsGraphicsFXFXAAEnabled
         {
-            get => !IsGraphicsPostFXEnabled ? false : Settings.SettingsGraphics.UseFXAA;
+            get => IsGraphicsPostFXEnabled && Settings.SettingsGraphics.UseFXAA;
             set => Settings.SettingsGraphics.UseFXAA = value;
         }
 
@@ -429,7 +437,7 @@ namespace CollapseLauncher.Pages
         /// </summary>
         public bool IsGraphicsFXDistortionEnabled
         {
-            get => !IsGraphicsPostFXEnabled ? false : Settings.SettingsGraphics.UseDistortion;
+            get => IsGraphicsPostFXEnabled && Settings.SettingsGraphics.UseDistortion;
             set => Settings.SettingsGraphics.UseDistortion = value;
         }
 
@@ -559,17 +567,15 @@ namespace CollapseLauncher.Pages
         {
             get
             {
-                bool value                                  = Settings.SettingsCollapseMisc.UseAdvancedGameSettings;
-                if (value){AdvancedSettingsPanel.Visibility = Visibility.Visible;}
-                else AdvancedSettingsPanel.Visibility       = Visibility.Collapsed;
+                bool value = Settings.SettingsCollapseMisc.UseAdvancedGameSettings;
+                AdvancedSettingsPanel.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
                 return value;
             }
             set
-            { 
+            {
                 Settings.SettingsCollapseMisc.UseAdvancedGameSettings = value;
-                if (value) AdvancedSettingsPanel.Visibility = Visibility.Visible;
-                else AdvancedSettingsPanel.Visibility       = Visibility.Collapsed;
-            } 
+                AdvancedSettingsPanel.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
 
         public bool IsUsePreLaunchCommand
@@ -633,17 +639,12 @@ namespace CollapseLauncher.Pages
             get 
             {
                 bool value = Settings.SettingsCollapseMisc.UseGamePostExitCommand;
-
-                if (value) PostExitCommandTextBox.IsEnabled = true;
-                else PostExitCommandTextBox.IsEnabled       = false;
-
+                PostExitCommandTextBox.IsEnabled = value;
                 return value;
             }
             set
             {
-                if (value) PostExitCommandTextBox.IsEnabled = true;
-                else PostExitCommandTextBox.IsEnabled       = false;
-
+                PostExitCommandTextBox.IsEnabled = value;
                 Settings.SettingsCollapseMisc.UseGamePostExitCommand = value;
             }
         }
@@ -653,8 +654,10 @@ namespace CollapseLauncher.Pages
             get => Settings.SettingsCollapseMisc.GamePostExitCommand;
             set => Settings.SettingsCollapseMisc.GamePostExitCommand = value;
         }
-        
+
+    #pragma warning disable CA1822
         private void GameLaunchDelay_OnValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    #pragma warning restore CA1822
         {
             // clamp for negative value when clearing the number box
             if ((int)sender.Value < 0)

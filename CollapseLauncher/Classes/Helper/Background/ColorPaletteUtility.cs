@@ -229,7 +229,7 @@ namespace CollapseLauncher.Helper.Background
             catch (Exception ex)
             {
                 LogWriteLine($"{ex}", LogType.Warning, true);
-                SentryHelper.ExceptionHandler(ex, SentryHelper.ExceptionType.UnhandledOther);
+                await SentryHelper.ExceptionHandlerAsync(ex, SentryHelper.ExceptionType.UnhandledOther);
             }
 
             WColor defColor = DrawingColorToColor(new QuantizedColor(Color.FromArgb(255, defVal, defVal, defVal), 1));

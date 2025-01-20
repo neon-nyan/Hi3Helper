@@ -17,6 +17,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using static Hi3Helper.Locale;
 using static Hi3Helper.Logger;
+// ReSharper disable IdentifierTypo
+// ReSharper disable CommentTypo
+// ReSharper disable StringLiteralTypo
 
 namespace CollapseLauncher
 {
@@ -24,20 +27,20 @@ namespace CollapseLauncher
     {
         private async Task Check(List<PkgVersionProperties> assetIndex, CancellationToken token)
         {
-            List<PkgVersionProperties> brokenAssetIndex = new List<PkgVersionProperties>();
+            List<PkgVersionProperties> brokenAssetIndex = [];
 
             // Set Indetermined status as false
-            _status.IsProgressAllIndetermined = false;
-            _status.IsProgressPerFileIndetermined = false;
+            Status.IsProgressAllIndetermined = false;
+            Status.IsProgressPerFileIndetermined = false;
 
             // Show the asset entry panel
-            _status.IsAssetEntryPanelShow = true;
+            Status.IsAssetEntryPanelShow = true;
 
             // Ensure to delete the DXSetup files
-            EnsureDeleteDXSetupFiles();
+            EnsureDeleteDxSetupFiles();
 
             // Try to move persistent files to StreamingAssets
-            if (_isParsePersistentManifestSuccess) TryMovePersistentToStreamingAssets(assetIndex);
+            if (IsParsePersistentManifestSuccess) TryMovePersistentToStreamingAssets(assetIndex);
 
             // Check for any redundant files
             await CheckRedundantFiles(brokenAssetIndex, token);
@@ -45,8 +48,8 @@ namespace CollapseLauncher
             // Await the task for parallel processing
             try
             {
-                var threadCount = _threadCount;
-                var isSsd = DriveTypeChecker.IsDriveSsd(_gameStreamingAssetsPath, ILoggerHelper.GetILogger());
+                var threadCount = ThreadCount;
+                var isSsd = DriveTypeChecker.IsDriveSsd(GameStreamingAssetsPath, ILoggerHelper.GetILogger());
                 if (!isSsd)
                 {
                     threadCount = 1;
@@ -54,7 +57,7 @@ namespace CollapseLauncher
                                  $"Thread count set to {threadCount}.", LogType.Warning, true);
                 }
                 
-                var runningTask = new ConcurrentDictionary<PkgVersionProperties, byte>();
+                ConcurrentDictionary<PkgVersionProperties, byte> runningTask = new();
                 // Await the task for parallel processing
                 // and iterate assetIndex and check it using different method for each type and run it in parallel
                 await Parallel.ForEachAsync(assetIndex, new ParallelOptions { MaxDegreeOfParallelism = threadCount, CancellationToken = token }, async (asset, threadToken) =>
@@ -71,7 +74,7 @@ namespace CollapseLauncher
             catch (AggregateException ex)
             {
                 var innerExceptionsFirst = ex.Flatten().InnerExceptions.First();
-                SentryHelper.ExceptionHandler(innerExceptionsFirst, SentryHelper.ExceptionType.UnhandledOther);
+                await SentryHelper.ExceptionHandlerAsync(innerExceptionsFirst, SentryHelper.ExceptionType.UnhandledOther);
                 throw innerExceptionsFirst;
             }
 
@@ -80,18 +83,18 @@ namespace CollapseLauncher
             assetIndex.AddRange(brokenAssetIndex);
         }
 
-        private void EnsureDeleteDXSetupFiles()
+        private void EnsureDeleteDxSetupFiles()
         {
             // Check if the DXSETUP file is exist, then delete it.
             // The DXSETUP files causes some false positive detection of data modification
             // for some games (like Genshin, which causes 4302-x error for some reason)
-            string dxSetupDir = Path.Combine(_gamePath, "DXSETUP");
+            string dxSetupDir = Path.Combine(GamePath, "DXSETUP");
             TryDeleteReadOnlyDir(dxSetupDir);
         }
 
         private void TryMovePersistentToStreamingAssets(IEnumerable<PkgVersionProperties> assetIndex)
         {
-            if (!Directory.Exists(_gamePersistentPath)) return;
+            if (!Directory.Exists(GamePersistentPath)) return;
             TryMoveAudioPersistent(assetIndex);
             TryMoveVideoPersistent();
         }
@@ -108,13 +111,13 @@ namespace CollapseLauncher
                 .ToArray();
 
             // Get the audio directory paths and create if it doesn't exist
-            string audioAsbPath = Path.Combine(_gameStreamingAssetsPath, "AudioAssets");
-            string audioPersistentPath = Path.Combine(_gamePersistentPath, "AudioAssets");
+            string audioAsbPath = Path.Combine(GameStreamingAssetsPath, "AudioAssets");
+            string audioPersistentPath = Path.Combine(GamePersistentPath, "AudioAssets");
             if (!Directory.Exists(audioPersistentPath)) return;
             if (!Directory.Exists(audioAsbPath)) Directory.CreateDirectory(audioAsbPath);
 
             // Get the list of audio language names from _gameVersionManager
-            List<string> audioLangList = ((GameTypeGenshinVersion)_gameVersionManager)._audioVoiceLanguageList;
+            List<string> audioLangList = ((GameTypeGenshinVersion)GameVersionManager)._audioVoiceLanguageList;
 
             // Enumerate the content of audio persistent directory
             foreach (string path in Directory.EnumerateDirectories(audioPersistentPath, "*", SearchOption.TopDirectoryOnly))
@@ -123,29 +126,31 @@ namespace CollapseLauncher
                 string langName = Path.GetFileName(path);
 
                 // If the path section matches the name in language list, then continue
-                if (audioLangList.Contains(langName))
+                if (!audioLangList.Contains(langName))
                 {
-                    // Enumerate the files that's exist in the persistent path of each language
-                    // except the one that's included in the exclusion list
-                    foreach (string filePath in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
-                        .Where(x => !exclusionList.Any(y => x.AsSpan().EndsWith(y.AsSpan()))))
-                    {
-                        // Trim the path name to get the generic languageName/filename form
-                        string pathName = filePath.AsSpan().Slice(audioPersistentPath.Length + 1).ToString();
-                        // Combine the generic name with audioAsbPath
-                        string newPath = EnsureCreationOfDirectory(Path.Combine(audioAsbPath, pathName));
+                    continue;
+                }
 
-                        // Try to move the file to the asb path
-                        File.Move(filePath, newPath, true);
-                    }
+                // Enumerate the files that's exist in the persistent path of each language
+                // except the one that's included in the exclusion list
+                foreach (string filePath in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
+                                                     .Where(x => !exclusionList.Any(y => x.AsSpan().EndsWith(y.AsSpan()))))
+                {
+                    // Trim the path name to get the generic languageName/filename form
+                    string pathName = filePath.AsSpan().Slice(audioPersistentPath.Length + 1).ToString();
+                    // Combine the generic name with audioAsbPath
+                    string newPath = EnsureCreationOfDirectory(Path.Combine(audioAsbPath, pathName));
+
+                    // Try to move the file to the asb path
+                    File.Move(filePath, newPath, true);
                 }
             }
         }
 
         private void TryMoveVideoPersistent()
         {
-            string videoAsbPath = Path.Combine(_gameStreamingAssetsPath, "VideoAssets");
-            string videoPersistentPath = Path.Combine(_gamePersistentPath, "VideoAssets");
+            string videoAsbPath = Path.Combine(GameStreamingAssetsPath, "VideoAssets");
+            string videoPersistentPath = Path.Combine(GamePersistentPath, "VideoAssets");
             if (!Directory.Exists(videoPersistentPath)) return;
             if (!Directory.Exists(videoAsbPath)) Directory.CreateDirectory(videoAsbPath);
             MoveFolderContent(videoPersistentPath, videoAsbPath);
@@ -155,18 +160,18 @@ namespace CollapseLauncher
         private async ValueTask CheckAssetAllType(PkgVersionProperties asset, List<PkgVersionProperties> targetAssetIndex, CancellationToken token)
         {
             // Update activity status
-            _status.ActivityStatus = string.Format(Lang._GameRepairPage.Status6, asset.remoteName);
+            Status.ActivityStatus = string.Format(Lang._GameRepairPage.Status6, asset.remoteName);
 
             // Increment current total count
-            _progressAllCountCurrent++;
+            ProgressAllCountCurrent++;
 
             // Reset per file size counter
-            _progressPerFileSizeTotal = asset.fileSize;
-            _progressPerFileSizeCurrent = 0;
+            ProgressPerFileSizeTotal = asset.fileSize;
+            ProgressPerFileSizeCurrent = 0;
 
             // Get file path
-            string filePathStreaming = Path.Combine(_gamePath, ConverterTool.NormalizePath(asset.remoteName));
-            string filePathPersistent = Path.Combine(_gamePath, ConverterTool.NormalizePath(asset.remoteNamePersistent));
+            string filePathStreaming = Path.Combine(GamePath, ConverterTool.NormalizePath(asset.remoteName));
+            string filePathPersistent = Path.Combine(GamePath, ConverterTool.NormalizePath(asset.remoteNamePersistent));
 
             // Get persistent and streaming paths
             FileInfo fileInfoStreaming  = new FileInfo(filePathStreaming).EnsureNoReadOnly();
@@ -187,9 +192,9 @@ namespace CollapseLauncher
             {
                 if (!HexTool.TryHexToBytesUnsafe(asset.md5, hashBuffer))
                 {
-#if DEBUG
+                #if DEBUG
                     throw new InvalidOperationException();
-#endif
+                #endif
                 }
 
                 // Get the file info to use
@@ -213,7 +218,7 @@ namespace CollapseLauncher
                                              (c, d) =>
                                              {
                                                  // Add the count and asset. Mark the type as "RepairAssetType.Unused"
-                                                 _progressAllCountFound++;
+                                                 ProgressAllCountFound++;
 
                                                  PkgVersionProperties clonedAsset = asset.Clone();
 
@@ -254,34 +259,34 @@ namespace CollapseLauncher
             {
                 if (!isUsePersistent)
                 {
-                    if (!isStreamingExist || !await IsFileHashMatch(fileInfoStreaming, hashBuffer, token))
+                    if (isStreamingExist && await IsFileHashMatch(fileInfoStreaming, hashBuffer, token))
                     {
-                        if (isPersistentExist)
-                        {
-                            storeAsUnused(asset.remoteNamePersistent, fileInfoPersistent.FullName);
-                        }
-
-                        storeAsStreaming(true);
-                        storeAsPersistent(false);
-                        return false;
+                        return true;
                     }
 
-                    return true;
+                    if (isPersistentExist)
+                    {
+                        storeAsUnused(asset.remoteNamePersistent, fileInfoPersistent.FullName);
+                    }
+
+                    storeAsStreaming(true);
+                    storeAsPersistent(false);
+                    return false;
+
                 }
 
                 bool isStreamingMatch = isStreamingExist && await IsFileHashMatch(fileInfoStreaming, hashBuffer, token);
                 bool isPersistentMatch = isPersistentExist && await IsFileHashMatch(fileInfoPersistent, hashBuffer, token);
 
-                if (isStreamingMatch && isPersistentMatch && isPatch)
+                switch (isStreamingMatch)
                 {
-                    storeAsUnused(asset.remoteName, fileInfoStreaming.FullName);
-                }
-
-                if (!isStreamingMatch && !isPersistentMatch)
-                {
-                    storeAsStreaming(false);
-                    storeAsPersistent(true);
-                    return false;
+                    case true when isPersistentMatch && isPatch:
+                        storeAsUnused(asset.remoteName, fileInfoStreaming.FullName);
+                        break;
+                    case false when !isPersistentMatch:
+                        storeAsStreaming(false);
+                        storeAsPersistent(true);
+                        return false;
                 }
 
                 return true;
@@ -294,7 +299,7 @@ namespace CollapseLauncher
 
                 if (fileInfo.Length != asset.fileSize) return false; // Skip the hash calculation if the file size is different
                 
-                if (_useFastMethod) return true; // Skip the hash calculation if the fast method is enabled
+                if (UseFastMethod) return true; // Skip the hash calculation if the fast method is enabled
                 
                 // Try to get filestream
                 await using FileStream fileStream = await fileInfo.NaivelyOpenFileStreamAsync(FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
@@ -313,14 +318,14 @@ namespace CollapseLauncher
             void AddNotFoundOrMismatchAsset(PkgVersionProperties assetInner, FileInfo repairFile)
             {
                 // Update the total progress and found counter
-                _progressAllSizeFound += assetInner.fileSize;
-                _progressAllCountFound++;
+                ProgressAllSizeFound += assetInner.fileSize;
+                ProgressAllCountFound++;
 
                 // Set the per size progress
-                _progressPerFileSizeCurrent = assetInner.fileSize;
+                ProgressPerFileSizeCurrent = assetInner.fileSize;
 
                 // Increment the total current progress
-                _progressAllSizeCurrent += assetInner.fileSize;
+                ProgressAllSizeCurrent += assetInner.fileSize;
 
                 Dispatch(() => AssetEntry.Add(
                                               new AssetProperty<RepairAssetType>(
@@ -343,12 +348,8 @@ namespace CollapseLauncher
         #region UnusedFiles
         private async Task CheckRedundantFiles(List<PkgVersionProperties> targetAssetIndex, CancellationToken token)
         {
-            // Initialize FilePath and FileInfo
-            string FilePath;
-            FileInfo fInfo;
-
             // Iterate the available deletefiles files
-            DirectoryInfo directoryInfo = new DirectoryInfo(_gamePath);
+            DirectoryInfo directoryInfo = new DirectoryInfo(GamePath);
             foreach (FileInfo listFile in directoryInfo
                 .EnumerateFiles("*deletefiles*", SearchOption.TopDirectoryOnly)
                 .EnumerateNoReadOnly())
@@ -361,18 +362,18 @@ namespace CollapseLauncher
                 while (!listReader.EndOfStream)
                 {
                     // Get the File name and FileInfo
-                    FilePath = Path.Combine(_gamePath, ConverterTool.NormalizePath(await listReader.ReadLineAsync(token)));
-                    fInfo    = new FileInfo(FilePath).EnsureNoReadOnly();
+                    var filePath = Path.Combine(GamePath, ConverterTool.NormalizePath(await listReader.ReadLineAsync(token)));
+                    var fInfo = new FileInfo(filePath).EnsureNoReadOnly();
 
                     // If the file doesn't exist, then continue
                     if (!fInfo.Exists)
                         continue;
 
                     // Update total found progress
-                    _progressAllCountFound++;
+                    ProgressAllCountFound++;
 
                     // Get the stripped relative name
-                    string strippedName = fInfo.FullName.AsSpan()[(_gamePath.Length + 1)..].ToString();
+                    string strippedName = fInfo.FullName.AsSpan()[(GamePath.Length + 1)..].ToString();
 
                     // Assign the asset before adding to targetAssetIndex
                     PkgVersionProperties asset = new PkgVersionProperties
@@ -406,10 +407,10 @@ namespace CollapseLauncher
                                  || x.Name.EndsWith(".hdiff", StringComparison.OrdinalIgnoreCase)))
             {
                 // Update total found progress
-                _progressAllCountFound++;
+                ProgressAllCountFound++;
 
                 // Get the stripped relative name
-                string strippedName = fileInfo.FullName.AsSpan()[(_gamePath.Length + 1)..].ToString();
+                string strippedName = fileInfo.FullName.AsSpan()[(GamePath.Length + 1)..].ToString();
 
                 // Assign the asset before adding to targetAssetIndex
                 PkgVersionProperties asset = new PkgVersionProperties

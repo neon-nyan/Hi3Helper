@@ -26,28 +26,29 @@ using static Hi3Helper.Locale;
 using static Hi3Helper.Logger;
 using static Hi3Helper.Shared.Region.LauncherConfig;
 // ReSharper disable RedundantExtendsListEntry
+// ReSharper disable SwitchStatementMissingSomeEnumCasesNoDefault
 
 namespace CollapseLauncher.Dialogs
 {
     public partial class InstallationConvert : Page
     {
-        string SourceDataIntegrityURL;
-        string GameVersion;
-        bool IsAlreadyConverted;
-        PresetConfig SourceProfile;
-        PresetConfig TargetProfile;
-        GameConversionManagement Converter;
-        IniFile SourceIniFile;
-        CancellationTokenSource tokenSource = new CancellationTokenSource();
-        private GamePresetProperty CurrentGameProperty { get; set; }
-        private Stopwatch CurrentStopwatch = Stopwatch.StartNew();
+        private          string                   _sourceDataIntegrityURL;
+        private          string                   _gameVersion;
+        private          bool                     _isAlreadyConverted;
+        private          PresetConfig             _sourceProfile;
+        private          PresetConfig             _targetProfile;
+        private          GameConversionManagement _converter;
+        private          IniFile                  _sourceIniFile;
+        private readonly CancellationTokenSource  _tokenSource = new();
+        private          GamePresetProperty       CurrentGameProperty { get; }
+        private readonly Stopwatch                _currentStopwatch = Stopwatch.StartNew();
 
         public InstallationConvert()
         {
             try
             {
                 CurrentGameProperty = GamePropertyVault.GetCurrentGameProperty();
-                this.InitializeComponent();
+                InitializeComponent();
             }
             catch (Exception ex)
             {
@@ -60,12 +61,12 @@ namespace CollapseLauncher.Dialogs
         {
             try
             {
-                bool IsAskContinue = true;
-                while (IsAskContinue)
+                bool isAskContinue = true;
+                while (isAskContinue)
                 {
-                    (SourceProfile, TargetProfile) = await AskConvertionDestination();
-                    if (IsSourceGameExist(SourceProfile))
-                        IsAskContinue = false;
+                    (_sourceProfile, _targetProfile) = await AskConversionDestination();
+                    if (IsSourceGameExist(_sourceProfile))
+                        isAskContinue = false;
                     else
                     {
                         await new ContentDialogCollapse(ContentDialogTheme.Error)
@@ -89,7 +90,7 @@ namespace CollapseLauncher.Dialogs
                 CancelBtn.IsEnabled = false;
                 await DoConversion();
 
-                IsAlreadyConverted = true;
+                _isAlreadyConverted = true;
                 CancelBtn.IsEnabled = true;
                 await DoVerification();
 
@@ -100,7 +101,7 @@ namespace CollapseLauncher.Dialogs
                     Title = Lang._InstallConvert.ConvertSuccessTitle,
                     Content = new TextBlock
                     {
-                        Text = string.Format(Lang._InstallConvert.ConvertSuccessSubtitle, SourceProfile.ZoneName, TargetProfile.ZoneName),
+                        Text = string.Format(Lang._InstallConvert.ConvertSuccessSubtitle, _sourceProfile.ZoneName, _targetProfile.ZoneName),
                         TextWrapping = TextWrapping.Wrap
                     },
                     CloseButtonText = null,
@@ -131,14 +132,14 @@ namespace CollapseLauncher.Dialogs
             }
             finally
             {
-                Converter?.Dispose();
+                _converter?.Dispose();
             }
         }
 
         private void DoSetProfileDataLocation()
         {
-            SourceProfile.ActualGameDataLocation = NormalizePath(SourceIniFile["launcher"]["game_install_path"].ToString());
-            TargetProfile.ActualGameDataLocation = Path.Combine(Path.GetDirectoryName(SourceProfile.ActualGameDataLocation) ?? "", $"{TargetProfile.GameDirectoryName}_ConvertedTo-{TargetProfile.ProfileName}");
+            _sourceProfile.ActualGameDataLocation = NormalizePath(_sourceIniFile["launcher"]["game_install_path"].ToString());
+            _targetProfile.ActualGameDataLocation = Path.Combine(Path.GetDirectoryName(_sourceProfile.ActualGameDataLocation) ?? "", $"{_targetProfile.GameDirectoryName}_ConvertedTo-{_targetProfile.ProfileName}");
 
             DispatcherQueue?.TryEnqueue(() =>
             {
@@ -151,7 +152,7 @@ namespace CollapseLauncher.Dialogs
             });
         }
 
-        private async Task<string> FetchDataIntegrityURL(PresetConfig Profile)
+        private async Task<string> FetchDataIntegrityURL(PresetConfig profile)
         {
             // Initialize new proxy-aware HttpClient
             using HttpClient client = new HttpClientBuilder()
@@ -161,49 +162,43 @@ namespace CollapseLauncher.Dialogs
 
             // Use the new DownloadClient instance
             DownloadClient downloadClient = DownloadClient.CreateInstance(client);
-            Dictionary<string, string> _RepoList;
+            Dictionary<string, string> repoList;
 
             try
             {
                 FallbackCDNUtil.DownloadProgress += Step2ProgressEvents;
-                using (MemoryStream s = new MemoryStream())
-                {
-                    string repoListURL = string.Format(AppGameRepoIndexURLPrefix, Profile.ProfileName);
-                    await FallbackCDNUtil.DownloadCDNFallbackContent(downloadClient, s, repoListURL, tokenSource.Token);
-                    s.Position = 0;
-                    _RepoList = await s.DeserializeAsync(CoreLibraryJSONContext.Default.DictionaryStringString, tokenSource.Token);
-                }
+                using MemoryStream s           = new MemoryStream();
+                string             repoListURL = string.Format(AppGameRepoIndexURLPrefix, profile.ProfileName);
+                await FallbackCDNUtil.DownloadCDNFallbackContent(downloadClient, s, repoListURL, _tokenSource.Token);
+                s.Position = 0;
+                repoList  = await s.DeserializeAsync(CoreLibraryJsonContext.Default.DictionaryStringString, token: _tokenSource.Token);
             }
             finally
             {
                 FallbackCDNUtil.DownloadProgress -= Step2ProgressEvents;
             }
 
-            RegionResourceProp _Entry;
+            RegionResourceProp entry = await FallbackCDNUtil.DownloadAsJSONType(profile.LauncherResourceURL, RegionResourcePropJsonContext.Default.RegionResourceProp, _tokenSource.Token);
+            _gameVersion = entry.data?.game?.latest?.version;
 
-            _Entry = await FallbackCDNUtil.DownloadAsJSONType(Profile.LauncherResourceURL, InternalAppJSONContext.Default.RegionResourceProp, tokenSource.Token);
-            GameVersion = _Entry.data?.game?.latest?.version;
-
-            return _RepoList[GameVersion ?? throw new InvalidOperationException()];
+            return repoList[_gameVersion ?? throw new InvalidOperationException()];
         }
 
-        internal bool IsSourceGameExist(PresetConfig Profile)
+        internal bool IsSourceGameExist(PresetConfig profile)
         {
-            string INIPath = Path.Combine(AppGameFolder, Profile.ProfileName ?? "", "config.ini");
-            string GamePath;
-            string ExecPath;
-            if (!File.Exists(INIPath))
+            string iniPath = Path.Combine(AppGameFolder, profile.ProfileName ?? "", "config.ini");
+            if (!File.Exists(iniPath))
                 return false;
 
-            SourceIniFile = IniFile.LoadFrom(INIPath);
+            _sourceIniFile = IniFile.LoadFrom(iniPath);
             try
             {
-                GamePath = NormalizePath(SourceIniFile["launcher"]["game_install_path"].ToString());
-                if (!Directory.Exists(GamePath))
+                var gamePath = NormalizePath(_sourceIniFile["launcher"]["game_install_path"].ToString());
+                if (!Directory.Exists(gamePath))
                     return false;
 
                 // Concat the vendor app info file and return if it doesn't exist
-                string infoVendorPath = Path.Combine(GamePath, $"{Path.GetFileNameWithoutExtension(Profile.GameExecutableName)}_Data\\app.info");
+                string infoVendorPath = Path.Combine(gamePath, $"{Path.GetFileNameWithoutExtension(profile.GameExecutableName)}_Data\\app.info");
                 if (!File.Exists(infoVendorPath)) return false;
 
                 // If does, then process the file
@@ -211,24 +206,24 @@ namespace CollapseLauncher.Dialogs
                 if (infoEntries.Length < 2) return false;
 
                 // Try parse the vendor name and internal game name. If parsing fail, then return false
-                if (!Enum.TryParse(infoEntries[0], out GameVendorType _VendorType)) return false;
-                if (!(_VendorType == SourceProfile.VendorType && infoEntries[1] == SourceProfile.InternalGameNameInConfig)) return false;
+                if (!Enum.TryParse(infoEntries[0], out GameVendorType vendorType)) return false;
+                if (!(vendorType == _sourceProfile.VendorType && infoEntries[1] == _sourceProfile.InternalGameNameInConfig)) return false;
 
                 // Try load the Version INI file
-                string SourceINIVersionPath = Path.Combine(GamePath, "config.ini");
-                if (!File.Exists(SourceINIVersionPath)) return false;
-                IniFile SourceIniVersionFile = IniFile.LoadFrom(SourceINIVersionPath);
+                string sourceIniVersionPath = Path.Combine(gamePath, "config.ini");
+                if (!File.Exists(sourceIniVersionPath)) return false;
+                IniFile sourceIniVersionFile = IniFile.LoadFrom(sourceIniVersionPath);
 
                 // Check if the version value exist and matches
-                if (!(SourceIniVersionFile.ContainsKey("General") && SourceIniVersionFile["General"].ContainsKey("game_version"))) return false;
-                string localVersionString = SourceIniVersionFile["General"]["game_version"].ToString();
+                if (!(sourceIniVersionFile.ContainsKey("General") && sourceIniVersionFile["General"].ContainsKey("game_version"))) return false;
+                string localVersionString = sourceIniVersionFile["General"]["game_version"].ToString();
                 if (string.IsNullOrEmpty(localVersionString)) return false;
                 GameVersion localVersion = new GameVersion(localVersionString);
-                GameVersion? remoteVersion = CurrentGameProperty.GameVersion.GetGameVersionAPI();
+                GameVersion? remoteVersion = CurrentGameProperty.GameVersion.GetGameVersionApi();
                 if (!localVersion.IsMatch(remoteVersion)) return false;
 
-                ExecPath = Path.Combine(GamePath, Profile.GameExecutableName ?? "");
-                if (!File.Exists(ExecPath))
+                var execPath = Path.Combine(gamePath, profile.GameExecutableName ?? "");
+                if (!File.Exists(execPath))
                     return false;
             }
             catch
@@ -239,7 +234,7 @@ namespace CollapseLauncher.Dialogs
             return true;
         }
 
-        internal async Task<(PresetConfig, PresetConfig)> AskConvertionDestination()
+        internal async Task<(PresetConfig, PresetConfig)> AskConversionDestination()
         {
             (ContentDialogResult result, ComboBox sourceGame, ComboBox targetGame) = await Dialog_SelectGameConvertRecipe(Content);
             PresetConfig sourceRet = null;
@@ -277,7 +272,7 @@ namespace CollapseLauncher.Dialogs
 
         public static List<string> GetConvertibleNameList(string zoneName)
         {
-            List<string> outList = new List<string>();
+            List<string> outList = [];
             if (LauncherMetadataHelper.CurrentMetadataConfigGameName == null)
             {
                 return outList;
@@ -288,11 +283,15 @@ namespace CollapseLauncher.Dialogs
                                                                        .Select(x => x.ConvertibleTo)
                                                                        .First()!;
 
-            foreach (string entry in gameTargetProfileName)
-                outList.Add(LauncherMetadataHelper.LauncherMetadataConfig[LauncherMetadataHelper.CurrentMetadataConfigGameName].Values
-                                                  .Where(x => x.ZoneName == entry)
-                                                  .Select(x => x.ZoneName)
-                                                  .First());
+            for (var index = gameTargetProfileName.Count - 1; index >= 0; index--)
+            {
+                var entry = gameTargetProfileName[index];
+                outList.Add(LauncherMetadataHelper
+                           .LauncherMetadataConfig[LauncherMetadataHelper.CurrentMetadataConfigGameName].Values
+                           .Where(x => x.ZoneName == entry)
+                           .Select(x => x.ZoneName)
+                           .First());
+            }
 
             return outList;
         }
@@ -309,26 +308,27 @@ namespace CollapseLauncher.Dialogs
                 Step2ProgressStatus.Text = Lang._InstallConvert.Step2Subtitle;
             });
 
-            SourceDataIntegrityURL = await FetchDataIntegrityURL(SourceProfile);
+            _sourceDataIntegrityURL = await FetchDataIntegrityURL(_sourceProfile);
 
-            bool IsChoosen = false;
+            bool isChosen = false;
             string cPath = null;
-            while (!IsChoosen)
+            while (!isChosen)
             {
-                string FileName = string.Format("Cookbook_{0}_{1}_{2}_*_crc32.diff", SourceProfile.ProfileName, TargetProfile.ProfileName, GameVersion);
-                switch (await Dialog_LocateDownloadedConvertRecipe(Content, FileName))
+                string fileName =
+                    $"Cookbook_{_sourceProfile.ProfileName}_{_targetProfile.ProfileName}_{_gameVersion}_*_crc32.diff";
+                switch (await Dialog_LocateDownloadedConvertRecipe(Content, fileName))
                 {
                     case ContentDialogResult.Primary:
                         cPath = await FileDialogNative.GetFilePicker(
-                            new Dictionary<string, string> { { string.Format(Lang._InstallConvert.CookbookFileBrowserFileTypeCategory, SourceProfile.ProfileName, TargetProfile.ProfileName), FileName } });
-                        IsChoosen = !string.IsNullOrEmpty(cPath);
+                            new Dictionary<string, string> { { string.Format(Lang._InstallConvert.CookbookFileBrowserFileTypeCategory, _sourceProfile.ProfileName, _targetProfile.ProfileName), fileName } });
+                        isChosen = !string.IsNullOrEmpty(cPath);
                         break;
                     case ContentDialogResult.None:
                         throw new OperationCanceledException();
                 }
             }
 
-            Converter = new GameConversionManagement(SourceProfile, TargetProfile, SourceDataIntegrityURL, GameVersion, cPath, tokenSource.Token);
+            _converter = new GameConversionManagement(_sourceProfile, _targetProfile, _sourceDataIntegrityURL, _gameVersion, cPath, _tokenSource.Token);
 
             DispatcherQueue?.TryEnqueue(() =>
             {
@@ -343,7 +343,7 @@ namespace CollapseLauncher.Dialogs
 
         private void Step2ProgressEvents(object sender, DownloadEvent e)
         {
-            double speed = e.SizeDownloaded / CurrentStopwatch.Elapsed.TotalSeconds;
+            double speed = e.SizeDownloaded / _currentStopwatch.Elapsed.TotalSeconds;
             DispatcherQueue?.TryEnqueue(() =>
             {
                 Step2ProgressStatus.Text = $"{e.ProgressPercentage}% - {string.Format(Lang._Misc.SpeedPerSec, SummarizeSizeSimple(speed))}";
@@ -363,9 +363,9 @@ namespace CollapseLauncher.Dialogs
                 Step3ProgressStatus.Text = Lang._InstallConvert.Step3Subtitle;
             });
 
-            Converter.ProgressChanged += Step3ProgressEvents;
-            await Converter.StartPreparation();
-            Converter.ProgressChanged -= Step3ProgressEvents;
+            _converter.ProgressChanged += Step3ProgressEvents;
+            await _converter.StartPreparation();
+            _converter.ProgressChanged -= Step3ProgressEvents;
 
             DispatcherQueue?.TryEnqueue(() =>
             {
@@ -400,9 +400,9 @@ namespace CollapseLauncher.Dialogs
                 Step4ProgressStatus.Text = Lang._InstallConvert.Step4Subtitle;
             });
 
-            Converter.ProgressChanged += Step4ProgressEvents;
-            await Converter.StartConversion();
-            Converter.ProgressChanged -= Step4ProgressEvents;
+            _converter.ProgressChanged += Step4ProgressEvents;
+            await _converter.StartConversion();
+            _converter.ProgressChanged -= Step4ProgressEvents;
 
             DispatcherQueue?.TryEnqueue(() =>
             {
@@ -436,9 +436,9 @@ namespace CollapseLauncher.Dialogs
                 Step5ProgressStatus.Text = Lang._InstallConvert.Step5Subtitle;
             });
 
-            Converter.ProgressChanged += Step5ProgressEvents;
-            await Converter.PostConversionVerify();
-            Converter.ProgressChanged -= Step5ProgressEvents;
+            _converter.ProgressChanged += Step5ProgressEvents;
+            await _converter.PostConversionVerify();
+            _converter.ProgressChanged -= Step5ProgressEvents;
 
             DispatcherQueue?.TryEnqueue(() =>
             {
@@ -464,10 +464,10 @@ namespace CollapseLauncher.Dialogs
         {
             // CurrentGameProperty._GameVersion.GamePreset = TargetProfile;
             CurrentGameProperty.GameVersion.Reinitialize();
-            CurrentGameProperty.GameVersion.UpdateGamePath(TargetProfile.ActualGameDataLocation);
+            CurrentGameProperty.GameVersion.UpdateGamePath(_targetProfile.ActualGameDataLocation);
 
             string gameCategory = GetAppConfigValue("GameCategory").ToString();
-            LauncherMetadataHelper.SetPreviousGameRegion(gameCategory, TargetProfile.ZoneName);
+            LauncherMetadataHelper.SetPreviousGameRegion(gameCategory, _targetProfile.ZoneName);
             LoadAppConfig();
         }
 
@@ -484,57 +484,59 @@ namespace CollapseLauncher.Dialogs
 
         private async void CancelConversion(object sender, RoutedEventArgs e)
         {
-            string ContentText;
-            if (IsAlreadyConverted)
-                ContentText = string.Format(Lang._InstallConvert.CancelMsgSubtitle2, TargetProfile.ZoneName);
-            else
-                ContentText = Lang._InstallConvert.CancelMsgSubtitle1;
-
-            ContentDialog Dialog = new ContentDialogCollapse(ContentDialogTheme.Warning)
+            try
             {
-                Title = Lang._InstallConvert.CancelMsgTitle,
-                Content = new TextBlock
+                var contentText = _isAlreadyConverted ? string.Format(Lang._InstallConvert.CancelMsgSubtitle2, _targetProfile.ZoneName) : Lang._InstallConvert.CancelMsgSubtitle1;
+
+                ContentDialog dialog = new ContentDialogCollapse(ContentDialogTheme.Warning)
                 {
-                    Text = ContentText,
-                    TextWrapping = TextWrapping.Wrap
-                },
-                CloseButtonText = null,
-                PrimaryButtonText = Lang._Misc.Yes,
-                SecondaryButtonText = Lang._Misc.No,
-                DefaultButton = ContentDialogButton.Secondary,
-                Background = UIElementExtensions.GetApplicationResource<Brush>("DialogAcrylicBrush"),
-                XamlRoot = Content.XamlRoot
-            };
+                    Title = Lang._InstallConvert.CancelMsgTitle,
+                    Content = new TextBlock
+                    {
+                        Text         = contentText,
+                        TextWrapping = TextWrapping.Wrap
+                    },
+                    CloseButtonText     = null,
+                    PrimaryButtonText   = Lang._Misc.Yes,
+                    SecondaryButtonText = Lang._Misc.No,
+                    DefaultButton       = ContentDialogButton.Secondary,
+                    Background          = UIElementExtensions.GetApplicationResource<Brush>("DialogAcrylicBrush"),
+                    XamlRoot            = Content.XamlRoot
+                };
 
-            if (await Dialog.QueueAndSpawnDialog() == ContentDialogResult.Primary)
+                if (await dialog.QueueAndSpawnDialog() == ContentDialogResult.Primary)
+                {
+                    await _tokenSource.CancelAsync();
+                }
+            }
+            catch
             {
-                tokenSource.Cancel();
+                // ignored
             }
         }
 
         private void RevertConversion()
         {
-            if (SourceProfile is null || TargetProfile is null) return;
+            if (_sourceProfile is null || _targetProfile is null) return;
 
-            string OrigPath = SourceProfile.ActualGameDataLocation;
-            string IngrPath = TargetProfile.ActualGameDataLocation + "_Ingredients";
+            string origPath = _sourceProfile.ActualGameDataLocation;
+            string ignoredPath = _targetProfile.ActualGameDataLocation + "_Ingredients";
 
-            if (Directory.Exists(TargetProfile.ActualGameDataLocation))
+            if (Directory.Exists(_targetProfile.ActualGameDataLocation))
             {
                 // Do force config apply if the file has been actually converted.
                 ApplyConfiguration();
                 return;
             }
-            else if (!Directory.Exists(IngrPath)) return;
 
-            int DirLength = IngrPath.Length + 1;
-            string destFilePath;
-            string destFolderPath;
-            foreach (string filePath in Directory.EnumerateFiles(IngrPath, "*", SearchOption.AllDirectories))
+            if (!Directory.Exists(ignoredPath)) return;
+
+            int    dirLength = ignoredPath.Length + 1;
+            foreach (string filePath in Directory.EnumerateFiles(ignoredPath, "*", SearchOption.AllDirectories))
             {
-                ReadOnlySpan<char> relativePath = filePath.AsSpan().Slice(DirLength);
-                destFilePath = Path.Combine(OrigPath ?? "", relativePath.ToString());
-                destFolderPath = Path.GetDirectoryName(destFilePath);
+                ReadOnlySpan<char> relativePath   = filePath.AsSpan()[dirLength..];
+                var                destFilePath   = Path.Combine(origPath ?? "", relativePath.ToString());
+                var                destFolderPath = Path.GetDirectoryName(destFilePath);
 
                 if (!Directory.Exists(destFolderPath))
                     Directory.CreateDirectory(destFolderPath ?? "");
@@ -550,7 +552,7 @@ namespace CollapseLauncher.Dialogs
                 }
             }
 
-            Directory.Delete(IngrPath, true);
+            Directory.Delete(ignoredPath, true);
         }
     }
 }

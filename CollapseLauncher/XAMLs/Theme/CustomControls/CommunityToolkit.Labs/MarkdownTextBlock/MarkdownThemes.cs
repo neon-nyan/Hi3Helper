@@ -58,7 +58,7 @@ public sealed partial class MarkdownThemes : DependencyObject
     public Thickness InlineCodePadding { get; set; } = new(4, 0, 4, 0);
 
     public double InlineCodeFontSize { get; set; } = 12;
-    public FontFamily InlineCodeFontFamily { get; set; } = new FontFamily("Consolas");
+    public FontFamily InlineCodeFontFamily { get; set; } = new("Consolas");
 
     public FontWeight InlineCodeFontWeight { get; set; } = FontWeights.SemiBold;
 }

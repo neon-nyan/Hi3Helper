@@ -64,6 +64,7 @@ namespace CollapseLauncher.Helper.Background.Loaders
         public void Dispose()
         {
             GC.Collect();
+            GC.SuppressFinalize(this);
         }
 
         public async Task LoadAsync(string filePath,      bool              isImageLoadForFirstTime,
@@ -150,11 +151,11 @@ namespace CollapseLauncher.Helper.Background.Loaders
                                                          ? BackgroundMediaUtility.TransitionDuration
                                                          : BackgroundMediaUtility.TransitionDurationSlow);
 
-            float fromScale = 1f;
+            const float fromScale = 1f;
             Vector3 fromTranslate =
                 new Vector3(-((float)(ImageBackParentGrid?.ActualWidth ?? 0) * (fromScale - 1f) / 2),
                     -((float)(ImageBackParentGrid?.ActualHeight ?? 0) * (fromScale - 1f) / 2), 0);
-            float toScale = 1.07f;
+            const float toScale = 1.07f;
             Vector3 toTranslate = new Vector3(-((float)(ImageBackParentGrid?.ActualWidth ?? 0) * (toScale - 1f) / 2),
                 -((float)(ImageBackParentGrid?.ActualHeight ?? 0) * (toScale - 1f) / 2), 0);
 

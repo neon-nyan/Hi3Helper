@@ -4,21 +4,22 @@ using CollapseLauncher.Helper.Metadata;
 using Hi3Helper;
 using Microsoft.UI.Xaml;
 using static Hi3Helper.Shared.Region.LauncherConfig;
+// ReSharper disable StringLiteralTypo
+// ReSharper disable IdentifierTypo
 
+#nullable enable
 namespace CollapseLauncher.Pages
 {
     public sealed partial class HomePage
     {
         internal string GameDirPath { get => CurrentGameProperty.GameVersion.GameDirPath; }
-
-#nullable enable
-        internal static LauncherGameNewsData?  GameNewsData             { get => LauncherMetadataHelper.CurrentMetadataConfig?.GameLauncherApi?.LauncherGameNews?.Content; }
-        internal static HoYoPlayGameInfoField? GameInfoDisplayField     { get => LauncherMetadataHelper.CurrentMetadataConfig?.GameLauncherApi?.LauncherGameInfoField; }
-        internal static bool                   IsPostPanelAvailable     => (GameNewsData?.NewsPost?.Count ?? 0) > 0;
-        internal static bool                   IsCarouselPanelAvailable => (GameNewsData?.NewsCarousel?.Count ?? 0) > 0;
-        internal static bool                   IsGameStatusPreRegister  => GameInfoDisplayField?.DisplayStatus == LauncherGameAvailabilityStatus.LAUNCHER_GAME_DISPLAY_STATUS_RESERVATION_ENABLED;
-        internal static bool                   IsGameStatusComingSoon   => GameInfoDisplayField?.DisplayStatus == LauncherGameAvailabilityStatus.LAUNCHER_GAME_DISPLAY_STATUS_COMING_SOON;
-        internal static string?                GamePreRegisterLink      => GameInfoDisplayField?.ReservationLink?.ClickLink;
+        internal static LauncherGameNewsData? GameNewsData { get => LauncherMetadataHelper.CurrentMetadataConfig?.GameLauncherApi?.LauncherGameNews?.Content; }
+        internal static HoYoPlayGameInfoField? GameInfoDisplayField { get => LauncherMetadataHelper.CurrentMetadataConfig?.GameLauncherApi?.LauncherGameInfoField; }
+        internal static bool IsPostPanelAvailable => (GameNewsData?.NewsPost?.Count ?? 0) > 0;
+        internal static bool IsCarouselPanelAvailable => (GameNewsData?.NewsCarousel?.Count ?? 0) > 0;
+        internal static bool IsGameStatusPreRegister => GameInfoDisplayField?.DisplayStatus == LauncherGameAvailabilityStatus.LAUNCHER_GAME_DISPLAY_STATUS_RESERVATION_ENABLED;
+        internal static bool IsGameStatusComingSoon => GameInfoDisplayField?.DisplayStatus == LauncherGameAvailabilityStatus.LAUNCHER_GAME_DISPLAY_STATUS_COMING_SOON;
+        internal static string? GamePreRegisterLink => GameInfoDisplayField?.ReservationLink?.ClickLink;
 
         internal static Visibility IsPostEventPanelVisible  => (GameNewsData?.NewsPostTypeActivity?.Count ?? 0) == 0 ? Visibility.Collapsed : Visibility.Visible;
         internal static Visibility IsPostEventPanelEmpty    => (GameNewsData?.NewsPostTypeActivity?.Count ?? 0) != 0 ? Visibility.Collapsed : Visibility.Visible;
@@ -46,7 +47,6 @@ namespace CollapseLauncher.Pages
                 return IsPostInfoPanelVisible != Visibility.Collapsed ? 2 : 0;
             }
         }
-#nullable restore
 
         internal bool IsEventsPanelShow
         {

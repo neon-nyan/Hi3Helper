@@ -24,6 +24,8 @@ using static CollapseLauncher.InnerLauncherConfig;
 using static Hi3Helper.Logger;
 using static Hi3Helper.Shared.Region.LauncherConfig;
 // ReSharper disable RedundantExtendsListEntry
+// ReSharper disable IdentifierTypo
+// ReSharper disable AsyncVoidMethod
 
 namespace CollapseLauncher
 {
@@ -31,7 +33,7 @@ namespace CollapseLauncher
     {
         private static bool _isForceDisableIntro;
 
-        public void InitializeWindowProperties(bool startOOBE = false)
+        public void InitializeWindowProperties(bool startOobe = false)
         {
             try
             {
@@ -40,7 +42,7 @@ namespace CollapseLauncher
 
                 if (WindowUtility.CurrentWindowTitlebarExtendContent) WindowUtility.CurrentWindowTitlebarHeightOption = TitleBarHeightOption.Tall;
 
-                if (IsFirstInstall || startOOBE)
+                if (IsFirstInstall || startOobe)
                 {
                     _isForceDisableIntro = true;
                     WindowUtility.CurrentWindowTitlebarExtendContent = true;
@@ -121,14 +123,14 @@ namespace CollapseLauncher
 
         private void InitializeAppWindowAndIntPtr()
         {
-            this.InitializeComponent();
-            this.Activate();
-            this.Closed += (_, _) => { App.IsAppKilled = true; };
+            InitializeComponent();
+            Activate();
+            Closed += (_, _) => { App.IsAppKilled = true; };
 
             // Initialize Window Handlers and register to Window Utility
-            WindowUtility.RegisterWindow(this);
+            this.RegisterWindow();
 
-            string title = $"Collapse";
+            string title = "Collapse";
             if (IsPreview)
                 title += " Preview";
 #if DEBUG
@@ -141,7 +143,7 @@ namespace CollapseLauncher
             WindowUtility.CurrentWindowTitle = title;
         }
 
-        private void LoadWindowIcon()
+        private static void LoadWindowIcon()
         {
             WindowUtility.SetWindowTitlebarIcon(AppIconLarge, AppIconSmall);
             WindowUtility.CurrentWindowTitlebarIconShowOption = IconShowOptions.HideIconAndSystemMenu;
@@ -206,7 +208,7 @@ namespace CollapseLauncher
             }
         }
 
-        private bool ConsoleCtrlHandler(uint dwCtrlType)
+        private static bool ConsoleCtrlHandler(uint dwCtrlType)
         {
             ImageLoaderHelper.DestroyWaifu2X();
             return true;
@@ -261,7 +263,7 @@ namespace CollapseLauncher
             WindowUtility.EnableWindowNonClientArea();
         }
 
-        private bool IsIntroEnabled
+        private static bool IsIntroEnabled
         {
             get => LauncherConfig.IsIntroEnabled;
             set => LauncherConfig.IsIntroEnabled = value;
@@ -269,7 +271,7 @@ namespace CollapseLauncher
 
         private void IntroSequenceToggle_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
         {
-            Compositor curCompositor = this.Compositor;
+            Compositor curCompositor = Compositor;
             UIElement element = sender as UIElement;
             element.StartAnimationDetached(TimeSpan.FromSeconds(0.25),
                     curCompositor.CreateScalarKeyFrameAnimation("Opacity", 1f)
@@ -278,7 +280,7 @@ namespace CollapseLauncher
 
         private void IntroSequenceToggle_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
         {
-            Compositor curCompositor = this.Compositor;
+            Compositor curCompositor = Compositor;
             UIElement element = sender as UIElement;
             element.StartAnimationDetached(TimeSpan.FromSeconds(0.25),
                     curCompositor.CreateScalarKeyFrameAnimation("Opacity", 0.25f)

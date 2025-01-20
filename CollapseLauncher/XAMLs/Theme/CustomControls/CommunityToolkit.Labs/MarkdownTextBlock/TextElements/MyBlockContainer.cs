@@ -8,8 +8,8 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.TextElements;
 
 internal class MyBlockContainer : IAddChild
 {
-    private MyFlowDocument _flowDocument;
-    private Paragraph _paragraph;
+    private readonly MyFlowDocument _flowDocument;
+    private readonly Paragraph      _paragraph;
 
     public TextElement TextElement
     {

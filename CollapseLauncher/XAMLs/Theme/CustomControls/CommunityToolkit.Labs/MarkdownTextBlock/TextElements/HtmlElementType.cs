@@ -7,5 +7,5 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.TextElements;
 public enum HtmlElementType
 {
     Block,
-    Inline,
+    Inline
 }

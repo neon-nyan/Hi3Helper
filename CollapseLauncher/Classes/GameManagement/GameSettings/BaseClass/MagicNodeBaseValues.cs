@@ -12,6 +12,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using Hi3Helper.SentryHelper;
 // ReSharper disable NonReadonlyMemberInGetHashCode
+// ReSharper disable SwitchStatementMissingSomeEnumCasesNoDefault
 
 #nullable enable
 namespace CollapseLauncher.GameSettings.Base
@@ -26,7 +27,7 @@ namespace CollapseLauncher.GameSettings.Base
     internal static class MagicNodeBaseValuesExt
     {
         // ReSharper disable once UnusedMember.Local
-        private static readonly JsonSerializerOptions JsonSerializerOpts = new JsonSerializerOptions
+        private static readonly JsonSerializerOptions JsonSerializerOpts = new()
         {
             AllowTrailingCommas = true,
             ReadCommentHandling = JsonCommentHandling.Skip
@@ -35,8 +36,7 @@ namespace CollapseLauncher.GameSettings.Base
         private static JsonObject EnsureCreatedObject(this JsonNode? node, string keyName)
         {
             // If the node is empty, then create a new instance of it
-            if (node == null)
-                node = new JsonObject();
+            node ??= new JsonObject();
 
             // Return
             return node.EnsureCreatedInner<JsonObject>(keyName);
@@ -45,8 +45,7 @@ namespace CollapseLauncher.GameSettings.Base
         private static JsonArray EnsureCreatedArray(this JsonNode? node, string keyName)
         {
             // If the node is empty, then create a new instance of it
-            if (node == null)
-                node = new JsonArray();
+            node ??= new JsonArray();
 
             // Return
             return node.EnsureCreatedInner<JsonArray>(keyName);
@@ -100,14 +99,13 @@ namespace CollapseLauncher.GameSettings.Base
             // If node is null, return the default value
             if (jsonObject == null) return defaultValue;
 
-            // Try get node as struct value
-            if (jsonObject.TryGetPropertyValue(keyName, out JsonNode? jsonNodeValue) && jsonNodeValue != null)
+            // Try to get node as struct value
+            if (!jsonObject.TryGetPropertyValue(keyName, out JsonNode? jsonNodeValue) || jsonNodeValue == null)
             {
-                string returnValue = jsonNodeValue.AsValue().GetValue<string>();
-                return returnValue;
+                return defaultValue;
             }
 
-            return defaultValue;
+            return jsonNodeValue.AsValue().GetValue<string>();
         }
 
         public static TJsonNodeType GetAsJsonNode<TJsonNodeType>(this JsonNode? node, string keyName)
@@ -116,13 +114,13 @@ namespace CollapseLauncher.GameSettings.Base
             // Get node as object
             JsonObject? jsonObject = node?.AsObject();
 
-            // Try get the JsonNode from the parent and if not null, return.
+            // Try to get the JsonNode from the parent and if not null, return.
             if (jsonObject != null &&
                 jsonObject.TryGetPropertyValue(keyName, out JsonNode? jsonNode) &&
                 jsonNode != null)
                 return (TJsonNodeType)jsonNode;
 
-            // Try get the JsonNode member type to create
+            // Try to get the JsonNode member type to create
             Type jsonNodeType = typeof(TJsonNodeType);
             JsonNode jsonReturn;
 
@@ -143,26 +141,25 @@ namespace CollapseLauncher.GameSettings.Base
             // Get node as object
             JsonObject? jsonObject = node?.AsObject();
 
-            // Try get node as struct value
-            if (jsonObject != null &&
-                jsonObject.TryGetPropertyValue(keyName, out JsonNode? jsonNodeValue) &&
-                jsonNodeValue != null)
+            // Try to get node as struct value
+            if (jsonObject == null ||
+                !jsonObject.TryGetPropertyValue(keyName, out JsonNode? jsonNodeValue) ||
+                jsonNodeValue == null)
             {
-                if (typeof(TValue) == typeof(bool) && jsonNodeValue.GetValueKind() == JsonValueKind.Number)
-                {
-                    // Assuming 0 is false, and any non-zero number is true
-                    int numValue = jsonNodeValue.AsValue().GetValue<int>();
-                    bool boolValue = numValue != 0;
-                    return (TValue)(object)boolValue; // Cast bool to TValue
-                }
-                else
-                {
-                    return jsonNodeValue.AsValue().GetValue<TValue>();
-                }
+                return defaultValue;
+            }
+
+            // If the value is not a boolean or the JsonValueKind is not a number, then return the value
+            if (typeof(TValue) != typeof(bool) || jsonNodeValue.GetValueKind() != JsonValueKind.Number)
+            {
+                return jsonNodeValue.AsValue().GetValue<TValue>();
             }
 
             // Otherwise, get the default value
-            return defaultValue;
+            // Assuming 0 is false, and any non-zero number is true
+            int numValue  = jsonNodeValue.AsValue().GetValue<int>();
+            bool boolValue = numValue != 0;
+            return (TValue)(object)boolValue; // Cast bool to TValue
         }
 
         public static TEnum GetNodeValueEnum<TEnum>(this JsonNode? node, string keyName, TEnum defaultValue)
@@ -174,38 +171,40 @@ namespace CollapseLauncher.GameSettings.Base
             // If node is null, return the default value
             if (jsonObject == null) return defaultValue;
 
-            // Try get node as struct value
-            if (jsonObject.TryGetPropertyValue(keyName, out JsonNode? jsonNodeValue) && jsonNodeValue != null)
+            // Try to get node as struct value
+            if (!jsonObject.TryGetPropertyValue(keyName, out JsonNode? jsonNodeValue) || jsonNodeValue == null)
             {
-                // Get the JsonValue representative from the node and get the kind/type
-                JsonValue enumValueRaw = jsonNodeValue.AsValue();
-                JsonValueKind enumValueRawKind = enumValueRaw.GetValueKind();
-
-                // Decide the return value
-                switch (enumValueRawKind)
-                {
-                    case JsonValueKind.Number: // If it's a number
-                        int enumAsInt = (int)enumValueRaw; // Cast JsonValue as int
-                        return EnumFromInt(enumAsInt); // Cast and return it as an enum
-                    case JsonValueKind.String: // If it's a string
-                        string? enumAsString = (string?)enumValueRaw; // Cast JsonValue as string
-
-                        if (Enum.TryParse(enumAsString, true, out TEnum enumParsedFromString)) // Try parse as a named member
-                            return enumParsedFromString; // If successful, return the returned value
-
-                        // If the string is actually a number as a string, then try parse it as int
-                        if (int.TryParse(enumAsString, null, out int enumAsIntFromString))
-                            return EnumFromInt(enumAsIntFromString); // Cast and return it as an enum
-
-                        // Throw if all the attempts were failed
-                        throw new InvalidDataException($"String value: {enumAsString} at key: {keyName} is not a valid member of enum: {nameof(TEnum)}");
-                }
+                return defaultValue;
             }
 
-            TEnum EnumFromInt(int value) => Unsafe.As<int, TEnum>(ref value); // Unsafe casting from int to TEnum
+            // Get the JsonValue representative from the node and get the kind/type
+            JsonValue     enumValueRaw     = jsonNodeValue.AsValue();
+            JsonValueKind enumValueRawKind = enumValueRaw.GetValueKind();
+
+            // Decide the return value
+            switch (enumValueRawKind)
+            {
+                case JsonValueKind.Number: // If it's a number
+                    int enumAsInt = (int)enumValueRaw; // Cast JsonValue as int
+                    return EnumFromInt(enumAsInt); // Cast and return it as an enum
+                case JsonValueKind.String: // If it's a string
+                    string? enumAsString = (string?)enumValueRaw; // Cast JsonValue as string
+
+                    if (Enum.TryParse(enumAsString, true, out TEnum enumParsedFromString)) // Try parse as a named member
+                        return enumParsedFromString; // If successful, return the returned value
+
+                    // If the string is actually a number as a string, then try parse it as int
+                    if (int.TryParse(enumAsString, null, out int enumAsIntFromString))
+                        return EnumFromInt(enumAsIntFromString); // Cast and return it as an enum
+
+                    // Throw if all the attempts were failed
+                    throw new InvalidDataException($"String value: {enumAsString} at key: {keyName} is not a valid member of enum: {nameof(TEnum)}");
+            }
 
             // Otherwise, return the default value instead
             return defaultValue;
+
+            TEnum EnumFromInt(int value) => Unsafe.As<int, TEnum>(ref value); // Unsafe casting from int to TEnum
         }
 
         public static void SetAsJsonNode(this JsonNode? node, string keyName, JsonNode? jsonNode)
@@ -269,6 +268,7 @@ namespace CollapseLauncher.GameSettings.Base
             // Otherwise, add it
             else
                 jsonObject.Add(new KeyValuePair<string, JsonNode?>(keyName, jsonValue));
+            return;
 
             JsonValue AsEnumNumber(TEnum v)
             {
@@ -301,23 +301,23 @@ namespace CollapseLauncher.GameSettings.Base
         private static JsonValue? CreateJsonValue<TValue>(TValue value, JsonSerializerContext? context)
             => value switch
         {
-            bool v_bool => JsonValue.Create(v_bool),
-            byte v_byte => JsonValue.Create(v_byte),
-            sbyte v_sbyte => JsonValue.Create(v_sbyte),
-            short v_short => JsonValue.Create(v_short),
-            char v_char => JsonValue.Create(v_char),
-            int v_int => JsonValue.Create(v_int),
-            uint v_uint => JsonValue.Create(v_uint),
-            long v_long => JsonValue.Create(v_long),
-            ulong v_ulong => JsonValue.Create(v_ulong),
-            float v_float => JsonValue.Create(v_float),
-            double v_double => JsonValue.Create(v_double),
-            decimal v_decimal => JsonValue.Create(v_decimal),
-            string v_string => JsonValue.Create(v_string),
-            DateTime v_datetime => JsonValue.Create(v_datetime),
-            DateTimeOffset v_datetimeoffset => JsonValue.Create(v_datetimeoffset),
-            Guid v_guid => JsonValue.Create(v_guid),
-            JsonElement v_jsonelement => JsonValue.Create(v_jsonelement),
+            bool vBool => JsonValue.Create(vBool),
+            byte vByte => JsonValue.Create(vByte),
+            sbyte vSbyte => JsonValue.Create(vSbyte),
+            short vShort => JsonValue.Create(vShort),
+            char vChar => JsonValue.Create(vChar),
+            int vInt => JsonValue.Create(vInt),
+            uint vUint => JsonValue.Create(vUint),
+            long vLong => JsonValue.Create(vLong),
+            ulong vUlong => JsonValue.Create(vUlong),
+            float vFloat => JsonValue.Create(vFloat),
+            double vDouble => JsonValue.Create(vDouble),
+            decimal vDecimal => JsonValue.Create(vDecimal),
+            string vString => JsonValue.Create(vString),
+            DateTime vDatetime => JsonValue.Create(vDatetime),
+            DateTimeOffset vDatetimeOffset => JsonValue.Create(vDatetimeOffset),
+            Guid vGuid => JsonValue.Create(vGuid),
+            JsonElement vJsonElement => JsonValue.Create(vJsonElement),
             _ => CreateJson(value, context ?? throw new NotSupportedException("You cannot pass a null context while setting a non-struct value to JsonValue"))
         };
     }
@@ -347,7 +347,7 @@ namespace CollapseLauncher.GameSettings.Base
         public static T LoadWithMagic(byte[] magic, SettingsGameVersionManager versionManager, JsonTypeInfo<T?> typeInfo)
         {
             if (magic == null || magic.Length == 0)
-                throw new NullReferenceException($"Magic cannot be an empty array!");
+                throw new NullReferenceException("Magic cannot be an empty array!");
 
             try
             {
@@ -422,7 +422,7 @@ namespace CollapseLauncher.GameSettings.Base
 
         public override int GetHashCode() => SettingsJsonNode?.GetHashCode() ?? 0;
 
-        public bool Equals(T? other) => JsonNode.DeepEquals(this.SettingsJsonNode, other?.SettingsJsonNode);
+        public bool Equals(T? other) => JsonNode.DeepEquals(SettingsJsonNode, other?.SettingsJsonNode);
 
         protected virtual void InjectNodeAndMagic(JsonNode? jsonNode, byte[] magic, SettingsGameVersionManager versionManager, JsonTypeInfo<T?> typeInfo)
         {

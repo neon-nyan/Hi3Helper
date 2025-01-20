@@ -91,8 +91,8 @@ namespace CollapseLauncher.InstallManager.Zenless
         }
 
         protected override IRepair GetGameRepairInstance(string? versionString) =>
-            new ZenlessRepair(_parentUI,
-                               _gameVersionManager, ZenlessSettings!, true,
+            new ZenlessRepair(ParentUI,
+                               GameVersionManager, ZenlessSettings!, true,
                                versionString);
 
         protected override async Task StartPackageInstallationInner(List<GameInstallPackage>? gamePackage = null,
@@ -112,12 +112,12 @@ namespace CollapseLauncher.InstallManager.Zenless
 
             // Then start on processing hdifffiles list and deletefiles list
             await ApplyHdiffListPatch();
-            await ApplyDeleteFileActionAsync(_token.Token);
+            await ApplyDeleteFileActionAsync(Token.Token);
 
             // Update the audio lang list if not in isOnlyInstallPackage mode
             if (!isOnlyInstallPackage)
             {
-                WriteAudioLangList(_assetIndex);
+                WriteAudioLangList(AssetIndex);
             }
         }
         #endregion
@@ -136,7 +136,7 @@ namespace CollapseLauncher.InstallManager.Zenless
 
             // Try lookup if there is a new language list, then add it to the list
             foreach (GameInstallPackage package in
-                     _assetIndex.Where(x => x.PackageType == GameInstallPackageType.Audio))
+                     AssetIndex.Where(x => x.PackageType == GameInstallPackageType.Audio))
             {
                 string langString = GetLanguageStringByLocaleCodeAlternate(package.LanguageID);
                 if (!langList.Contains(langString, StringComparer.OrdinalIgnoreCase))
@@ -169,7 +169,7 @@ namespace CollapseLauncher.InstallManager.Zenless
                 : [];
 
             // Try lookup if there is a new language list, then add it to the list
-            for (int index = 0; index < sophonVOList.Count; index++)
+            for (int index = sophonVOList.Count - 1; index >= 0; index--)
             {
                 var packageLocaleCodeString = sophonVOList[index];
                 string langString = GetLanguageStringByLocaleCodeAlternate(packageLocaleCodeString);
@@ -191,7 +191,7 @@ namespace CollapseLauncher.InstallManager.Zenless
             }
         }
 
-        private string GetLanguageStringByLocaleCodeAlternate(string localeCode)
+        private static string GetLanguageStringByLocaleCodeAlternate(string localeCode)
         {
             return localeCode switch
             {

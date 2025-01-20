@@ -20,13 +20,13 @@ namespace CollapseLauncher.Pages
 {
     public sealed partial class CachesPage
     {
-        private GamePresetProperty CurrentGameProperty { get; set; }
+        private GamePresetProperty CurrentGameProperty { get; }
 
         public CachesPage()
         {
             BackgroundImgChanger.ToggleBackground(true);
             CurrentGameProperty = GamePropertyVault.GetCurrentGameProperty();
-            this.InitializeComponent();
+            InitializeComponent();
         }
 
         private void StartCachesCheckSplitButton(SplitButton sender, SplitButtonClickEventArgs args)
@@ -244,10 +244,11 @@ namespace CollapseLauncher.Pages
             BackgroundImgChanger.ToggleBackground(true);
             if (m_appMode == AppMode.Hi3CacheUpdater) return;
 
-            if (GameInstallationState == GameInstallStateEnum.NotInstalled
-                || GameInstallationState == GameInstallStateEnum.NeedsUpdate
-                || GameInstallationState == GameInstallStateEnum.InstalledHavePlugin
-                || GameInstallationState == GameInstallStateEnum.GameBroken)
+            if (GameInstallationState
+                is GameInstallStateEnum.NotInstalled
+                or GameInstallStateEnum.NeedsUpdate
+                or GameInstallStateEnum.InstalledHavePlugin
+                or GameInstallStateEnum.GameBroken)
             {
                 Overlay.Visibility = Visibility.Visible;
                 PageContent.Visibility = Visibility.Collapsed;

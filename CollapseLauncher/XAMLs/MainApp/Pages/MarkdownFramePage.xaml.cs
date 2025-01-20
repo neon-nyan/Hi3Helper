@@ -77,7 +77,7 @@ namespace CollapseLauncher
 
         private void Initialize(MarkdownFramePageParams parameters)
         {
-            if (parameters is { MarkdownText: null } && parameters is { MarkdownUri: null } && parameters is { MarkdownUriCdn: null })
+            if (parameters is { MarkdownText: null } and { MarkdownUri: null } and { MarkdownUriCdn: null })
                 throw new
                     NullReferenceException("[MarkdownFramePage] Either MarkdownUri, MarkdownUriCdn or MarkdownText needs to be filled!");
 

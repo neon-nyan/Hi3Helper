@@ -6,6 +6,7 @@ using System.IO;
 using System.Threading.Tasks;
 using static Hi3Helper.Data.ConverterTool;
 using static Hi3Helper.Locale;
+// ReSharper disable IdentifierTypo
 
 namespace CollapseLauncher
 {
@@ -17,46 +18,41 @@ namespace CollapseLauncher
         Korean = 3
     }
 
-    internal partial class GenshinRepair : ProgressBase<PkgVersionProperties>, IRepair
+    internal partial class GenshinRepair(UIElement parentUI, IGameVersionCheck gameVersionManager, string gameRepoURL)
+        : ProgressBase<PkgVersionProperties>(parentUI, gameVersionManager, null, gameRepoURL, null), IRepair
     {
         #region ExtensionProperties
-        private protected string _execPrefix { get => Path.GetFileNameWithoutExtension(_gameVersionManager.GamePreset.GameExecutableName); }
-        private protected int _dispatcherRegionID { get; init; }
-        private protected string _dispatcherURL { get => _gameVersionManager.GamePreset.GameDispatchURL ?? ""; }
-        private protected string _dispatcherKey { get => _gameVersionManager.GamePreset.DispatcherKey ?? ""; }
-        private protected int _dispatcherKeyLength { get => _gameVersionManager.GamePreset.DispatcherKeyBitLength ?? 0x100; }
-        private protected string _gamePersistentPath { get => Path.Combine(_gamePath, $"{Path.GetFileNameWithoutExtension(_gameVersionManager.GamePreset.GameExecutableName)}_Data", "Persistent"); }
-        private protected string _gameStreamingAssetsPath { get => Path.Combine(_gamePath, $"{Path.GetFileNameWithoutExtension(_gameVersionManager.GamePreset.GameExecutableName)}_Data", "StreamingAssets"); }
-        private protected GenshinAudioLanguage _audioLanguage { get; init; }
+        private protected string               ExecPrefix              { get => Path.GetFileNameWithoutExtension(GameVersionManager.GamePreset.GameExecutableName); }
+        private protected int                  DispatcherRegionID      { get; init; } = gameVersionManager.GamePreset.GetRegServerNameID();
+        private protected string               DispatcherURL           { get => GameVersionManager.GamePreset.GameDispatchURL ?? ""; }
+        private protected string               DispatcherKey           { get => GameVersionManager.GamePreset.DispatcherKey ?? ""; }
+        private protected int                  DispatcherKeyLength     { get => GameVersionManager.GamePreset.DispatcherKeyBitLength ?? 0x100; }
+        private protected string               GamePersistentPath      { get => Path.Combine(GamePath, $"{Path.GetFileNameWithoutExtension(GameVersionManager.GamePreset.GameExecutableName)}_Data", "Persistent"); }
+        private protected string               GameStreamingAssetsPath { get => Path.Combine(GamePath, $"{Path.GetFileNameWithoutExtension(GameVersionManager.GamePreset.GameExecutableName)}_Data", "StreamingAssets"); }
+        private protected GenshinAudioLanguage AudioLanguage           { get; init; } = (GenshinAudioLanguage)gameVersionManager.GamePreset.GetVoiceLanguageID();
+
         #endregion
 
         #region Properties
-        private bool _isParsePersistentManifestSuccess { get; set; }
-        protected override string _userAgent { get; set; } = "UnityPlayer/2017.4.30f1 (UnityWebRequest/1.0, libcurl/7.51.0-DEV)";
+        private bool IsParsePersistentManifestSuccess { get; set; }
+        protected override string UserAgent { get; set; } = "UnityPlayer/2017.4.30f1 (UnityWebRequest/1.0, libcurl/7.51.0-DEV)";
         #endregion
-
-        public GenshinRepair(UIElement parentUI, IGameVersionCheck GameVersionManager, string gameRepoURL)
-            : base(parentUI, GameVersionManager, null, gameRepoURL, null)
-        {
-            _audioLanguage = (GenshinAudioLanguage)_gameVersionManager.GamePreset.GetVoiceLanguageID();
-            _dispatcherRegionID = _gameVersionManager.GamePreset.GetRegServerNameID();
-        }
 
         ~GenshinRepair() => Dispose();
 
         public async Task<bool> StartCheckRoutine(bool useFastCheck)
         {
-            _useFastMethod = useFastCheck;
+            UseFastMethod = useFastCheck;
             return await TryRunExamineThrow(CheckRoutine());
         }
 
         public async Task StartRepairRoutine(bool showInteractivePrompt = false, Action actionIfInteractiveCancel = null)
         {
-            if (_assetIndex.Count == 0) throw new InvalidOperationException("There's no broken file being reported! You can't do the repair process!");
+            if (AssetIndex.Count == 0) throw new InvalidOperationException("There's no broken file being reported! You can't do the repair process!");
 
             if (showInteractivePrompt)
             {
-                await SpawnRepairDialog(_assetIndex, actionIfInteractiveCancel);
+                await SpawnRepairDialog(AssetIndex, actionIfInteractiveCancel);
             }
 
             _ = await TryRunExamineThrow(RepairRoutine());
@@ -66,32 +62,32 @@ namespace CollapseLauncher
         {
             // Reset status and progress
             ResetStatusAndProgress();
-            _assetIndex.Clear();
+            AssetIndex.Clear();
 
             // Step 1: Ensure that every file are not read-only
-            TryUnassignReadOnlyFiles(_gamePath);
+            TryUnassignReadOnlyFiles(GamePath);
 
             // Step 2: Fetch asset index
-            _assetIndex = await Fetch(_assetIndex, _token.Token);
+            AssetIndex = await Fetch(AssetIndex, Token.Token);
 
             // Step 3: Calculate all the size and count in total
-            CountAssetIndex(_assetIndex);
+            CountAssetIndex(AssetIndex);
 
             // Step 4: Check for the asset indexes integrity
-            await Check(_assetIndex, _token.Token);
+            await Check(AssetIndex, Token.Token);
 
             // Step 5: Summarize and returns true if the assetIndex count != 0 indicates broken file was found.
             //         either way, returns false.
             return SummarizeStatusAndProgress(
-                _assetIndex,
-                string.Format(Lang._GameRepairPage.Status3, _progressAllCountFound, SummarizeSizeSimple(_progressAllSizeFound)),
+                AssetIndex,
+                string.Format(Lang._GameRepairPage.Status3, ProgressAllCountFound, SummarizeSizeSimple(ProgressAllSizeFound)),
                 Lang._GameRepairPage.Status4);
         }
 
         private async Task<bool> RepairRoutine()
         {
             // Assign repair task
-            Task<bool> repairTask = Repair(_assetIndex, _token.Token);
+            Task<bool> repairTask = Repair(AssetIndex, Token.Token);
 
             // Run repair process
             bool repairTaskSuccess = await TryRunExamineThrow(repairTask);
@@ -100,9 +96,9 @@ namespace CollapseLauncher
             ResetStatusAndProgress();
 
             // Set as completed
-            _status.IsCompleted = true;
-            _status.IsCanceled = false;
-            _status.ActivityStatus = Lang._GameRepairPage.Status7;
+            Status.IsCompleted = true;
+            Status.IsCanceled = false;
+            Status.ActivityStatus = Lang._GameRepairPage.Status7;
 
             // Update status and progress
             UpdateAll();
@@ -113,12 +109,13 @@ namespace CollapseLauncher
         public void CancelRoutine()
         {
             // Trigger token cancellation
-            _token.Cancel();
+            Token.Cancel();
         }
 
         public void Dispose()
         {
             CancelRoutine();
+            GC.SuppressFinalize(this);
         }
     }
 }

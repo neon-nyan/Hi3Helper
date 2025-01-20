@@ -8,7 +8,7 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.TextElements;
 
 internal class MyLineBreak : IAddChild
 {
-    private LineBreak _lineBreak;
+    private readonly LineBreak _lineBreak;
 
     public TextElement TextElement
     {

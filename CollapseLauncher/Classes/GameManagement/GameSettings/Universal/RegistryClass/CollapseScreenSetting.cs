@@ -75,7 +75,7 @@ namespace CollapseLauncher.GameSettings.Universal
 #if DEBUG
                     LogWriteLine($"Loaded Collapse Screen Settings:\r\n{Encoding.UTF8.GetString(byteStr.TrimEnd((byte)0))}", LogType.Debug, true);
 #endif
-                    return byteStr.Deserialize(UniversalSettingsJSONContext.Default.CollapseScreenSetting) ?? new CollapseScreenSetting();
+                    return byteStr.Deserialize(UniversalSettingsJsonContext.Default.CollapseScreenSetting) ?? new CollapseScreenSetting();
                 }
             }
             catch (Exception ex)
@@ -93,7 +93,7 @@ namespace CollapseLauncher.GameSettings.Universal
             {
                 if (RegistryRoot == null) throw new NullReferenceException($"Cannot save {_ValueName} since RegistryKey is unexpectedly not initialized!");
 
-                string data = this.Serialize(UniversalSettingsJSONContext.Default.CollapseScreenSetting);
+                string data = this.Serialize(UniversalSettingsJsonContext.Default.CollapseScreenSetting);
                 byte[] dataByte = Encoding.UTF8.GetBytes(data);
 #if DEBUG
                 LogWriteLine($"Saved Collapse Screen Settings:\r\n{data}", LogType.Debug, true);

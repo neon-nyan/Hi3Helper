@@ -1,5 +1,6 @@
 ﻿using Hi3Helper.EncTool.Parser.Sleepy.JsonConverters;
 using System.Text.Json.Serialization;
+// ReSharper disable CommentTypo
 
 namespace CollapseLauncher
 {

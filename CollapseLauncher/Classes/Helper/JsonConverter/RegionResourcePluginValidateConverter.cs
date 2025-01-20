@@ -19,12 +19,12 @@ namespace CollapseLauncher.Helper.JsonConverter
             JsonSerializerOptions options)
         {
             string valueString = EmptiedBackslash(reader.ValueSpan);
-            List<RegionResourcePluginValidate> returnList = valueString.Deserialize(InternalAppJSONContext.Default.ListRegionResourcePluginValidate);
+            List<RegionResourcePluginValidate> returnList = valueString.Deserialize(RegionResourcePluginValidateJsonContext.Default.ListRegionResourcePluginValidate);
 
             return returnList;
         }
 
-        private unsafe string EmptiedBackslash(ReadOnlySpan<byte> span)
+        private static unsafe string EmptiedBackslash(ReadOnlySpan<byte> span)
         {
             Span<byte> buffer = new byte[span.Length];
             int indexIn = 0;
@@ -54,7 +54,7 @@ namespace CollapseLauncher.Helper.JsonConverter
                 JsonSerializerOptions options)
         {
 
-            throw new JsonException($"Serializing is not supported!");
+            throw new JsonException("Serializing is not supported!");
         }
     }
 }

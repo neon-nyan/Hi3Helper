@@ -13,21 +13,21 @@ namespace CollapseLauncher.Helper.StreamUtility
     {
         internal const int DefaultBufferSize = 64 << 10;
 
-        internal static readonly FileStreamOptions FileStreamOpenReadOpt = new FileStreamOptions
+        internal static readonly FileStreamOptions FileStreamOpenReadOpt = new()
         {
             Mode = FileMode.Open,
             Access = FileAccess.Read,
             Share = FileShare.Read
         };
 
-        internal static readonly FileStreamOptions FileStreamCreateWriteOpt = new FileStreamOptions
+        internal static readonly FileStreamOptions FileStreamCreateWriteOpt = new()
         {
             Mode = FileMode.Create,
             Access = FileAccess.Write,
             Share = FileShare.Write
         };
 
-        internal static readonly FileStreamOptions FileStreamCreateReadWriteOpt = new FileStreamOptions
+        internal static readonly FileStreamOptions FileStreamCreateReadWriteOpt = new()
         {
             Mode = FileMode.Create,
             Access = FileAccess.ReadWrite,

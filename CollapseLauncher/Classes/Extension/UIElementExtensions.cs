@@ -18,6 +18,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using Windows.UI;
 using Windows.UI.Text;
+// ReSharper disable SwitchStatementHandlesSomeKnownEnumValuesWithDefault
 
 namespace CollapseLauncher.Extension
 {
@@ -62,81 +63,89 @@ namespace CollapseLauncher.Extension
 
         internal static void SetAllControlsCursorRecursive(this UIElement element, InputSystemCursor toCursor)
         {
-            // DO NOT REMOVE THIS LINE OR YOU WILL FACE THE CONSEQUENCES!
-            // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
-            if (element == null)
+            while (true)
             {
-                return;
-            }
-
-            if (element is Panel panelKind)
-            {
-                foreach (UIElement panelElements in panelKind.Children)
+                // DO NOT REMOVE THIS LINE OR YOU WILL FACE THE CONSEQUENCES!
+                // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
+                if (element == null)
                 {
-                    SetAllControlsCursorRecursive(panelElements, toCursor);
+                    return;
                 }
-            }
 
-            if (element is RadioButtons radioButtonsKind)
-            {
-                foreach (UIElement radioButtonContent in radioButtonsKind.Items.OfType<UIElement>())
+                switch (element)
                 {
-                    radioButtonContent.SetCursor(toCursor);
-                }
-            }
-
-            if (element is Border borderKind)
-            {
-                SetAllControlsCursorRecursive(borderKind.Child, toCursor);
-            }
-
-            if (element is ComboBox comboBoxKind)
-            {
-                comboBoxKind.SetCursor(toCursor);
-            }
-
-            if (element is UserControl userControlKind)
-            {
-                SetAllControlsCursorRecursive(userControlKind.Content, toCursor);
-            }
-
-            if (element is ContentControl contentControlKind
-             && contentControlKind.Content is UIElement contentControlKindInner)
-            {
-                SetAllControlsCursorRecursive(contentControlKindInner, toCursor);
-            }
-
-            if (element is NavigationView navigationViewKind)
-            {
-                foreach (var o in navigationViewKind.FindDescendants())
-                {
-                    var navigationViewElements = (UIElement)o;
-                    if (navigationViewElements is NavigationViewItem)
+                    case Panel panelKind:
                     {
-                        navigationViewElements.SetCursor(toCursor);
-                        continue;
+                        foreach (UIElement panelElements in panelKind.Children)
+                        {
+                            SetAllControlsCursorRecursive(panelElements, toCursor);
+                        }
+
+                        break;
                     }
-                    SetAllControlsCursorRecursive(navigationViewElements, toCursor);
-                }
-            }
+                    case RadioButtons radioButtonsKind:
+                    {
+                        foreach (UIElement radioButtonContent in radioButtonsKind.Items.OfType<UIElement>())
+                        {
+                            radioButtonContent.SetCursor(toCursor);
+                        }
 
-            if (element is ButtonBase buttonBaseKind)
-            {
-                buttonBaseKind.SetCursor(toCursor);
-                if (buttonBaseKind is Button buttonKind && buttonKind.Flyout != null && buttonKind.Flyout is Flyout buttonKindFlyout)
+                        break;
+                    }
+                    case Border borderKind:
+                        SetAllControlsCursorRecursive(borderKind.Child, toCursor);
+                        break;
+                    case ComboBox comboBoxKind:
+                        comboBoxKind.SetCursor(toCursor);
+                        break;
+                    case UserControl userControlKind:
+                        SetAllControlsCursorRecursive(userControlKind.Content, toCursor);
+                        break;
+                    case ContentControl { Content: UIElement contentControlKindInner }:
+                        SetAllControlsCursorRecursive(contentControlKindInner, toCursor);
+                        break;
+                }
+
+                switch (element)
                 {
-                    SetAllControlsCursorRecursive(buttonKindFlyout.Content, toCursor);
+                    case NavigationView navigationViewKind:
+                    {
+                        foreach (var o in navigationViewKind.FindDescendants())
+                        {
+                            var navigationViewElements = (UIElement)o;
+                            if (navigationViewElements is NavigationViewItem)
+                            {
+                                navigationViewElements.SetCursor(toCursor);
+                                continue;
+                            }
+
+                            SetAllControlsCursorRecursive(navigationViewElements, toCursor);
+                        }
+
+                        break;
+                    }
+                    case ButtonBase buttonBaseKind:
+                    {
+                        buttonBaseKind.SetCursor(toCursor);
+                        if (buttonBaseKind is Button buttonKind && buttonKind.Flyout != null && buttonKind.Flyout is Flyout buttonKindFlyout)
+                        {
+                            SetAllControlsCursorRecursive(buttonKindFlyout.Content, toCursor);
+                        }
+
+                        break;
+                    }
+                    case ToggleSwitch:
+                        element.SetCursor(toCursor);
+                        break;
                 }
-            }
 
-            if (element is ToggleSwitch)
-            {
-                element.SetCursor(toCursor);
-            }
+                if (element.ContextFlyout != null && element.ContextFlyout is Flyout elementFlyoutKind)
+                {
+                    element = elementFlyoutKind.Content;
+                    continue;
+                }
 
-            if (element.ContextFlyout != null && element.ContextFlyout is Flyout elementFlyoutKind)
-            {
-                SetAllControlsCursorRecursive(elementFlyoutKind.Content, toCursor);
+                break;
             }
         }
 
@@ -147,8 +156,7 @@ namespace CollapseLauncher.Extension
                 .OfType<NavigationViewItemBase>())
             {
                 string? localeValue = null;
-                if (navItem.Content is TextBlock navItemTextBlock
-                 && navItemTextBlock.Tag is NavigationViewItemLocaleTextProperty localeProperty)
+                if (navItem.Content is TextBlock { Tag: NavigationViewItemLocaleTextProperty localeProperty } navItemTextBlock)
                 {
                     navItemTextBlock.BindProperty(
                         TextBlock.TextProperty,
@@ -156,8 +164,7 @@ namespace CollapseLauncher.Extension
                         $"{localeProperty.LocaleSetName}.{localeProperty.LocalePropertyName}");
                     localeValue = navItemTextBlock.GetValue(TextBlock.TextProperty) as string;
                 }
-                else if (navItem is NavigationViewItemHeader navItemAsHeader
-                      && navItemAsHeader.Tag is NavigationViewItemLocaleTextProperty localePropertyOnHeader)
+                else if (navItem is NavigationViewItemHeader { Tag: NavigationViewItemLocaleTextProperty localePropertyOnHeader } navItemAsHeader)
                 {
                     navItemAsHeader.BindProperty(
                         ContentControl.ContentProperty,
@@ -207,9 +214,9 @@ namespace CollapseLauncher.Extension
             Grid contentPanel = CreateIconTextGrid(text, iconGlyph, iconFontFamily, iconSize, textSize, textWeight);
             TButtonBase buttonReturn = new TButtonBase();
 
-            buttonReturn.CornerRadius = !cornerRadius.HasValue ? AttachRoundedKindCornerRadius(buttonReturn) : cornerRadius.Value;
-            buttonReturn.Content = contentPanel;
-            buttonReturn.Style = GetApplicationResource<Style>(buttonStyle);
+            buttonReturn.CornerRadius = cornerRadius ?? AttachRoundedKindCornerRadius(buttonReturn);
+            buttonReturn.Content      = contentPanel;
+            buttonReturn.Style        = GetApplicationResource<Style>(buttonStyle);
             return buttonReturn;
         }
 
@@ -220,10 +227,10 @@ namespace CollapseLauncher.Extension
             bool isHasText = !string.IsNullOrEmpty(text);
 
             if (!isHasIcon && !isHasText)
-                throw new NullReferenceException($"[UIElementExtensions::CreateIconTextGrid()] At least \"text\" or \"iconGlyph\" must be set!");
+                throw new NullReferenceException("[UIElementExtensions::CreateIconTextGrid()] At least \"text\" or \"iconGlyph\" must be set!");
 
             Grid contentPanel = CreateGrid()
-                .WithColumns(GridLength.Auto, new(1, GridUnitType.Star))
+                .WithColumns(GridLength.Auto, new GridLength(1, GridUnitType.Star))
                 .WithColumnSpacing(8)
                 .WithPadding(isHasText ? 4d : 0d, 0d);
 
@@ -244,22 +251,24 @@ namespace CollapseLauncher.Extension
                     .WithMargin(isHasText ? 0d : -5d, isHasText ? 1d : 0d, isHasText ? 0d : -5d, 0d)
                     .WithVerticalAlignment(VerticalAlignment.Center);
 
-            if (isHasText)
+            if (!isHasText)
             {
-                TextBlock textBlock = contentPanel.AddElementToGridColumn(new TextBlock
-                {
-                    Text = text,
-                    FontWeight = textWeight.Value
-                }, isHasIcon ? 1 : 0, isHasIcon ? 0 : 2).WithVerticalAlignment(VerticalAlignment.Center);
-
-                if (textSize != null) textBlock.FontSize = textSize.Value;
+                return contentPanel;
             }
+
+            TextBlock textBlock = contentPanel.AddElementToGridColumn(new TextBlock
+            {
+                Text       = text,
+                FontWeight = textWeight.Value
+            }, isHasIcon ? 1 : 0, isHasIcon ? 0 : 2).WithVerticalAlignment(VerticalAlignment.Center);
+
+            if (textSize != null) textBlock.FontSize = textSize.Value;
 
             return contentPanel;
         }
 
-        internal static Grid CreateGrid() => new Grid();
-        internal static StackPanel CreateStackPanel(Orientation orientation = Orientation.Vertical) => new StackPanel() { Orientation = orientation };
+        internal static Grid       CreateGrid()                                                     => new();
+        internal static StackPanel CreateStackPanel(Orientation orientation = Orientation.Vertical) => new() { Orientation = orientation };
 
         internal static void AddElementToStackPanel(this Panel stackPanel, params FrameworkElement[] elements)
             => AddElementToStackPanel(stackPanel, elements.AsEnumerable());
@@ -278,18 +287,18 @@ namespace CollapseLauncher.Extension
         internal static void AddGridColumns(this Grid grid, params GridLength[] columnWidths)
         {
             if (columnWidths.Length == 0)
-                throw new IndexOutOfRangeException($"\"columnWidth\" cannot be empty!");
+                throw new IndexOutOfRangeException("\"columnWidth\" cannot be empty!");
 
-            for (int i = 0; i < columnWidths.Length; i++) 
-                grid.ColumnDefinitions.Add(new ColumnDefinition()
+            foreach (var t in columnWidths)
+                grid.ColumnDefinitions.Add(new ColumnDefinition
                 {
-                    Width = columnWidths[i]
+                    Width = t
                 });
         }
 
         internal static void AddGridColumns(this Grid grid, int count, GridLength? columnWidth = null)
         {
-            for (; count > 0; count--) grid.ColumnDefinitions.Add(new ColumnDefinition()
+            for (; count > 0; count--) grid.ColumnDefinitions.Add(new ColumnDefinition
             {
                 Width = columnWidth ?? GridLength.Auto
             });
@@ -297,7 +306,7 @@ namespace CollapseLauncher.Extension
 
         internal static void AddGridRows(this Grid grid, int count, GridLength? columnHeight = null)
         {
-            for (; count > 0; count--) grid.RowDefinitions.Add(new RowDefinition()
+            for (; count > 0; count--) grid.RowDefinitions.Add(new RowDefinition
             {
                 Height = columnHeight ?? GridLength.Auto
             });
@@ -360,21 +369,19 @@ namespace CollapseLauncher.Extension
 
         internal static ref TextBlock AddTextBlockLine(this TextBlock textBlock, string message, FontWeight? weight = null, double size = 14d)
         {
-            if (!weight.HasValue) weight = FontWeights.Normal;
+            weight ??= FontWeights.Normal;
             textBlock.Inlines.Add(new Run { Text = message, FontWeight = weight.Value, FontSize = size });
             return ref Unsafe.AsRef(ref textBlock);
         }
 
         internal static TReturnType GetApplicationResource<TReturnType>(string resourceKey)
         {
-            if (!Application.Current.Resources.ContainsKey(resourceKey))
+            if (!Application.Current.Resources.TryGetValue(resourceKey, out object resourceObj))
                 throw new KeyNotFoundException($"Application resource with key: {resourceKey} does not exist!");
 
-            object resourceObj = Application.Current.Resources[resourceKey];
-            if (resourceObj is not TReturnType)
+            if (resourceObj is not TReturnType resource)
                 throw new InvalidCastException($"Object type for resource \"{resourceKey}\" is not valid! Trying to get type: {typeof(TReturnType).Name}, but the object type is: {resourceObj.GetType().Name}");
 
-            TReturnType resource = (TReturnType)resourceObj;
             return resource;
         }
 
@@ -405,49 +412,63 @@ namespace CollapseLauncher.Extension
             return initialRadius;
         }
 
-        internal static void FindAndSetTextBlockWrapping(this UIElement element,
-                                                         TextWrapping wrap = TextWrapping.Wrap,
-                                                         HorizontalAlignment posAlign = HorizontalAlignment.Center,
-                                                         TextAlignment textAlign = TextAlignment.Center,
-                                                         bool recursiveAssignment = false, bool isParentAButton = false)
+        internal static void FindAndSetTextBlockWrapping(this UIElement element, TextWrapping wrap = TextWrapping.Wrap, HorizontalAlignment posAlign = HorizontalAlignment.Center, TextAlignment textAlign = TextAlignment.Center, bool recursiveAssignment = false, bool isParentAButton = false)
         {
-            if (element is not null && element is TextBlock textBlock)
+            while (true)
             {
-                textBlock.TextWrapping = wrap;
-                if (isParentAButton)
+                if (element is TextBlock textBlock)
                 {
-                    textBlock.HorizontalAlignment = posAlign;
-                    textBlock.HorizontalTextAlignment = textAlign;
+                    textBlock.TextWrapping = wrap;
+                    if (isParentAButton)
+                    {
+                        textBlock.HorizontalAlignment     = posAlign;
+                        textBlock.HorizontalTextAlignment = textAlign;
+                    }
                 }
+
+                if (!recursiveAssignment) return;
+
+                switch (element)
+                {
+                    case ButtonBase { Content: UIElement buttonContent }:
+                        buttonContent.FindAndSetTextBlockWrapping(wrap, posAlign, textAlign, true, true);
+                        break;
+                    case ButtonBase button:
+                    {
+                        if (button.Content is string buttonString) button.Content = new TextBlock { Text = buttonString, TextWrapping = wrap, HorizontalAlignment = HorizontalAlignment.Center };
+                        break;
+                    }
+                    case Panel panel:
+                    {
+                        foreach (UIElement childrenElement in panel.Children!) childrenElement.FindAndSetTextBlockWrapping(wrap, posAlign, textAlign, true, isParentAButton);
+                        break;
+                    }
+                    case ScrollViewer { Content: UIElement elementInner }:
+                        elementInner.FindAndSetTextBlockWrapping(wrap, posAlign, textAlign, true, isParentAButton);
+                        break;
+                }
+
+                switch (element)
+                {
+                    case ContentControl { Content: UIElement contentControlInner } contentControl and (SettingsCard or Expander):
+                    {
+                        contentControlInner.FindAndSetTextBlockWrapping(wrap, posAlign, textAlign, true, isParentAButton);
+
+                        if (contentControl is Expander { Header: UIElement expanderHeader })
+                        {
+                            element             = expanderHeader;
+                            continue;
+                        }
+
+                        break;
+                    }
+                    case InfoBar { Content: UIElement infoBarInner }:
+                        element             = infoBarInner;
+                        continue;
+                }
+
+                break;
             }
-
-            if (!recursiveAssignment) return;
-
-            if (element is ButtonBase button)
-            {
-                if (button.Content is UIElement buttonContent)
-                    buttonContent.FindAndSetTextBlockWrapping(wrap, posAlign, textAlign, true, true);
-                else if (button.Content is string buttonString)
-                    button.Content = new TextBlock { Text = buttonString, TextWrapping = wrap, HorizontalAlignment = HorizontalAlignment.Center };
-            }
-
-            if (element is Panel panel)
-                foreach (UIElement childrenElement in panel.Children!)
-                    childrenElement.FindAndSetTextBlockWrapping(wrap, posAlign, textAlign, true, isParentAButton);
-
-            if (element is ScrollViewer scrollViewer && scrollViewer.Content is UIElement elementInner)
-                elementInner.FindAndSetTextBlockWrapping(wrap, posAlign, textAlign, true, isParentAButton);
-
-            if (element is ContentControl contentControl && (element is SettingsCard || element is Expander) && contentControl.Content is UIElement contentControlInner)
-            {
-                contentControlInner.FindAndSetTextBlockWrapping(wrap, posAlign, textAlign, true, isParentAButton);
-
-                if (contentControl is Expander expander && expander.Header is UIElement expanderHeader)
-                    expanderHeader.FindAndSetTextBlockWrapping(wrap, posAlign, textAlign, true, isParentAButton);
-            }
-
-            if (element is InfoBar infoBar && infoBar.Content is UIElement infoBarInner)
-                infoBarInner.FindAndSetTextBlockWrapping(wrap, posAlign, textAlign, true, isParentAButton);
         }
 
         internal static ref TElement WithWidthAndHeight<TElement>(this TElement element, double uniform)
@@ -666,12 +687,12 @@ namespace CollapseLauncher.Extension
         internal static void SetGridSlices<TGrid>(this TGrid grid, GridLength[] gridSlices, bool isColumn)
             where TGrid : Grid
         {
-            for (int i = 0; i < gridSlices.Length; i++)
+            foreach (var t in gridSlices)
             {
                 if (isColumn)
-                    grid.ColumnDefinitions.Add(new ColumnDefinition { Width = gridSlices[i] });
+                    grid.ColumnDefinitions.Add(new ColumnDefinition { Width = t });
                 else
-                    grid.RowDefinitions.Add(new RowDefinition { Height = gridSlices[i] });
+                    grid.RowDefinitions.Add(new RowDefinition { Height = t });
             }
         }
 
@@ -863,6 +884,7 @@ namespace CollapseLauncher.Extension
             // However if the element has been added to a parent
             // Panel, then assign it right away.
             else AssignShadowAttachment(element, isMasked);
+            return;
 
             void AssignShadowAttachment(FrameworkElement thisElement, bool innerMasked)
             {
@@ -883,32 +905,34 @@ namespace CollapseLauncher.Extension
                 }
             }
 
-            void AttachShadow(FrameworkElement thisElement, bool innerMask, Vector3? _offset)
+            void AttachShadow(FrameworkElement thisElement, bool innerMask, Vector3? thisOffset)
             {
-                FrameworkElement xamlRoot = (thisElement.Parent as FrameworkElement) ?? thisElement.FindDescendant<Grid>();
+                FrameworkElement xamlRoot = thisElement.Parent as FrameworkElement ?? thisElement.FindDescendant<Grid>();
 
                 if (xamlRoot is Border borderParent)
-                    xamlRoot = borderParent.Child is Grid grid ? grid : borderParent.Child.FindAscendant<Grid>();
+                    xamlRoot = borderParent.Child as Grid ?? borderParent.Child.FindAscendant<Grid>();
 
-                if (xamlRoot is Panel panel)
+                if (xamlRoot is not Panel panel)
                 {
-                    try
-                    {
-                        panel.Children.Add(shadowPanel);
-                        Canvas.SetZIndex(shadowPanel, -1);
-                        if (shadowPanel is not Panel)
-                            throw new NotSupportedException("The ShadowGrid must be at least a Grid or StackPanel or any \"Panel\" elements");
+                    return;
+                }
 
-                        if (xamlRoot == null || xamlRoot is not Panel)
-                            throw new NullReferenceException("The element must be inside of a Grid or StackPanel or any \"Panel\" elements");
+                try
+                {
+                    panel.Children.Add(shadowPanel);
+                    Canvas.SetZIndex(shadowPanel, -1);
+                    if (shadowPanel is not Panel)
+                        throw new NotSupportedException("The ShadowGrid must be at least a Grid or StackPanel or any \"Panel\" elements");
 
-                        thisElement.ApplyDropShadow(shadowPanel, shadowColor, blurRadius, opacity, innerMask, _offset);
-                    }
-                    catch (Exception ex)
-                    {
-                        SentryHelper.ExceptionHandler(ex, SentryHelper.ExceptionType.UnhandledXaml);
-                        Logger.LogWriteLine($"Failed while attaching shadow to an element\r\n{ex}", LogType.Warning, true);
-                    }
+                    if (xamlRoot == null || xamlRoot is not Panel)
+                        throw new NullReferenceException("The element must be inside of a Grid or StackPanel or any \"Panel\" elements");
+
+                    thisElement.ApplyDropShadow(shadowPanel, shadowColor, blurRadius, opacity, innerMask, thisOffset);
+                }
+                catch (Exception ex)
+                {
+                    SentryHelper.ExceptionHandler(ex, SentryHelper.ExceptionType.UnhandledXaml);
+                    Logger.LogWriteLine($"Failed while attaching shadow to an element\r\n{ex}", LogType.Warning, true);
                 }
             }
         }
@@ -921,7 +945,7 @@ namespace CollapseLauncher.Extension
             string passedValue = $"{offset?.X},{offset?.Y},{offset?.Z}";
             // ReSharper restore ConstantConditionalAccessQualifier
 
-            AttachedDropShadow shadow = new AttachedDropShadow()
+            AttachedDropShadow shadow = new AttachedDropShadow
             {
                 Color = shadowColor ?? Colors.Black,
                 BlurRadius = blurRadius,

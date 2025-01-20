@@ -10,7 +10,7 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.TextElements;
 
 internal class MyParagraph : IAddChild
 {
-    private Paragraph _paragraph;
+    private readonly Paragraph _paragraph;
 
     public TextElement TextElement
     {
@@ -31,8 +31,10 @@ internal class MyParagraph : IAddChild
         else if (child.TextElement is Block blockChild)
         {
             var inlineUIContainer = new InlineUIContainer();
-            var richTextBlock = new RichTextBlock();
-            richTextBlock.TextWrapping = TextWrapping.Wrap;
+            var richTextBlock     = new RichTextBlock
+            {
+                TextWrapping = TextWrapping.Wrap
+            };
             richTextBlock.Blocks.Add(blockChild);
             inlineUIContainer.Child = richTextBlock;
             _paragraph.Inlines.Add(inlineUIContainer);

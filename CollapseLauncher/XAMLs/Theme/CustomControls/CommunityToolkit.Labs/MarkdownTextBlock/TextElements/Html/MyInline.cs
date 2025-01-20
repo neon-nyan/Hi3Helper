@@ -10,8 +10,8 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.TextElements.Html;
 
 internal class MyInline : IAddChild
 {
-    private Paragraph _paragraph;
-    private InlineUIContainer _inlineUIContainer;
+    private readonly Paragraph         _paragraph;
+    private readonly InlineUIContainer _inlineUIContainer;
 
     public TextElement TextElement
     {

@@ -31,8 +31,8 @@ namespace CollapseLauncher
             };
 
             Grid mainGrid = UIElementExtensions.CreateGrid()
-                .WithRows(new(1.0, GridUnitType.Star), new(1.0, GridUnitType.Star), new(1.0, GridUnitType.Star))
-                .WithColumns(new(1.0, GridUnitType.Star), GridLength.Auto);
+                .WithRows(new GridLength(1.0,    GridUnitType.Star), new GridLength(1.0, GridUnitType.Star), new GridLength(1.0, GridUnitType.Star))
+                .WithColumns(new GridLength(1.0, GridUnitType.Star), GridLength.Auto);
 
             // ReSharper disable once UnusedVariable
             TextBlock locateFolderSubtitle = mainGrid.AddElementToGridColumn(new TextBlock
@@ -58,7 +58,7 @@ namespace CollapseLauncher
                     .CreateButtonWithIcon<Button>(Locale.Lang._FileMigrationProcess.ChoosePathButton, "", "FontAwesome", "AccentButtonStyle"),
                     1, 1).WithMargin(8d, 12d, 0d, 0d);
 
-            InfoBar warningTextInfoBar = mainGrid.AddElementToGridRowColumn(new InfoBar()
+            InfoBar warningTextInfoBar = mainGrid.AddElementToGridRowColumn(new InfoBar
             {
                 IsClosable = true,
                 IsOpen = false
@@ -78,9 +78,23 @@ namespace CollapseLauncher
             };
             choosePathTextBox!.TextChanged += (sender, _) => ToggleOrCheckPathWarning(((TextBox)sender!).Text);
 
+            ContentDialogResult mainDialogWindowResult = await mainDialogWindow.QueueAndSpawnDialog();
+            return mainDialogWindowResult == ContentDialogResult.Primary ? choosePathTextBox.Text : null;
+
+            void ToggleWarningText(string text = null)
+            {
+                bool canContinue = string.IsNullOrEmpty(text);
+                mainDialogWindow.PrimaryButtonText = canContinue ? Locale.Lang!._Misc!.Next : null;
+
+                warningTextInfoBar.Title    = Locale.Lang!._FileMigrationProcess!.ChoosePathErrorTitle;
+                warningTextInfoBar.Severity = canContinue ? InfoBarSeverity.Success : InfoBarSeverity.Error;
+                warningTextInfoBar.IsOpen   = !canContinue;
+                warningTextInfoBar.Message  = text;
+            }
+
             void ToggleOrCheckPathWarning(string path)
             {
-                string parentPath = path;
+                string parentPath              = path;
                 if (isFileTransfer) parentPath = Path.GetDirectoryName(path);
 
                 if (string.IsNullOrEmpty(parentPath))
@@ -105,38 +119,24 @@ namespace CollapseLauncher
                 }
                 ToggleWarningText();
             }
-
-            void ToggleWarningText(string text = null)
-            {
-                bool canContinue = string.IsNullOrEmpty(text);
-                mainDialogWindow.PrimaryButtonText = canContinue ? Locale.Lang!._Misc!.Next : null;
-
-                warningTextInfoBar.Title = Locale.Lang!._FileMigrationProcess!.ChoosePathErrorTitle;
-                warningTextInfoBar.Severity = canContinue ? InfoBarSeverity.Success : InfoBarSeverity.Error;
-                warningTextInfoBar.IsOpen = !canContinue;
-                warningTextInfoBar.Message = text;
-            }
-
-            ContentDialogResult mainDialogWindowResult = await mainDialogWindow.QueueAndSpawnDialog();
-            return mainDialogWindowResult == ContentDialogResult.Primary ? choosePathTextBox.Text : null;
         }
 
         private FileMigrationProcessUIRef BuildMainMigrationUI()
         {
             ContentDialogCollapse mainDialogWindow = new ContentDialogCollapse(ContentDialogTheme.Informational)
             {
-                Title = this.dialogTitle,
+                Title = DialogTitle,
                 CloseButtonText = null,
                 PrimaryButtonText = null,
                 SecondaryButtonText = null,
                 DefaultButton = ContentDialogButton.Primary,
-                XamlRoot = parentUI!.XamlRoot
+                XamlRoot = ParentUI!.XamlRoot
             };
 
             Grid mainGrid = UIElementExtensions.CreateGrid()
                 .WithWidth(500d)
-                .WithColumns(new(1.0d, GridUnitType.Star), new(1.0d, GridUnitType.Star))
-                .WithRows(new(1.0d, GridUnitType.Auto), new(20d, GridUnitType.Pixel), new(20d, GridUnitType.Pixel), new(20d, GridUnitType.Pixel));
+                .WithColumns(new GridLength(1.0d, GridUnitType.Star), new GridLength(1.0d, GridUnitType.Star))
+                .WithRows(new GridLength(1.0d,    GridUnitType.Auto), new GridLength(20d,  GridUnitType.Pixel), new GridLength(20d, GridUnitType.Pixel), new GridLength(20d, GridUnitType.Pixel));
 
             // Build path indicator
             StackPanel pathActivityPanel = mainGrid.AddElementToGridRowColumn(
@@ -207,7 +207,7 @@ namespace CollapseLauncher
                 3, 0, 0, 2);
 
             // Set progress percentage indicator subtitle with progress bar value
-            BindingOperations.SetBinding(progressTextIndicatorSubtitle, TextBlock.TextProperty, new Binding()
+            BindingOperations.SetBinding(progressTextIndicatorSubtitle, TextBlock.TextProperty, new Binding
             {
                 Source = progressBarIndicator,
                 Path = new PropertyPath("Value"),
@@ -217,17 +217,19 @@ namespace CollapseLauncher
 
             // Set the main dialog content and queue the dialog spawn
             mainDialogWindow.Content = mainGrid;
+        #pragma warning disable CA2012
             _ = mainDialogWindow.QueueAndSpawnDialog();
+        #pragma warning restore CA2012
 
             // Return the migration process UI ref struct 
             return new FileMigrationProcessUIRef
             {
-                mainDialogWindow = mainDialogWindow,
-                pathActivitySubtitle = pathActivitySubtitle,
-                fileCountIndicatorSubtitle = fileCountIndicatorSubtitle,
-                fileSizeIndicatorSubtitle = fileSizeIndicatorSubtitle,
-                progressBarIndicator = progressBarIndicator,
-                speedIndicatorSubtitle = speedIndicatorSubtitle,
+                MainDialogWindow = mainDialogWindow,
+                PathActivitySubtitle = pathActivitySubtitle,
+                FileCountIndicatorSubtitle = fileCountIndicatorSubtitle,
+                FileSizeIndicatorSubtitle = fileSizeIndicatorSubtitle,
+                ProgressBarIndicator = progressBarIndicator,
+                SpeedIndicatorSubtitle = speedIndicatorSubtitle
             };
         }
     }

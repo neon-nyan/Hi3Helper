@@ -12,8 +12,8 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.TextElements;
 
 internal class MyQuote : IAddChild
 {
-    private Paragraph _paragraph;
-    private MyFlowDocument _flowDocument;
+    private readonly Paragraph      _paragraph;
+    private readonly MyFlowDocument _flowDocument;
 
     public TextElement TextElement
     {
@@ -28,19 +28,23 @@ internal class MyQuote : IAddChild
         var inlineUIContainer = new InlineUIContainer();
 
         var grid = new Grid();
-        grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Auto) });
-        grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Auto) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Auto) });
 
-        var bar = new Grid();
-        bar.Width = 4;
-        bar.Background = new SolidColorBrush(Colors.Gray);
+        var bar = new Grid
+        {
+            Width      = 4,
+            Background = new SolidColorBrush(Colors.Gray)
+        };
         bar.SetValue(Grid.ColumnProperty, 0);
         bar.VerticalAlignment = VerticalAlignment.Stretch;
         bar.Margin = new Thickness(0, 0, 4, 0);
         grid.Children.Add(bar);
 
-        var rightGrid = new Grid();
-        rightGrid.Padding = new Thickness(4);
+        var rightGrid = new Grid
+        {
+            Padding = new Thickness(4)
+        };
         rightGrid.Children.Add(_flowDocument.RichTextBlock);
 
         rightGrid.SetValue(Grid.ColumnProperty, 1);

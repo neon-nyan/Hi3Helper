@@ -1,37 +1,39 @@
-﻿#if !DISABLEDISCORD
-    using CollapseLauncher.DiscordPresence;
-#endif
-    using CollapseLauncher.Dialogs;
-    using CollapseLauncher.GameSettings.StarRail;
-    using CollapseLauncher.Helper.Animation;
-    using Hi3Helper;
-    using Hi3Helper.Shared.ClassStruct;
-    using Microsoft.UI.Xaml;
-    using Microsoft.UI.Xaml.Media;
-    using Microsoft.Win32;
-    using RegistryUtils;
-    using System;
-    using System.Diagnostics.CodeAnalysis;
-    using System.IO;
-    using System.Numerics;
-    using Windows.UI;
-    using static Hi3Helper.Locale;
-    using static Hi3Helper.Logger;
-    using static Hi3Helper.Shared.Region.LauncherConfig;
-    using static CollapseLauncher.Statics.GamePropertyVault;
+﻿using CollapseLauncher.Dialogs;
+using CollapseLauncher.GameSettings.StarRail;
+using CollapseLauncher.Helper.Animation;
+using Hi3Helper;
+using Hi3Helper.Shared.ClassStruct;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.Win32;
+using RegistryUtils;
+using System;
+using System.Diagnostics.CodeAnalysis;
+using System.IO;
+using System.Numerics;
+using Windows.UI;
+using static Hi3Helper.Locale;
+using static Hi3Helper.Logger;
+using static Hi3Helper.Shared.Region.LauncherConfig;
+using static CollapseLauncher.Statics.GamePropertyVault;
+using Hi3Helper.SentryHelper;
 
-    namespace CollapseLauncher.Pages
+
+#if !DISABLEDISCORD
+using CollapseLauncher.DiscordPresence;
+#endif
+
+namespace CollapseLauncher.Pages
 {
     [SuppressMessage("ReSharper", "PossibleNullReferenceException")]
     public partial class StarRailGameSettingsPage
     {
-        private GamePresetProperty CurrentGameProperty   { get; set; }
-        private StarRailSettings   Settings              { get; set; }
+        private GamePresetProperty CurrentGameProperty   { get; }
+        private StarRailSettings   Settings              { get; }
         private Brush              InheritApplyTextColor { get; set; }
         private RegistryMonitor    RegistryWatcher       { get; set; }
         
-        private       bool   IsNoReload   = false;
-        private const string _AbValueName = "App_Settings_h2319593470";
+        private const string AbValueName = "App_Settings_h2319593470";
         public StarRailGameSettingsPage()
         {
             try
@@ -64,28 +66,32 @@
 
         private void RegistryListener(object sender, EventArgs e)
         {
-            if (!IsNoReload)
-            {
-                LogWriteLine("[HSR GSP Module] RegistryMonitor has detected registry change outside of the launcher! Reloading the page...", LogType.Warning, true);
-                DispatcherQueue?.TryEnqueue(MainFrameChanger.ReloadCurrentMainFrame);
-            }
+            LogWriteLine("[HSR GSP Module] RegistryMonitor has detected registry change outside of the launcher! Reloading the page...", LogType.Warning, true);
+            DispatcherQueue?.TryEnqueue(MainFrameChanger.ReloadCurrentMainFrame);
         }
 
         private async void LoadPage()
         {
-            Settings.ReloadSettings();
-
-            this.InitializeComponent();
-            ApplyButton.Translation = Shadow32;
-            GameSettingsApplyGrid.Translation = new Vector3(0, 0, 64);
-            SettingsScrollViewer.EnableImplicitAnimation(true);
-
-            InheritApplyTextColor = ApplyText.Foreground!;
-#nullable enable
-            // A/B Testing as of 2023-12-26 (HSR v1.6.0)
-            if (CheckAbTest())
+            try
             {
-                await SimpleDialogs.Dialog_GenericWarning(Content!);
+                Settings.ReloadSettings();
+
+                InitializeComponent();
+                ApplyButton.Translation           = Shadow32;
+                GameSettingsApplyGrid.Translation = new Vector3(0, 0, 64);
+                SettingsScrollViewer.EnableImplicitAnimation(true);
+
+                InheritApplyTextColor = ApplyText.Foreground!;
+            #nullable enable
+                // A/B Testing as of 2023-12-26 (HSR v1.6.0)
+                if (CheckAbTest())
+                {
+                    await SimpleDialogs.Dialog_GenericWarning(Content!);
+                }
+            }
+            catch (Exception ex)
+            {
+                await SentryHelper.ExceptionHandlerAsync(ex);
             }
         }
 
@@ -94,21 +100,22 @@
         /// </summary>
         public static bool CheckAbTest()
         {
-            object? abValue = Registry.GetValue(@"HKEY_CURRENT_USER\Software\Cognosphere\Star Rail", _AbValueName, null);
-            if (abValue != null)
+            object? abValue = Registry.GetValue(@"HKEY_CURRENT_USER\Software\Cognosphere\Star Rail", AbValueName, null);
+            if (abValue == null)
             {
-                LogWriteLine($"A/B Value Found. Settings will not apply to the game.", LogType.Warning, true);
-                return true;
+                return false;
             }
-            return false;
+
+            LogWriteLine("A/B Value Found. Settings will not apply to the game.", LogType.Warning, true);
+            return true;
         }
 #nullable disable
-        private void RegistryExportClick(object sender, RoutedEventArgs e)
+        private async void RegistryExportClick(object sender, RoutedEventArgs e)
         {
             try
             {
                 ToggleRegistrySubscribe(false);
-                Exception exc = Settings.ExportSettings();
+                Exception exc = await Settings.ExportSettings();
 
                 if (exc != null) throw exc;
 
@@ -129,12 +136,12 @@
             }
         }
 
-        private void RegistryImportClick(object sender, RoutedEventArgs e)
+        private async void RegistryImportClick(object sender, RoutedEventArgs e)
         {
             try
             {
                 ToggleRegistrySubscribe(false);
-                Exception exc = Settings.ImportSettings();
+                Exception exc = await Settings.ImportSettings();
 
                 if (exc != null) throw exc;
 
@@ -164,17 +171,18 @@
 
                 if (CurrentGameProperty.IsGameRunning)
                 {
-                    #if !GSPBYPASSGAMERUNNING
+                #if !GSPBYPASSGAMERUNNING
                     Overlay.Visibility = Visibility.Visible;
                     PageContent.Visibility = Visibility.Collapsed;
                     OverlayTitle.Text = Lang._StarRailGameSettingsPage.OverlayGameRunningTitle;
                     OverlaySubtitle.Text = Lang._StarRailGameSettingsPage.OverlayGameRunningSubtitle;
-                    #endif
+                #endif
                 }
-                else if (GameInstallationState == GameInstallStateEnum.NotInstalled
-                      || GameInstallationState == GameInstallStateEnum.NeedsUpdate
-                      || GameInstallationState == GameInstallStateEnum.InstalledHavePlugin
-                      || GameInstallationState == GameInstallStateEnum.GameBroken)
+                else if (GameInstallationState
+                    is GameInstallStateEnum.NotInstalled
+                    or GameInstallStateEnum.NeedsUpdate
+                    or GameInstallStateEnum.InstalledHavePlugin
+                    or GameInstallStateEnum.GameBroken)
                 {
                     Overlay.Visibility = Visibility.Visible;
                     PageContent.Visibility = Visibility.Collapsed;
@@ -183,9 +191,9 @@
                 }
                 else
                 {
-#if !DISABLEDISCORD
+                #if !DISABLEDISCORD
                     InnerLauncherConfig.AppDiscordPresence.SetActivity(ActivityType.GameSettings);
-#endif
+                #endif
                 }
             }
             catch (Exception ex)
@@ -233,18 +241,13 @@
             get
             {
                 bool value = CurrentGameProperty.GameSettings.SettingsCollapseMisc.UseCustomArguments;
-
-                if (value) CustomArgsTextBox.IsEnabled = true;
-                else CustomArgsTextBox.IsEnabled       = false;
-                
+                CustomArgsTextBox.IsEnabled = value;
                 return value;
             }
             set
             {
                 CurrentGameProperty.GameSettings.SettingsCollapseMisc.UseCustomArguments = value;
-                
-                if (value) CustomArgsTextBox.IsEnabled = true;
-                else CustomArgsTextBox.IsEnabled       = false;
+                CustomArgsTextBox.IsEnabled = value;
             }
         }
 

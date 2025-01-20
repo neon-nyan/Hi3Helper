@@ -7,5 +7,5 @@ namespace CollapseLauncher.GameSettings.Genshin.Context
     [JsonSerializable(typeof(GeneralData))]
     [JsonSerializable(typeof(GraphicsData))]
     [JsonSerializable(typeof(GlobalPerfData))]
-    internal sealed partial class GenshinSettingsJSONContext : JsonSerializerContext { }
+    internal sealed partial class GenshinSettingsJsonContext : JsonSerializerContext;
 }

@@ -222,17 +222,19 @@ namespace CollapseLauncher.Helper.Database
                         await
                             _database!
                                .Execute($"SELECT value FROM \"uid-{_userIdHash}\" WHERE key = ?", key);
-                    if (rs != null)
+                    if (rs == null)
                     {
-                        // freaking black magic to convert the column row to the value 
-                        var str =
-                            string.Join("", rs.Rows.Select(row => string.Join("", row.Select(x => x.ToString()))));
-                    #if DEBUG
-                        LogWriteLine($"[DBHandler::QueryKey][{sId}] Got value!\r\n\tKey: {key}\r\n\tValue:\r\n{str}", LogType.Debug,
-                                     true);
-                    #endif
-                        return str;
+                        continue;
                     }
+
+                    // freaking black magic to convert the column row to the value 
+                    var str =
+                        string.Join("", rs.Rows.Select(row => string.Join("", row.Select(x => x.ToString()))));
+                #if DEBUG
+                    LogWriteLine($"[DBHandler::QueryKey][{sId}] Got value!\r\n\tKey: {key}\r\n\tValue:\r\n{str}", LogType.Debug,
+                                 true);
+                #endif
+                    return str;
                 }
                 // No need to handle all these error catcher with sentry
                 // The error should be handled in the method caller instead

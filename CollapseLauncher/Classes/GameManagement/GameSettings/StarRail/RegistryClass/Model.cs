@@ -61,7 +61,7 @@ namespace CollapseLauncher.GameSettings.StarRail
         public static          Dictionary<int, int> FPSIndexDict    = GenerateStaticFPSIndexDict();
         private static Dictionary<int, int> GenerateStaticFPSIndexDict()
         {
-            Dictionary<int, int> ret = new Dictionary<int, int>();
+            Dictionary<int, int> ret = new();
             for (int i = 0; i < FPSIndex.Length; i++)
             {
                 ret.Add(FPSIndex[i], i);
@@ -71,7 +71,7 @@ namespace CollapseLauncher.GameSettings.StarRail
         #endregion
 
         #region Presets
-        private static Model _VeryLowPreset = new()
+        private static readonly Model _VeryLowPreset = new()
         {
             FPS                      = 60,
             EnableVSync              = false,
@@ -91,7 +91,7 @@ namespace CollapseLauncher.GameSettings.StarRail
             
         };
 
-        private static Model _LowPreset = new()
+        private static readonly Model _LowPreset = new()
         {
             FPS                      = 60,
             EnableVSync              = true,
@@ -110,7 +110,7 @@ namespace CollapseLauncher.GameSettings.StarRail
             EnableSelfShadow         = 2
         };
 
-        private static Model _MediumPreset = new()
+        private static readonly Model _MediumPreset = new()
         {
             FPS                      = 60,
             EnableVSync              = true,
@@ -129,7 +129,7 @@ namespace CollapseLauncher.GameSettings.StarRail
             EnableSelfShadow         = 2
         };
 
-        private static Model _HighPreset = new()
+        private static readonly Model _HighPreset = new()
         {
             FPS                      = 60,
             EnableVSync              = true,
@@ -148,7 +148,7 @@ namespace CollapseLauncher.GameSettings.StarRail
             EnableSelfShadow         = 1
         };
 
-        private static Model _VeryHighPreset = new()
+        private static readonly Model _VeryHighPreset = new()
         {
             FPS                      = 60,
             EnableVSync              = true,
@@ -329,7 +329,7 @@ namespace CollapseLauncher.GameSettings.StarRail
                     LogWriteLine($"Loaded StarRail Settings: {_ValueName}\r\n{Encoding.UTF8.GetString((byte[])value, 0, ((byte[])value).Length - 1)}", LogType.Debug, true);
 #endif
 
-                    return byteStr.Deserialize(StarRailSettingsJSONContext.Default.Model) ?? new Model();
+                    return byteStr.Deserialize(StarRailSettingsJsonContext.Default.Model) ?? new Model();
                 }
             }
             catch (Exception ex)
@@ -362,7 +362,7 @@ namespace CollapseLauncher.GameSettings.StarRail
 
                 RegistryRoot.SetValue(_GraphicsQuality, Quality.Custom, RegistryValueKind.DWord);
 
-                string data = this.Serialize(StarRailSettingsJSONContext.Default.Model);
+                string data = this.Serialize(StarRailSettingsJsonContext.Default.Model);
                 byte[] dataByte = Encoding.UTF8.GetBytes(data);
                 RegistryRoot.SetValue(_ValueName, dataByte, RegistryValueKind.Binary);
 #if DEBUG

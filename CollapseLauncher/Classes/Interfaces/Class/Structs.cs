@@ -4,6 +4,8 @@ using Hi3Helper.Data;
 using System;
 using System.IO;
 // ReSharper disable CheckNamespace
+// ReSharper disable InconsistentNaming
+// ReSharper disable IdentifierTypo
 
 namespace CollapseLauncher
 {
@@ -102,7 +104,7 @@ namespace CollapseLauncher
         }
     }
 
-    public record struct GameVersion
+    public readonly record struct GameVersion
     {
         public GameVersion(int major, int minor, int build, int revision = 0)
         {
@@ -114,9 +116,9 @@ namespace CollapseLauncher
 
         public GameVersion(ReadOnlySpan<int> ver)
         {
-            if (!(ver.Length == 3 || ver.Length == 4))
+            if (ver.Length is not (3 or 4))
             {
-                throw new ArgumentException($"Version array entered should have length of 3 or 4!");
+                throw new ArgumentException("Version array entered should have length of 3 or 4!");
             }
 
             Major = ver[0];
@@ -138,7 +140,7 @@ namespace CollapseLauncher
         public GameVersion(string version)
         {
             string[] ver = version.Split('.', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-            if (!(ver.Length == 3 || ver.Length == 4))
+            if (ver.Length is not (3 or 4))
             {
                 throw new ArgumentException($"Version in the config.ini should be in \"x.x.x\" or \"x.x.x.x\" format! (current value: \"{version}\")");
             }
@@ -146,10 +148,12 @@ namespace CollapseLauncher
             if (!int.TryParse(ver[0], out Major)) throw new ArgumentException($"Major version is not a number! (current value: {ver[0]}");
             if (!int.TryParse(ver[1], out Minor)) throw new ArgumentException($"Minor version is not a number! (current value: {ver[1]}");
             if (!int.TryParse(ver[2], out Build)) throw new ArgumentException($"Build version is not a number! (current value: {ver[2]}");
-            if (ver.Length == 4)
+            if (ver.Length != 4)
             {
-                if (!int.TryParse(ver[3], out Revision)) throw new ArgumentException($"Revision version is not a number! (current value: {ver[3]}");
+                return;
             }
+
+            if (!int.TryParse(ver[3], out Revision)) throw new ArgumentException($"Revision version is not a number! (current value: {ver[3]}");
         }
 
         public static bool TryParse(string version, out GameVersion? result)
@@ -159,7 +163,7 @@ namespace CollapseLauncher
             ReadOnlySpan<char> versionSpan = version.AsSpan();
             int splitRanges = versionSpan.Split(ranges, '.', StringSplitOptions.TrimEntries);
 
-            if (!(splitRanges == 3 || splitRanges == 4)) return false;
+            if (splitRanges is not (3 or 4)) return false;
 
             Span<int> versionSplits = stackalloc int[4];
             for (int i = 0; i < splitRanges; i++)
@@ -188,21 +192,23 @@ namespace CollapseLauncher
 
         public GameVersion GetIncrementedVersion()
         {
-            int NextMajor = Major;
-            int NextMinor = Minor;
+            int nextMajor = Major;
+            int nextMinor = Minor;
 
-            NextMinor++;
-            if (NextMinor >= 10)
+            nextMinor++;
+            if (nextMinor < 10)
             {
-                NextMinor = 0;
-                NextMajor++;
+                return new GameVersion([nextMajor, nextMinor, Build, Revision]);
             }
 
-            return new GameVersion(new[] { NextMajor, NextMinor, Build, Revision });
+            nextMinor = 0;
+            nextMajor++;
+
+            return new GameVersion([nextMajor, nextMinor, Build, Revision]);
         }
 
-        public Version ToVersion() => new Version(Major, Minor, Build, Revision);
-        public override string ToString() => $"{Major}.{Minor}.{Build}";
+        public          Version ToVersion() => new(Major, Minor, Build, Revision);
+        public override string  ToString()  => $"{Major}.{Minor}.{Build}";
 
         public          string VersionStringManifest { get => string.Join('.', VersionArrayManifest); }
         public          string VersionString         { get => string.Join('.', VersionArray); }
@@ -227,30 +233,25 @@ namespace CollapseLauncher
         public byte[] RemoteCRCByte { get; }
     }
 
-    public class AssetProperty<T> : IAssetProperty
+    public class AssetProperty<T>(
+        string name,
+        T      assetType,
+        string source,
+        long   size,
+        byte[] localCrcByte,
+        byte[] remoteCrcByte)
+        : IAssetProperty
     {
-        public AssetProperty(
-            string name, T assetType, string source,
-            long size, byte[] localCRCByte, byte[] remoteCRCByte)
-        {
-            Name = name;
-            AssetType = assetType;
-            Source = '\\' + source;
-            Size = size;
-            LocalCRCByte = localCRCByte;
-            RemoteCRCByte = remoteCRCByte;
-        }
-
         public string AssetTypeString { get => Enum.GetName(typeof(T), AssetType); }
-        public string Name { get; private init; }
-        public T AssetType { get; private init; }
-        public string Source { get; private init; }
-        public long Size { get; private init; }
-        public string SizeStr { get => ConverterTool.SummarizeSizeSimple(Size); }
-        public string LocalCRC { get => LocalCRCByte == null ? "-" : HexTool.BytesToHexUnsafe(LocalCRCByte); }
-        public byte[] LocalCRCByte { get; private init; }
-        public string RemoteCRC { get => RemoteCRCByte == null ? "-" : HexTool.BytesToHexUnsafe(RemoteCRCByte); }
-        public byte[] RemoteCRCByte { get; private init; }
+        public string Name            { get; } = name;
+        public T      AssetType       { get; } = assetType;
+        public string Source          { get; } = '\\' + source;
+        public long   Size            { get; } = size;
+        public string SizeStr         { get => ConverterTool.SummarizeSizeSimple(Size); }
+        public string LocalCRC        { get => LocalCRCByte == null ? "-" : HexTool.BytesToHexUnsafe(LocalCRCByte); }
+        public byte[] LocalCRCByte    { get; } = localCrcByte;
+        public string RemoteCRC       { get => RemoteCRCByte == null ? "-" : HexTool.BytesToHexUnsafe(RemoteCRCByte); }
+        public byte[] RemoteCRCByte   { get; } = remoteCrcByte;
 
         public IAssetProperty ToIAssetProperty() => this;
     }

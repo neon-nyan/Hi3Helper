@@ -51,7 +51,7 @@ namespace CollapseLauncher
                     GameSettings = new HonkaiSettings(GameVersion);
                     GameCache = new HonkaiCache(uiElementParent, GameVersion);
                     GameRepair = new HonkaiRepair(uiElementParent, GameVersion, GameCache, GameSettings);
-                    GameInstall = new HonkaiInstall(uiElementParent, GameVersion, GameCache, GameSettings);
+                    GameInstall = new HonkaiInstall(uiElementParent, GameVersion, GameCache);
                     break;
                 case GameNameType.StarRail:
                     GameVersion = new GameTypeStarRailVersion(uiElementParent, ApiResourceProp, gameName, gameRegion);
@@ -64,7 +64,7 @@ namespace CollapseLauncher
                     GameVersion = new GameTypeGenshinVersion(uiElementParent, ApiResourceProp, gameName, gameRegion);
                     GameSettings = new GenshinSettings(GameVersion);
                     GameCache = null;
-                    GameRepair = new GenshinRepair(uiElementParent, GameVersion, GameVersion.GameAPIProp!.data!.game!.latest!.decompressed_path);
+                    GameRepair = new GenshinRepair(uiElementParent, GameVersion, GameVersion.GameApiProp!.data!.game!.latest!.decompressed_path);
                     GameInstall = new GenshinInstall(uiElementParent, GameVersion);
                     break;
                 case GameNameType.Zenless:

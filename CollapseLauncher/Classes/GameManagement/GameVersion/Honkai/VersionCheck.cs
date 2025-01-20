@@ -7,7 +7,7 @@ namespace CollapseLauncher.GameVersioning
     internal sealed class GameTypeHonkaiVersion : GameVersionBase
     {
         #region Statics
-        private static Version senadinaVersion = new Version(7, 3, 0);
+        private static readonly Version senadinaVersion = new(7, 3, 0);
         #endregion
 
         #region Public properties

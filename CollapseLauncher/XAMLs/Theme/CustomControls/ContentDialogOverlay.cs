@@ -18,13 +18,13 @@
         public ContentDialogOverlay(ContentDialogTheme theme = ContentDialogTheme.Warning)
         {
             Theme = theme;
-            object brushObj = (Theme switch
-            {
-                ContentDialogTheme.Success => UIElementExtensions.GetApplicationResource<object>("SystemFillColorSuccessBrush"),
-                ContentDialogTheme.Warning => UIElementExtensions.GetApplicationResource<object>("SystemFillColorCautionBrush"),
-                ContentDialogTheme.Error => UIElementExtensions.GetApplicationResource<object>("SystemFillColorCriticalBrush"),
-                _ => UIElementExtensions.GetApplicationResource<object>("SystemFillColorAttentionBrush")
-            });
+            object brushObj = Theme switch
+                              {
+                                  ContentDialogTheme.Success => UIElementExtensions.GetApplicationResource<object>("SystemFillColorSuccessBrush"),
+                                  ContentDialogTheme.Warning => UIElementExtensions.GetApplicationResource<object>("SystemFillColorCautionBrush"),
+                                  ContentDialogTheme.Error => UIElementExtensions.GetApplicationResource<object>("SystemFillColorCriticalBrush"),
+                                  _ => UIElementExtensions.GetApplicationResource<object>("SystemFillColorAttentionBrush")
+                              };
 
             if (brushObj is not null and SolidColorBrush brush)
             {
@@ -46,7 +46,7 @@
 
         public new IAsyncOperation<ContentDialogResult> ShowAsync()
         {
-            if (Title != null && Title is string titleString && Theme != ContentDialogTheme.Informational)
+            if (Title is string titleString && Theme != ContentDialogTheme.Informational)
             {
                 Grid titleStack = UIElementExtensions.CreateIconTextGrid(
                         text: titleString,

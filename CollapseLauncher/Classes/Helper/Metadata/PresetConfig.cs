@@ -19,6 +19,11 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using static Hi3Helper.Logger;
+// ReSharper disable InconsistentNaming
+// ReSharper disable IdentifierTypo
+// ReSharper disable CommentTypo
+// ReSharper disable SwitchStatementMissingSomeEnumCasesNoDefault
+// ReSharper disable StringLiteralTypo
 
 #nullable enable
 namespace CollapseLauncher.Helper.Metadata
@@ -95,7 +100,10 @@ namespace CollapseLauncher.Helper.Metadata
             // Fetch branch info
             ActionTimeoutValueTaskCallback<HoYoPlayLauncherGameInfo?> hypLauncherBranchCallback =
                 async innerToken =>
-                    await FallbackCDNUtil.DownloadAsJSONType(branchUrl, InternalAppJSONContext.Default.HoYoPlayLauncherGameInfo, innerToken);
+                    await FallbackCDNUtil.DownloadAsJSONType(
+                        branchUrl,
+                        HoYoPlayLauncherGameInfoJsonContext.Default.HoYoPlayLauncherGameInfo,
+                        innerToken);
 
             HoYoPlayLauncherGameInfo? hypLauncherBranchInfo = await hypLauncherBranchCallback.WaitForRetryAsync(
                 LauncherApiBase.ExecutionTimeout,
@@ -247,14 +255,15 @@ namespace CollapseLauncher.Helper.Metadata
         }
     }
 
-    internal class PresetConfig
+    [JsonSourceGenerationOptions(IncludeFields = false, GenerationMode = JsonSourceGenerationMode.Metadata, IgnoreReadOnlyFields = true)]
+    [JsonSerializable(typeof(PresetConfig))]
+    internal sealed partial class PresetConfigJsonContext : JsonSerializerContext;
+
+    internal sealed class PresetConfig
     {
         #region Constants
         // ReSharper disable once UnusedMember.Local
-        private const string PrefixRegInstallLocation =
-            "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{0}";
-
-        private const string PrefixRegGameConfig       = "Software\\{0}\\{1}";
+        private const string PrefixRegGameConfig       = @"Software\{0}\{1}";
         private const string PrefixDefaultProgramFiles = "{1}Program Files\\{0}";
         private const string QueryLauncherIdHead       = "launcher_id";
         private const string QueryGameIdHead           = "game_ids[]";
@@ -328,51 +337,52 @@ namespace CollapseLauncher.Helper.Metadata
         [JsonConverter(typeof(ServeV3StringConverter))]
         public string? LauncherSpriteURLMultiLangFallback { get; init; }
 
-        private string? _launcherPluginURL;
         [JsonConverter(typeof(ServeV3StringConverter))]
         public string? LauncherPluginURL
         {
-            get => _launcherPluginURL;
-            init => _launcherPluginURL = value.AssociateGameAndLauncherId(QueryLauncherIdHead, QueryGameIdHead, LauncherId, LauncherGameId);
+            get;
+            init => field =
+                value.AssociateGameAndLauncherId(QueryLauncherIdHead, QueryGameIdHead, LauncherId, LauncherGameId);
         }
 
-        private string? _launcherResourceURL;
         [JsonConverter(typeof(ServeV3StringConverter))]
         public string? LauncherResourceURL
         {
-            get => _launcherResourceURL;
-            init => _launcherResourceURL = value.AssociateGameAndLauncherId(QueryLauncherIdHead, QueryGameIdHead, LauncherId, LauncherGameId);
+            get;
+            init => field =
+                value.AssociateGameAndLauncherId(QueryLauncherIdHead, QueryGameIdHead, LauncherId, LauncherGameId);
         }
 
-        private string? _launcherGameChannelSDKURL;
         [JsonConverter(typeof(ServeV3StringConverter))]
         public string? LauncherGameChannelSDKURL
         {
-            get => _launcherGameChannelSDKURL;
-            init => _launcherGameChannelSDKURL = value.AssociateGameAndLauncherId(QueryLauncherIdHead, QueryGameIdHead, LauncherId, LauncherGameId);
+            get;
+            init => field =
+                value.AssociateGameAndLauncherId(QueryLauncherIdHead, QueryGameIdHead, LauncherId, LauncherGameId);
         }
 
-        private string? _launcherGameInfoDisplayURL;
         [JsonConverter(typeof(ServeV3StringConverter))]
         public string? LauncherGameInfoDisplayURL
         {
-            get => _launcherGameInfoDisplayURL;
-            init => _launcherGameInfoDisplayURL = value.AssociateGameAndLauncherId(QueryLauncherIdHead, QueryGameIdHead, LauncherId, LauncherGameId);
+            get;
+            init => field =
+                value.AssociateGameAndLauncherId(QueryLauncherIdHead, QueryGameIdHead, LauncherId, LauncherGameId);
         }
 
-        private SophonChunkUrls? _launcherResourceChunksURL;
         public SophonChunkUrls? LauncherResourceChunksURL
         {
-            get => _launcherResourceChunksURL;
+            get;
             init
             {
-                _launcherResourceChunksURL = value;
-                if (!string.IsNullOrEmpty(_launcherResourceChunksURL?.BranchUrl))
+                field = value;
+                if (string.IsNullOrEmpty(field?.BranchUrl))
                 {
-                    string branchUrl = _launcherResourceChunksURL.BranchUrl;
-                    _launcherResourceChunksURL.BranchUrl = branchUrl
-                        .AssociateGameAndLauncherId(QueryLauncherIdHead, QueryGameIdHead, LauncherId, LauncherGameId);
+                    return;
                 }
+
+                string branchUrl = field.BranchUrl;
+                field.BranchUrl = branchUrl
+                   .AssociateGameAndLauncherId(QueryLauncherIdHead, QueryGameIdHead, LauncherId, LauncherGameId);
             }
         }
 
@@ -477,7 +487,7 @@ namespace CollapseLauncher.Helper.Metadata
 
             if (keys is null || result is null || result.Length is 0)
             {
-                LogWriteLine($"Language registry on \u001b[32;1m{Path.GetFileName(ConfigRegistryLocation)}\u001b[0m version doesn't exist. Fallback value will be used.",
+                LogWriteLine($"Language registry on \e[32;1m{Path.GetFileName(ConfigRegistryLocation)}\e[0m version doesn't exist. Fallback value will be used.",
                              LogType.Warning, true);
                 return FallbackLanguage;
             }
@@ -491,15 +501,12 @@ namespace CollapseLauncher.Helper.Metadata
         public int GetVoiceLanguageID()
         {
             string regPath = Path.GetFileName(ConfigRegistryLocation);
-            switch (GameType)
-            {
-                case GameNameType.Genshin:
-                    return GetVoiceLanguageID_Genshin(regPath);
-                case GameNameType.StarRail:
-                    return GetVoiceLanguageID_StarRail(regPath);
-                default:
-                    return int.MinValue;
-            }
+            return GameType switch
+                   {
+                       GameNameType.Genshin => GetVoiceLanguageID_Genshin(regPath),
+                       GameNameType.StarRail => GetVoiceLanguageID_StarRail(regPath),
+                       _ => int.MinValue
+                   };
         }
 
         private int GetVoiceLanguageID_StarRail(string regPath)
@@ -550,9 +557,7 @@ namespace CollapseLauncher.Helper.Metadata
                 }
 
                 ReadOnlySpan<char> regValue = Encoding.UTF8.GetString(value).AsSpan().Trim('\0');
-                GeneralDataProp? regValues =
-                    (GeneralDataProp?)JsonSerializer.Deserialize(new string(regValue), typeof(GeneralDataProp),
-                                                                 InternalAppJSONContext.Default);
+                GeneralDataProp? regValues = regValue.Deserialize(GeneralDataPropJsonContext.Default.GeneralDataProp);
                 return regValues?.deviceVoiceLanguageType ?? 2;
             }
             catch (JsonException ex)
@@ -586,7 +591,7 @@ namespace CollapseLauncher.Helper.Metadata
             }
         }
 
-        public int GetStarRailVoiceLanguageByName(string name)
+        private static int GetStarRailVoiceLanguageByName(string name)
         {
             return name switch
                    {
@@ -599,7 +604,7 @@ namespace CollapseLauncher.Helper.Metadata
                    };
         }
 
-        public string GetStarRailVoiceLanguageByID(int id)
+        private static string GetStarRailVoiceLanguageByID(int id)
         {
             return id switch
                    {
@@ -612,7 +617,7 @@ namespace CollapseLauncher.Helper.Metadata
                    };
         }
 
-        public string GetStarRailVoiceLanguageFullNameByID(int id)
+        public static string GetStarRailVoiceLanguageFullNameByID(int id)
         {
             return id switch
                    {
@@ -629,24 +634,14 @@ namespace CollapseLauncher.Helper.Metadata
         {
             try
             {
-                RegistryKey keys = Registry.CurrentUser.OpenSubKey(ConfigRegistryLocation, true) ?? Registry.CurrentUser.CreateSubKey(ConfigRegistryLocation);
+                RegistryKey keys = Registry.CurrentUser.CreateSubKey(ConfigRegistryLocation, true);
 
                 var result    = (byte[]?)keys.GetValue("GENERAL_DATA_h2389025596");
-                var initValue = new GeneralDataProp();
-                if (result != null)
-                {
-                    ReadOnlySpan<char> regValue = Encoding.UTF8.GetString(result).AsSpan().Trim('\0');
-                    initValue = (GeneralDataProp?)JsonSerializer.Deserialize(new string(regValue),
-                                                                             typeof(GeneralDataProp),
-                                                                             InternalAppJSONContext.Default) ??
-                                initValue;
-                }
-
+                GeneralDataProp? initValue = result?.Deserialize(GeneralDataPropJsonContext.Default.GeneralDataProp) ?? new GeneralDataProp();
                 initValue.deviceVoiceLanguageType = langID;
-                keys.SetValue("GENERAL_DATA_h2389025596",
-                              Encoding.UTF8.GetBytes(
-                                                     JsonSerializer.Serialize(initValue, typeof(GeneralDataProp),
-                                                                              InternalAppJSONContext.Default) + '\0'));
+
+                string jsonString = initValue.Serialize(GeneralDataPropJsonContext.Default.GeneralDataProp, true);
+                keys.SetValue("GENERAL_DATA_h2389025596", Encoding.UTF8.GetBytes(jsonString), RegistryValueKind.Binary);
             }
             catch (Exception ex)
             {
@@ -659,11 +654,10 @@ namespace CollapseLauncher.Helper.Metadata
         {
             try
             {
-                RegistryKey keys = Registry.CurrentUser.OpenSubKey(ConfigRegistryLocation, true) ?? Registry.CurrentUser.CreateSubKey(ConfigRegistryLocation);
+                RegistryKey keys = Registry.CurrentUser.CreateSubKey(ConfigRegistryLocation, true);
 
                 string initValue = GetStarRailVoiceLanguageByID(langID);
-                keys.SetValue("LanguageSettings_LocalAudioLanguage_h882585060",
-                              Encoding.UTF8.GetBytes(initValue + '\0'));
+                keys.SetValue("LanguageSettings_LocalAudioLanguage_h882585060", Encoding.UTF8.GetBytes(initValue + '\0'), RegistryValueKind.Binary);
             }
             catch (Exception ex)
             {
@@ -728,28 +722,24 @@ namespace CollapseLauncher.Helper.Metadata
             }
 
             RegistryKey? keys = Registry.CurrentUser.OpenSubKey(ConfigRegistryLocation);
-            byte[]? value =
-                (byte[]?)keys?.GetValue("GENERAL_DATA_h2389025596", new byte[] { }, RegistryValueOptions.None);
+            byte[]? value = (byte[]?)keys?.GetValue("GENERAL_DATA_h2389025596", Array.Empty<byte>(), RegistryValueOptions.None);
 
             if (keys is null || value is null || value.Length is 0)
             {
-                LogWriteLine($"Server name ID registry on \u001b[32;1m{Path.GetFileName(ConfigRegistryLocation)}\u001b[0m doesn't exist. Fallback value will be used (0 / USA).",
+                LogWriteLine($"Server name ID registry on \e[32;1m{Path.GetFileName(ConfigRegistryLocation)}\e[0m doesn't exist. Fallback value will be used (0 / USA).",
                              LogType.Warning, true);
                 return 0;
             }
 
-            string regValue = new string(Encoding.UTF8.GetString(value).AsSpan().Trim('\0'));
-
             try
             {
-                return (int?)((GeneralDataProp?)JsonSerializer.Deserialize(regValue, typeof(GeneralDataProp),
-                                                                           InternalAppJSONContext.Default))
-                  ?.selectedServerName ?? 0;
+                return (int)(value.Deserialize(GeneralDataPropJsonContext.Default.GeneralDataProp)?.selectedServerName ?? ServerRegionID.os_usa);
             }
             catch (Exception ex)
             {
                 SentryHelper.ExceptionHandler(ex);
-                LogWriteLine($"Error while getting existing GENERAL_DATA_h2389025596 value on {ZoneFullname}! Returning value 0 as fallback!\r\nValue: {regValue}\r\n{ex}",
+                LogWriteLine($"Error while getting existing GENERAL_DATA_h2389025596 value on {ZoneFullname}!" +
+                             $"Returning value 0 as fallback!\r\nValue: {Encoding.UTF8.GetString(value.Trim((byte)0))}\r\n{ex}",
                              LogType.Warning, true);
                 return 0;
             }
@@ -830,12 +820,7 @@ namespace CollapseLauncher.Helper.Metadata
                 return CheckInnerGameConfig(DefaultGameLocation, LauncherType.Sophon);
             }
 
-            if (Directory.Exists(path))
-            {
-                return CheckInnerGameConfig(path, LauncherType.Sophon);
-            }
-
-            return false;
+            return Directory.Exists(path) && CheckInnerGameConfig(path, LauncherType.Sophon);
         }
 
         private bool CheckInnerGameConfig(string gamePath, LauncherType launcherType)
@@ -893,7 +878,7 @@ namespace CollapseLauncher.Helper.Metadata
         public void AddApiResourceAdditionalHeaders(Action<string, string?> addHandler)
             => AddAdditionalHeadersFromDict(ApiResourceAdditionalHeaders, addHandler);
 
-        private void AddAdditionalHeadersFromDict(Dictionary<string, string?>? dict, Action<string, string?> addHandler)
+        private static void AddAdditionalHeadersFromDict(Dictionary<string, string?>? dict, Action<string, string?> addHandler)
         {
             if (dict == null || dict.Count == 0)
             {

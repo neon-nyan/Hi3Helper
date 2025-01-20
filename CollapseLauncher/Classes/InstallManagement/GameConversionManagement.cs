@@ -24,6 +24,7 @@ using static Hi3Helper.Locale;
 using static Hi3Helper.Logger;
 using static Hi3Helper.Shared.Region.LauncherConfig;
 // ReSharper disable PartialTypeWithSinglePart
+// ReSharper disable SwitchStatementMissingSomeEnumCasesNoDefault
 
 namespace CollapseLauncher
 {
@@ -31,53 +32,54 @@ namespace CollapseLauncher
     {
         public event EventHandler<ConvertProgress> ProgressChanged;
 
-        private PresetConfig SourceProfile, TargetProfile;
-        private List<FileProperties> SourceFileManifest;
-        private List<FileProperties> TargetFileManifest;
-        private HttpClient _client;
+        private readonly PresetConfig         _sourceProfile;
+        private readonly PresetConfig         _targetProfile;
+        private          List<FileProperties> _sourceFileManifest;
+        private          List<FileProperties> _targetFileManifest;
+        private readonly HttpClient           _client;
 
-        string            BaseURL;
-        string            GameVersion;
-        string            CookbookPath;
-        Stopwatch         ConvertSw;
-        CancellationToken Token;
-        private void      ResetSw() => ConvertSw = Stopwatch.StartNew();
-        string            ConvertStatus, ConvertDetail;
-        byte              DownloadThread;
+        private readonly string            _baseURL;
+        private readonly string            _gameVersion;
+        private readonly string            _cookbookPath;
+        private          Stopwatch         _convertSw;
+        private readonly CancellationToken _token;
+        private          void              ResetSw() => _convertSw = Stopwatch.StartNew();
+        private          string            _convertStatus, _convertDetail;
+        private readonly byte              _downloadThread;
 
-        internal GameConversionManagement(PresetConfig SourceProfile, PresetConfig TargetProfile,
-            string BaseURL, string GameVersion, string CookbookPath, CancellationToken Token = new())
+        internal GameConversionManagement(PresetConfig sourceProfile, PresetConfig targetProfile,
+            string baseURL, string gameVersion, string cookbookPath, CancellationToken token = new())
         {
             // Initialize new proxy-aware HttpClient
-            this._client = new HttpClientBuilder()
+            _client = new HttpClientBuilder()
                 .UseLauncherConfig()
                 .SetAllowedDecompression(DecompressionMethods.None)
                 .Create();
-            this.SourceProfile = SourceProfile;
-            this.TargetProfile = TargetProfile;
-            this.BaseURL = BaseURL;
-            this.GameVersion = GameVersion;
-            this.DownloadThread = (byte)AppCurrentDownloadThread;
-            this.CookbookPath = CookbookPath;
-            this.Token = Token;
+            _sourceProfile = sourceProfile;
+            _targetProfile = targetProfile;
+            _baseURL = baseURL;
+            _gameVersion = gameVersion;
+            _downloadThread = (byte)AppCurrentDownloadThread;
+            _cookbookPath = cookbookPath;
+            _token = token;
         }
 
         ~GameConversionManagement() => Dispose();
 
         public void Dispose()
         {
-            this._client?.Dispose();
+            _client?.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         public async Task StartPreparation()
         {
-            List<FilePropertiesRemote> SourceFileRemote;
-            List<FilePropertiesRemote> TargetFileRemote;
-            ConvertSw = Stopwatch.StartNew();
-            ConvertStatus = Lang._InstallConvert.Step3Title;
+            List<FilePropertiesRemote> sourceFileRemote;
+            List<FilePropertiesRemote> targetFileRemote;
+            _convertSw = Stopwatch.StartNew();
+            _convertStatus = Lang._InstallConvert.Step3Title;
 
-            string IngredientsPath = TargetProfile.ActualGameDataLocation + "_Ingredients";
-            string URL;
+            string ingredientsPath = _targetProfile.ActualGameDataLocation + "_Ingredients";
 
             DownloadClient downloadClient = DownloadClient.CreateInstance(_client);
 
@@ -85,22 +87,23 @@ namespace CollapseLauncher
             {
                 FallbackCDNUtil.DownloadProgress += FetchIngredientsAPI_Progress;
 
+                string url;
                 using (MemoryStream buffer = new MemoryStream())
                 {
-                    URL = string.Format(AppGameRepairIndexURLPrefix, SourceProfile.ProfileName, this.GameVersion);
-                    ConvertDetail = Lang._InstallConvert.Step2Subtitle;
-                    await FallbackCDNUtil.DownloadCDNFallbackContent(downloadClient, buffer, URL, Token);
+                    url = string.Format(AppGameRepairIndexURLPrefix, _sourceProfile.ProfileName, _gameVersion);
+                    _convertDetail = Lang._InstallConvert.Step2Subtitle;
+                    await FallbackCDNUtil.DownloadCDNFallbackContent(downloadClient, buffer, url, _token);
                     buffer.Position = 0;
-                    SourceFileRemote = await buffer.DeserializeAsListAsync(CoreLibraryJSONContext.Default.FilePropertiesRemote, Token);
+                    sourceFileRemote = await buffer.DeserializeAsListAsync(CoreLibraryJsonContext.Default.FilePropertiesRemote, _token);
                 }
 
                 using (MemoryStream buffer = new MemoryStream())
                 {
-                    URL = string.Format(AppGameRepairIndexURLPrefix, TargetProfile.ProfileName, this.GameVersion);
-                    ConvertDetail = Lang._InstallConvert.Step2Subtitle;
-                    await FallbackCDNUtil.DownloadCDNFallbackContent(downloadClient, buffer, URL, Token);
+                    url = string.Format(AppGameRepairIndexURLPrefix, _targetProfile.ProfileName, _gameVersion);
+                    _convertDetail = Lang._InstallConvert.Step2Subtitle;
+                    await FallbackCDNUtil.DownloadCDNFallbackContent(downloadClient, buffer, url, _token);
                     buffer.Position = 0;
-                    TargetFileRemote = await buffer.DeserializeAsListAsync(CoreLibraryJSONContext.Default.FilePropertiesRemote, Token);
+                    targetFileRemote = await buffer.DeserializeAsListAsync(CoreLibraryJsonContext.Default.FilePropertiesRemote, _token);
                 }
             }
             finally
@@ -108,44 +111,41 @@ namespace CollapseLauncher
                 FallbackCDNUtil.DownloadProgress -= FetchIngredientsAPI_Progress;
             }
 
-            SourceFileManifest = BuildManifest(SourceFileRemote);
-            TargetFileManifest = BuildManifest(TargetFileRemote);
-            await Task.Run(() => PrepareIngredients(SourceFileManifest));
-            await RepairIngredients(downloadClient, await VerifyIngredients(SourceFileManifest, IngredientsPath), IngredientsPath);
+            _sourceFileManifest = BuildManifest(sourceFileRemote);
+            _targetFileManifest = BuildManifest(targetFileRemote);
+            await Task.Run(() => PrepareIngredients(_sourceFileManifest), _token);
+            await RepairIngredients(downloadClient, await VerifyIngredients(_sourceFileManifest, ingredientsPath), ingredientsPath);
         }
 
-        long MakeIngredientsRead;
-        long MakeIngredientsTotalSize;
-        private void PrepareIngredients(List<FileProperties> FileManifest)
+        private long _makeIngredientsRead;
+        private long _makeIngredientsTotalSize;
+        private void PrepareIngredients(List<FileProperties> fileManifest)
         {
             ResetSw();
-            MakeIngredientsRead = 0;
-            MakeIngredientsTotalSize = FileManifest.Sum(x => x.FileSize);
+            _makeIngredientsRead = 0;
+            _makeIngredientsTotalSize = fileManifest.Sum(x => x.FileSize);
 
-            string InputPath;
-            string OutputPath;
+            _convertStatus = Lang._InstallConvert.Step3Title;
 
-            ConvertStatus = Lang._InstallConvert.Step3Title;
-
-            foreach (FileProperties Entry in FileManifest)
+            foreach (FileProperties entry in fileManifest)
             {
-                InputPath = Path.Combine(SourceProfile.ActualGameDataLocation!, Entry.FileName);
-                OutputPath = Path.Combine(TargetProfile.ActualGameDataLocation + "_Ingredients", Entry.FileName);
+                var inputPath = Path.Combine(_sourceProfile.ActualGameDataLocation!, entry.FileName);
+                var outputPath = Path.Combine(_targetProfile.ActualGameDataLocation + "_Ingredients", entry.FileName);
 
-                if (!Directory.Exists(Path.GetDirectoryName(OutputPath)))
-                    Directory.CreateDirectory(Path.GetDirectoryName(OutputPath)!);
+                if (!Directory.Exists(Path.GetDirectoryName(outputPath)))
+                    Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
 
-                if (File.Exists(InputPath))
+                if (File.Exists(inputPath))
                 {
-                    ConvertDetail = $"Moving: {Entry.FileName} ({Entry.FileSizeStr})";
-                    MakeIngredientsRead += Entry.FileSize;
-                    File.Move(InputPath, OutputPath, true);
-                    UpdateProgress(MakeIngredientsRead, MakeIngredientsTotalSize, 1, 1, ConvertSw.Elapsed, ConvertStatus, ConvertDetail);
+                    _convertDetail = $"Moving: {entry.FileName} ({entry.FileSizeStr})";
+                    _makeIngredientsRead += entry.FileSize;
+                    File.Move(inputPath, outputPath, true);
+                    UpdateProgress(_makeIngredientsRead, _makeIngredientsTotalSize, 1, 1, _convertSw.Elapsed, _convertStatus, _convertDetail);
                 }
                 else
                 {
-                    MakeIngredientsRead += Entry.FileSize;
-                    UpdateProgress(MakeIngredientsRead, MakeIngredientsTotalSize, 1, 1, ConvertSw.Elapsed, ConvertStatus, ConvertDetail);
+                    _makeIngredientsRead += entry.FileSize;
+                    UpdateProgress(_makeIngredientsRead, _makeIngredientsTotalSize, 1, 1, _convertSw.Elapsed, _convertStatus, _convertDetail);
                 }
             }
         }
@@ -154,155 +154,153 @@ namespace CollapseLauncher
         {
             DownloadClient downloadClient = DownloadClient.CreateInstance(_client);
 
-            string TargetPath = TargetProfile.ActualGameDataLocation;
-            await RepairIngredients(downloadClient, await VerifyIngredients(TargetFileManifest, TargetPath), TargetPath);
+            string targetPath = _targetProfile.ActualGameDataLocation;
+            await RepairIngredients(downloadClient, await VerifyIngredients(_targetFileManifest, targetPath), targetPath);
         }
 
-        private async Task<List<FileProperties>> VerifyIngredients(List<FileProperties> FileManifest, string GamePath)
+        private async Task<List<FileProperties>> VerifyIngredients(List<FileProperties> fileManifest, string gamePath)
         {
             ResetSw();
-            List<FileProperties> BrokenManifest = new List<FileProperties>();
-            long CurRead = 0;
-            long TotalSize = FileManifest.Sum(x => x.FileSize);
-            string LocalHash;
-            string OutputPath;
+            List<FileProperties> brokenManifest = [];
+            long                 curRead        = 0;
+            long                 totalSize      = fileManifest.Sum(x => x.FileSize);
 
-            ConvertStatus = Lang._InstallConvert.Step3Title2;
-            foreach (FileProperties Entry in FileManifest)
+            _convertStatus = Lang._InstallConvert.Step3Title2;
+            foreach (FileProperties entry in fileManifest)
             {
-                OutputPath = Path.Combine(GamePath, Entry.FileName);
-                ConvertDetail = string.Format("{0}: {1}", Lang._Misc.CheckingFile, string.Format(Lang._Misc.PerFromTo, Entry.FileName, Entry.FileSizeStr));
-                UpdateProgress(CurRead, TotalSize, 1, 1, ConvertSw.Elapsed, ConvertStatus, ConvertDetail);
-                if (File.Exists(OutputPath))
+                var               outputPath = Path.Combine(gamePath, entry.FileName);
+                _convertDetail =
+                    $"{Lang._Misc.CheckingFile}: {string.Format(Lang._Misc.PerFromTo, entry.FileName, entry.FileSizeStr)}";
+                UpdateProgress(curRead, totalSize, 1, 1, _convertSw.Elapsed, _convertStatus, _convertDetail);
+                if (File.Exists(outputPath))
                 {
-                    using (FileStream fs = new FileStream(OutputPath, FileMode.Open, FileAccess.Read))
-                    {
-                        byte[] hashBytes = Entry.CurrCRC.Length > 8 ?
-                            await Hash.GetCryptoHashAsync<MD5>(fs, null, null, Token) :
-                            await Hash.GetHashAsync<Crc32>(fs, null, Token);
-                        LocalHash = Convert.ToHexStringLower(hashBytes);
+                    await using FileStream fs = new FileStream(outputPath, FileMode.Open, FileAccess.Read);
+                    byte[] hashBytes = entry.CurrCRC.Length > 8 ?
+                        await Hash.GetCryptoHashAsync<MD5>(fs, null, null, _token) :
+                        await Hash.GetHashAsync<Crc32>(fs, null, _token);
+                    var               localHash = Convert.ToHexStringLower(hashBytes);
 
-                        Token.ThrowIfCancellationRequested();
-                        if (LocalHash != Entry.CurrCRC)
-                        {
-                            LogWriteLine($"File {Entry.FileName} has unmatched hash. Local: {LocalHash} Remote: {Entry.CurrCRC}", LogType.Warning, true);
-                            BrokenManifest.Add(Entry);
-                        }
+                    _token.ThrowIfCancellationRequested();
+                    if (localHash != entry.CurrCRC)
+                    {
+                        LogWriteLine($"File {entry.FileName} has unmatched hash. Local: {localHash} Remote: {entry.CurrCRC}", LogType.Warning, true);
+                        brokenManifest.Add(entry);
                     }
                 }
                 else
-                    BrokenManifest.Add(Entry);
-                CurRead += Entry.FileSize;
+                    brokenManifest.Add(entry);
+                curRead += entry.FileSize;
             }
 
-            return BrokenManifest;
+            return brokenManifest;
         }
 
-        private List<FileProperties> BuildManifest(List<FilePropertiesRemote> FileRemote)
+        private static List<FileProperties> BuildManifest(List<FilePropertiesRemote> fileRemote)
         {
-            List<FileProperties> _out = new List<FileProperties>();
+            List<FileProperties> @out = [];
 
-            foreach (FilePropertiesRemote Entry in FileRemote)
+            foreach (FilePropertiesRemote entry in fileRemote)
             {
-                switch (Entry.FT)
+                switch (entry.FT)
                 {
                     case FileType.Generic:
                         {
-                            _out.Add(new FileProperties
+                            @out.Add(new FileProperties
                             {
-                                FileName = Entry.N,
-                                FileSize = Entry.S,
-                                CurrCRC = Entry.CRC,
+                                FileName = entry.N,
+                                FileSize = entry.S,
+                                CurrCRC = entry.CRC,
                                 DataType = FileType.Generic
                             });
                         }
                         break;
                     case FileType.Block:
                         {
-                            _out.AddRange(BuildBlockManifest(Entry.BlkC, Entry.N));
+                            @out.AddRange(BuildBlockManifest(entry.BlkC, entry.N));
                         }
                         break;
                 }
             }
 
-            return _out;
+            return @out;
         }
 
-        private List<FileProperties> BuildBlockManifest(List<XMFBlockList> BlockC, string BaseName)
+        private static List<FileProperties> BuildBlockManifest(List<XMFBlockList> blockC, string baseName)
         {
-            string Name;
-            List<FileProperties> _out = new List<FileProperties>();
+            List<FileProperties> @out = [];
 
-            foreach (XMFBlockList Block in BlockC)
+            for (var index = blockC.Count - 1; index >= 0; index--)
             {
-                Name = BaseName + '/' + Block.BlockHash + ".wmv";
-                _out.Add(new FileProperties
+                var block = blockC[index];
+                var name  = baseName + '/' + block.BlockHash + ".wmv";
+                @out.Add(new FileProperties
                 {
-                    FileName = Name,
-                    FileSize = Block.BlockSize,
-                    CurrCRC = Block.BlockHash
+                    FileName = name,
+                    FileSize = block.BlockSize,
+                    CurrCRC  = block.BlockHash
                 });
             }
 
-            return _out;
+            return @out;
         }
 
-        long RepairRead;
-        long RepairTotalSize;
-        private async Task RepairIngredients(DownloadClient downloadClient, List<FileProperties> BrokenFile, string GamePath)
+        private long _repairRead;
+        private long _repairTotalSize;
+        private async Task RepairIngredients(DownloadClient downloadClient, List<FileProperties> brokenFile, string gamePath)
         {
-            if (BrokenFile.Count == 0) return;
+            if (brokenFile.Count == 0) return;
 
             ResetSw();
-            RepairTotalSize = BrokenFile.Sum(x => x.FileSize);
+            _repairTotalSize = brokenFile.Sum(x => x.FileSize);
 
-            ConvertStatus = Lang._InstallConvert.Step3Title1;
-            await Parallel.ForEachAsync(BrokenFile, new ParallelOptions
+            _convertStatus = Lang._InstallConvert.Step3Title1;
+            await Parallel.ForEachAsync(brokenFile, new ParallelOptions
             {
-                MaxDegreeOfParallelism = DownloadThread,
-                CancellationToken = Token
-            }, async (Entry, CoopToken) =>
+                MaxDegreeOfParallelism = _downloadThread,
+                CancellationToken = _token
+            }, async (entry, coopToken) =>
             {
-                Token.ThrowIfCancellationRequested();
+                _token.ThrowIfCancellationRequested();
 
-                string OutputPath = Path.Combine(GamePath, Entry.FileName);
-                string OutputPathDir = Path.GetDirectoryName(OutputPath);
-                string InputURL = CombineURLFromString(BaseURL, Entry.FileName);
+                string outputPath = Path.Combine(gamePath, entry.FileName);
+                string outputPathDir = Path.GetDirectoryName(outputPath);
+                string inputURL = CombineURLFromString(_baseURL, entry.FileName);
 
-                ConvertDetail = string.Format("{0}: {1}", Lang._Misc.Downloading, string.Format(Lang._Misc.PerFromTo, Entry.FileName, Entry.FileSizeStr));
-                if (!Directory.Exists(OutputPathDir))
-                    Directory.CreateDirectory(OutputPathDir!);
+                _convertDetail =
+                    $"{Lang._Misc.Downloading}: {string.Format(Lang._Misc.PerFromTo, entry.FileName, entry.FileSizeStr)}";
+                if (!Directory.Exists(outputPathDir))
+                    Directory.CreateDirectory(outputPathDir!);
 
-                await downloadClient.DownloadAsync(InputURL, OutputPath, true, progressDelegateAsync: RepairIngredients_Progress, maxConnectionSessions: DownloadThread, cancelToken: CoopToken);
+                await downloadClient.DownloadAsync(inputURL, outputPath, true, progressDelegateAsync: RepairIngredients_Progress, maxConnectionSessions: _downloadThread, cancelToken: coopToken);
             });
         }
 
         private void RepairIngredients_Progress(int read, DownloadProgress downloadProgress)
         {
-            Interlocked.Add(ref RepairRead, read);
+            Interlocked.Add(ref _repairRead, read);
 
-            UpdateProgress(RepairRead, RepairTotalSize, 1, 1, ConvertSw.Elapsed,
-                ConvertStatus, ConvertDetail);
+            UpdateProgress(_repairRead, _repairTotalSize, 1, 1, _convertSw.Elapsed,
+                _convertStatus, _convertDetail);
         }
 
         private void FetchIngredientsAPI_Progress(object sender, DownloadEvent e)
         {
-            UpdateProgress(e.SizeDownloaded, e.SizeToBeDownloaded, 1, 1, ConvertSw.Elapsed,
-                ConvertStatus, ConvertDetail);
+            UpdateProgress(e.SizeDownloaded, e.SizeToBeDownloaded, 1, 1, _convertSw.Elapsed,
+                _convertStatus, _convertDetail);
         }
 
         public async Task StartConversion()
         {
             ResetSw();
-            string IngredientsPath = TargetProfile.ActualGameDataLocation + "_Ingredients";
-            string OutputPath = TargetProfile.ActualGameDataLocation;
+            string ingredientsPath = _targetProfile.ActualGameDataLocation + "_Ingredients";
+            string outputPath = _targetProfile.ActualGameDataLocation;
 
             try
             {
-                if (Directory.Exists(OutputPath))
-                    TryDirectoryDelete(OutputPath, true);
+                if (Directory.Exists(outputPath))
+                    TryDirectoryDelete(outputPath, true);
 
-                Directory.CreateDirectory(OutputPath!);
+                Directory.CreateDirectory(outputPath!);
 
                 HDiffPatch.LogVerbosity = Verbosity.Verbose;
                 EventListener.LoggerEvent += EventListener_PatchLogEvent;
@@ -311,20 +309,20 @@ namespace CollapseLauncher
                 await Task.Run(() =>
                 {
                     HDiffPatch patch = new HDiffPatch();
-                    patch.Initialize(CookbookPath);
-                    patch.Patch(IngredientsPath, OutputPath, true, Token, false, true);
-                }, Token);
+                    patch.Initialize(_cookbookPath);
+                    patch.Patch(ingredientsPath, outputPath, true, _token, false, true);
+                }, _token);
 
-                TryDirectoryDelete(IngredientsPath, true);
-                TryFileDelete(CookbookPath);
-                MoveMiscSourceFiles(SourceProfile.ActualGameDataLocation, OutputPath);
-                TryDirectoryDelete(SourceProfile.ActualGameDataLocation, true);
+                TryDirectoryDelete(ingredientsPath, true);
+                TryFileDelete(_cookbookPath);
+                MoveMiscSourceFiles(_sourceProfile.ActualGameDataLocation, outputPath);
+                TryDirectoryDelete(_sourceProfile.ActualGameDataLocation, true);
             }
             catch (Exception ex)
             {
                 try
                 {
-                    RevertBackIngredients(SourceFileManifest, IngredientsPath, OutputPath);
+                    RevertBackIngredients(_sourceFileManifest, ingredientsPath, outputPath);
                 }
                 catch (Exception exf)
                 {
@@ -343,18 +341,15 @@ namespace CollapseLauncher
             }
         }
 
-        private void EventListener_PatchLogEvent(object sender, LoggerEvent e)
+        private static void EventListener_PatchLogEvent(object sender, LoggerEvent e)
         {
             if (HDiffPatch.LogVerbosity == Verbosity.Quiet
             || (HDiffPatch.LogVerbosity == Verbosity.Debug
-            && !(e.LogLevel == Verbosity.Debug ||
-                 e.LogLevel == Verbosity.Verbose ||
-                 e.LogLevel == Verbosity.Info))
+            && e.LogLevel is not (Verbosity.Debug or Verbosity.Verbose or Verbosity.Info))
             || (HDiffPatch.LogVerbosity == Verbosity.Verbose
-            && !(e.LogLevel == Verbosity.Verbose ||
-                 e.LogLevel == Verbosity.Info))
+            && e.LogLevel is not (Verbosity.Verbose or Verbosity.Info))
             || (HDiffPatch.LogVerbosity == Verbosity.Info
-            && !(e.LogLevel == Verbosity.Info))) return;
+            && e.LogLevel != Verbosity.Info)) return;
 
             LogType type = e.LogLevel switch
             {
@@ -368,117 +363,106 @@ namespace CollapseLauncher
 
         private void EventListener_PatchEvent(object sender, PatchEvent e)
         {
-            ConvertDetail = string.Format(Lang._Misc.Converting, "");
-            UpdateProgress(e.CurrentSizePatched, e.TotalSizeToBePatched, 1, 1, e.TimeLeft, ConvertStatus, ConvertDetail);
+            _convertDetail = string.Format(Lang._Misc.Converting, "");
+            UpdateProgress(e.CurrentSizePatched, e.TotalSizeToBePatched, 1, 1, e.TimeLeft, _convertStatus, _convertDetail);
         }
 
-        private void TryFileDelete(string Input)
+        private static void TryFileDelete(string input)
         {
             try
             {
-                File.Delete(Input);
+                File.Delete(input);
             }
             catch (Exception ex)
             {
-                LogWriteLine($"Error while trying to delete file \"{Input}\"\r\n{ex}");
+                LogWriteLine($"Error while trying to delete file \"{input}\"\r\n{ex}");
             }
         }
 
-        private void TryDirectoryDelete(string Input, bool Recursive)
+        private static void TryDirectoryDelete(string input, bool recursive)
         {
             try
             {
-                Directory.Delete(Input, Recursive);
+                Directory.Delete(input, recursive);
             }
             catch (Exception ex)
             {
-                LogWriteLine($"Error while trying to delete directory \"{Input}\"{(Recursive ? " recursively!" : "!")}\r\n{ex}");
+                LogWriteLine($"Error while trying to delete directory \"{input}\"{(recursive ? " recursively!" : "!")}\r\n{ex}");
             }
         }
 
-        private void RevertBackIngredients(List<FileProperties> FileManifest, string IngredientPath, string Output)
+        private void RevertBackIngredients(List<FileProperties> fileManifest, string ingredientPath, string output)
         {
-            string InputPath, OutputPath;
-            foreach (FileProperties Entry in FileManifest)
+            foreach (FileProperties entry in fileManifest)
             {
-                OutputPath = Path.Combine(SourceProfile.ActualGameDataLocation!, Entry.FileName);
-                InputPath = Path.Combine(TargetProfile.ActualGameDataLocation + "_Ingredients", Entry.FileName);
+                var outputPath = Path.Combine(_sourceProfile.ActualGameDataLocation!,                 entry.FileName);
+                var inputPath  = Path.Combine(_targetProfile.ActualGameDataLocation + "_Ingredients", entry.FileName);
 
-                if (!Directory.Exists(Path.GetDirectoryName(OutputPath)))
-                    Directory.CreateDirectory(Path.GetDirectoryName(OutputPath)!);
+                if (!Directory.Exists(Path.GetDirectoryName(outputPath)))
+                    Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
 
-                if (File.Exists(InputPath))
-                    File.Move(InputPath, OutputPath, true);
+                if (File.Exists(inputPath))
+                    File.Move(inputPath, outputPath, true);
             }
 
-            Directory.Delete(IngredientPath, true);
-            Directory.Delete(Output, true);
+            Directory.Delete(ingredientPath, true);
+            Directory.Delete(output, true);
         }
 
-        private void MoveMiscSourceFiles(string InputPath, string OutputPath)
+        private static void MoveMiscSourceFiles(string inputPath, string outputPath)
         {
-            string OutputFile;
-            IEnumerable<string> Files = Directory.EnumerateFiles(InputPath, "*", SearchOption.AllDirectories);
-            foreach (string _Entry in Files)
+            IEnumerable<string> files = Directory.EnumerateFiles(inputPath, "*", SearchOption.AllDirectories);
+            foreach (string entry in files)
             {
-                OutputFile = Path.Combine(OutputPath, _Entry.Substring(InputPath.Length + 1));
-                if (!File.Exists(OutputFile))
+                var outputFile = Path.Combine(outputPath, entry[(inputPath.Length + 1)..]);
+                if (File.Exists(outputFile))
                 {
-                    if (!Directory.Exists(Path.GetDirectoryName(OutputFile)))
-                        Directory.CreateDirectory(Path.GetDirectoryName(OutputFile)!);
-                    File.Move(_Entry, OutputFile);
+                    continue;
                 }
+
+                if (!Directory.Exists(Path.GetDirectoryName(outputFile)))
+                    Directory.CreateDirectory(Path.GetDirectoryName(outputFile)!);
+                File.Move(entry, outputFile);
             }
         }
 
-        public void UpdateProgress(long StartSize, long EndSize, int StartCount, int EndCount,
-                TimeSpan TimeSpan, string StatusMsg = "", string DetailMsg = "", bool UseCountUnit = false)
+        public void UpdateProgress(long startSize, long endSize, int startCount, int endCount,
+                TimeSpan timeSpan, string statusMsg = "", string detailMsg = "", bool useCountUnit = false)
         {
-            ProgressChanged?.Invoke(this, new ConvertProgress(StartSize, EndSize, StartCount, EndCount,
-                TimeSpan, StatusMsg, DetailMsg, UseCountUnit));
+            ProgressChanged?.Invoke(this, new ConvertProgress(startSize, endSize, startCount, endCount,
+                timeSpan, statusMsg, detailMsg, useCountUnit));
         }
     }
 
-    public class ConvertProgress
+    public class ConvertProgress(
+        long     startSize,
+        long     endSize,
+        int      startCount,
+        int      endCount,
+        TimeSpan timeSpan,
+        string   statusMsg    = "",
+        string   detailMsg    = "",
+        bool     useCountUnit = false)
     {
-        public ConvertProgress(long StartSize, long EndSize, int StartCount, int EndCount,
-            TimeSpan TimeSpan, string StatusMsg = "", string DetailMsg = "", bool UseCountUnit = false)
-        {
-            this.StartSize = StartSize;
-            this.EndSize = EndSize;
-            this.StartCount = StartCount;
-            this.EndCount = EndCount;
-            this.UseCountUnit = UseCountUnit;
-            this._TimeSecond = TimeSpan.TotalSeconds;
-            this._StatusMsg = StatusMsg;
-            this._DetailMsg = DetailMsg;
-        }
+        public bool UseCountUnit { get; } = useCountUnit;
+        public long StartSize    { get; } = startSize;
+        public long EndSize      { get; } = endSize;
+        public int  StartCount   { get; } = startCount;
+        public int  EndCount     { get; } = endCount;
 
-        private double _TimeSecond;
-        private string _StatusMsg;
-        private string _DetailMsg;
-        public  bool   UseCountUnit { get; private set; }
-        public  long   StartSize    { get; private set; }
-        public  long   EndSize      { get; private set; }
-        public  int    StartCount   { get; private set; }
-        public  int    EndCount     { get; private set; }
         public double Percentage => UseCountUnit ? ToPercentage(EndCount, StartCount) :
                                                    ToPercentage(EndSize, StartSize);
-        public double ProgressSpeed => StartSize / _TimeSecond;
+        public double ProgressSpeed
+        {
+            get => StartSize / field;
+        } = timeSpan.TotalSeconds;
+
         public TimeSpan RemainingTime => UseCountUnit ? TimeSpan.Zero :
                                                         ToTimeSpanRemain(EndSize, StartSize, ProgressSpeed);
 
-        public string ProgressStatus => _StatusMsg;
-        public string ProgressDetail => string.Format(
-                        "[{0}] ({1})\r\n{2}...",
-                        UseCountUnit ? string.Format(Lang._Misc.PerFromTo, StartCount, EndCount) :
-                                       string.Format(Lang._Misc.PerFromTo, SummarizeSizeSimple(StartSize), SummarizeSizeSimple(EndSize)),
-                        UseCountUnit ? $"{Percentage}%" :
-                                       string.Format("{0}% {1} - {2}",
-                                                     Percentage,
-                                                     string.Format(Lang._Misc.SpeedPerSec, SummarizeSizeSimple(ProgressSpeed)),
-                                                     string.Format(Lang._Misc.TimeRemainHMSFormat, RemainingTime)),
-                        _DetailMsg
-                        );
+        public string ProgressStatus => statusMsg;
+        public string ProgressDetail => $"[{(UseCountUnit ? string.Format(Lang._Misc.PerFromTo, StartCount, EndCount) :
+            string.Format(Lang._Misc.PerFromTo, SummarizeSizeSimple(StartSize), SummarizeSizeSimple(EndSize)))}] ({(UseCountUnit ? $"{Percentage}%" :
+            $"{Percentage}% {string.Format(Lang._Misc.SpeedPerSec, SummarizeSizeSimple(ProgressSpeed))} - {string.Format(Lang._Misc.TimeRemainHMSFormat, RemainingTime)}")})\r\n{detailMsg}...";
     }
 }

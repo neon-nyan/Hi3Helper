@@ -50,7 +50,7 @@ namespace CollapseLauncher.Pages
 
     public partial class StringToVisibilityConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, string input) => (value is string asString) && !string.IsNullOrEmpty(asString) ? Visibility.Visible : Visibility.Collapsed;
+        public object Convert(object value, Type targetType, object parameter, string input) => value is string asString && !string.IsNullOrEmpty(asString) ? Visibility.Visible : Visibility.Collapsed;
         public object ConvertBack(object value, Type targetType, object parameter, string input) => new NotImplementedException();
     }
 
@@ -64,14 +64,15 @@ namespace CollapseLauncher.Pages
     {
         public object Convert(object value, Type targetType, object parameter, string language)
         {
-            if (value is double asDouble)
+            if (value is not double asDouble)
             {
-                long valBfromM = (long)(asDouble * (1 << 20));
-                return valBfromM > 0 ?
-                    string.Format(Locale.Lang._Misc.IsBytesMoreThanBytes, valBfromM, string.Format(Locale.Lang._Misc.SpeedPerSec, ConverterTool.SummarizeSizeSimple(valBfromM))) :
-                    string.Format(Locale.Lang._Misc.IsBytesUnlimited);
+                return Locale.Lang._Misc.IsBytesNotANumber;
             }
-            return Locale.Lang._Misc.IsBytesNotANumber;
+
+            long valBFromM = (long)(asDouble * (1 << 20));
+            return valBFromM > 0 ?
+                string.Format(Locale.Lang._Misc.IsBytesMoreThanBytes, valBFromM, string.Format(Locale.Lang._Misc.SpeedPerSec, ConverterTool.SummarizeSizeSimple(valBFromM))) :
+                string.Format(Locale.Lang._Misc.IsBytesUnlimited);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, string language)
@@ -84,30 +85,15 @@ namespace CollapseLauncher.Pages
     {
         public object Convert(object value, Type targetType, object parameter, string language)
         {
-            if (value is double asDouble)
+            if (value is not double asDouble)
             {
-                int valBfromM = (int)(asDouble * (1 << 20));
-                return valBfromM > 0 ?
-                    string.Format(Locale.Lang._Misc.IsBytesMoreThanBytes, valBfromM, ConverterTool.SummarizeSizeSimple(valBfromM)) :
-                    string.Format(Locale.Lang._Misc.IsBytesUnlimited);
+                return Locale.Lang._Misc.IsBytesNotANumber;
             }
-            return Locale.Lang._Misc.IsBytesNotANumber;
-        }
 
-        public object ConvertBack(object value, Type targetType, object parameter, string language)
-        {
-            throw new NotImplementedException();
-        }
-    }
-
-    public partial class BooleanToOpacityDimmConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, string language)
-        {
-            if (value is bool asBoolean)
-                return asBoolean ? 1 : 0.45;
-
-            return 0.45;
+            int valBFromM = (int)(asDouble * (1 << 20));
+            return valBFromM > 0 ?
+                string.Format(Locale.Lang._Misc.IsBytesMoreThanBytes, valBFromM, ConverterTool.SummarizeSizeSimple(valBFromM)) :
+                string.Format(Locale.Lang._Misc.IsBytesUnlimited);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, string language)
@@ -132,17 +118,18 @@ namespace CollapseLauncher.Pages
     {
         public object Convert(object value, Type targetType, object parameter, string language)
         {
-            if (value is double d)
+            if (value is not double d)
             {
-                double padding = 0;
-                if (parameter is double asDouble)
-                {
-                    padding = asDouble;
-                }
-                return (d - padding) / 2.0;
+                return 0;
             }
 
-            return 0;
+            double padding = 0;
+            if (parameter is double asDouble)
+            {
+                padding = asDouble;
+            }
+            return (d - padding) / 2.0;
+
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, string language)

@@ -12,7 +12,7 @@ namespace CollapseLauncher.Pages
         public UnhandledExceptionPage()
         {
             BackgroundImgChanger.ToggleBackground(true);
-            this.InitializeComponent();
+            InitializeComponent();
             ExceptionTextBox.Text = ErrorSender.ExceptionContent;
             Title.Text = ErrorSender.ExceptionTitle;
             Subtitle.Text = ErrorSender.ExceptionSubtitle;
@@ -25,7 +25,7 @@ namespace CollapseLauncher.Pages
 
         private void CopyTextToClipboard(object sender, RoutedEventArgs e)
         {
-            DataPackage data = new DataPackage()
+            DataPackage data = new DataPackage
             {
                 RequestedOperation = DataPackageOperation.Copy
             };

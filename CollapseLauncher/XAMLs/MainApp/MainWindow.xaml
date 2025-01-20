@@ -59,7 +59,7 @@
                       VerticalAlignment="Bottom"
                       HorizontalContentAlignment="Right"
                       Content="{x:Bind helper:Locale.Lang._SettingsPage.IntroSequenceToggle}"
-                      IsChecked="{x:Bind IsIntroEnabled, Mode=TwoWay}"
+                      IsChecked="{x:Bind local:MainWindow.IsIntroEnabled, Mode=TwoWay}"
                       Opacity="0.25"
                       PointerEntered="IntroSequenceToggle_PointerEntered"
                       PointerExited="IntroSequenceToggle_PointerExited"

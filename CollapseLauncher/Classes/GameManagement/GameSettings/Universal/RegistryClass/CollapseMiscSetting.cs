@@ -144,7 +144,7 @@ namespace CollapseLauncher.GameSettings.Universal
                     #if DEBUG
                     LogWriteLine($"Loaded Collapse Misc Settings:\r\n{Encoding.UTF8.GetString(byteStr.TrimEnd((byte)0))}", LogType.Debug, true);
                     #endif
-                    return byteStr.Deserialize(UniversalSettingsJSONContext.Default.CollapseMiscSetting) ?? new CollapseMiscSetting();
+                    return byteStr.Deserialize(UniversalSettingsJsonContext.Default.CollapseMiscSetting) ?? new CollapseMiscSetting();
                 }
             }
             catch ( Exception ex )
@@ -166,7 +166,7 @@ namespace CollapseLauncher.GameSettings.Universal
             {
                 if (RegistryRoot == null) throw new NullReferenceException($"Cannot save {_ValueName} since RegistryKey is unexpectedly not initialized!");
 
-                string data = this.Serialize(UniversalSettingsJSONContext.Default.CollapseMiscSetting, true);
+                string data = this.Serialize(UniversalSettingsJsonContext.Default.CollapseMiscSetting, true);
                 byte[] dataByte = Encoding.UTF8.GetBytes(data);
 #if DEBUG
                 LogWriteLine($"Saved Collapse Misc Settings:\r\n{data}", LogType.Debug, true);

@@ -62,7 +62,7 @@ namespace CollapseLauncher.GameVersioning
         {
             if (GamePreset.GameDataTemplates != null && GamePreset.GameDataTemplates.Count != 0)
             {
-                byte[]? data = GamePreset.GetGameDataTemplate("MagicSpell", new byte[] { 2, 3, 0, 0 });
+                byte[]? data = GamePreset.GetGameDataTemplate("MagicSpell", [2, 3, 0, 0]);
                 if (data == null)
                 {
                     Logger.LogWriteLine("[IGameVersionCheck:InitializeProtoId] data is null!", LogType.Error, true);

@@ -13,6 +13,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using static Hi3Helper.Locale;
 using static Hi3Helper.Logger;
+// ReSharper disable StringLiteralTypo
+// ReSharper disable CommentTypo
+// ReSharper disable SwitchStatementMissingSomeEnumCasesNoDefault
 
 namespace CollapseLauncher
 {
@@ -22,16 +25,16 @@ namespace CollapseLauncher
         {
             string parentStreamingRelativePath = string.Format(type switch
             {
-                FileType.Block => StarRailRepair._assetGameBlocksStreamingPath,
-                FileType.Audio => StarRailRepair._assetGameAudioStreamingPath,
-                FileType.Video => StarRailRepair._assetGameVideoStreamingPath,
+                FileType.Block => StarRailRepair.AssetGameBlocksStreamingPath,
+                FileType.Audio => StarRailRepair.AssetGameAudioStreamingPath,
+                FileType.Video => StarRailRepair.AssetGameVideoStreamingPath,
                 _ => string.Empty
             }, execName);
             string parentPersistentRelativePath = string.Format(type switch
             {
-                FileType.Block => StarRailRepair._assetGameBlocksPersistentPath,
-                FileType.Audio => StarRailRepair._assetGameAudioPersistentPath,
-                FileType.Video => StarRailRepair._assetGameVideoPersistentPath,
+                FileType.Block => StarRailRepair.AssetGameBlocksPersistentPath,
+                FileType.Audio => StarRailRepair.AssetGameAudioPersistentPath,
+                FileType.Video => StarRailRepair.AssetGameVideoPersistentPath,
                 _ => string.Empty
             }, execName);
 
@@ -55,33 +58,33 @@ namespace CollapseLauncher
         private async Task Check(List<FilePropertiesRemote> assetIndex, CancellationToken token)
         {
             // Try to find "badlist.byte" files in the game folder and delete it
-            foreach (string badlistFile in Directory.EnumerateFiles(_gamePath, "*badlist*.byte*", SearchOption.AllDirectories))
+            foreach (string badListFile in Directory.EnumerateFiles(GamePath, "*badlist*.byte*", SearchOption.AllDirectories))
             {
-                LogWriteLine($"Removing bad list mark at: {badlistFile}", LogType.Warning, true);
-                TryDeleteReadOnlyFile(badlistFile);
+                LogWriteLine($"Removing bad list mark at: {badListFile}", LogType.Warning, true);
+                TryDeleteReadOnlyFile(badListFile);
             }
 
             // Try to find "verify.fail" files in the game folder and delete it
-            foreach (string verifFail in Directory.EnumerateFiles(_gamePath, "*verify*.fail*", SearchOption.AllDirectories))
+            foreach (string verifyFail in Directory.EnumerateFiles(GamePath, "*verify*.fail*", SearchOption.AllDirectories))
             {
-                LogWriteLine($"Removing verify.fail mark at: {verifFail}", LogType.Warning, true);
-                TryDeleteReadOnlyFile(verifFail);
+                LogWriteLine($"Removing verify.fail mark at: {verifyFail}", LogType.Warning, true);
+                TryDeleteReadOnlyFile(verifyFail);
             }
 
-            List<FilePropertiesRemote> brokenAssetIndex = new List<FilePropertiesRemote>();
+            List<FilePropertiesRemote> brokenAssetIndex = [];
 
             // Set Indetermined status as false
-            _status.IsProgressAllIndetermined     = false;
-            _status.IsProgressPerFileIndetermined = false;
+            Status.IsProgressAllIndetermined     = false;
+            Status.IsProgressPerFileIndetermined = false;
 
             // Show the asset entry panel
-            _status.IsAssetEntryPanelShow = true;
+            Status.IsAssetEntryPanelShow = true;
 
             // Await the task for parallel processing
             try
             {
                 // Iterate assetIndex and check it using different method for each type and run it in parallel
-                await Parallel.ForEachAsync(assetIndex, new ParallelOptions { MaxDegreeOfParallelism = _threadCount, CancellationToken = token }, async (asset, threadToken) =>
+                await Parallel.ForEachAsync(assetIndex, new ParallelOptions { MaxDegreeOfParallelism = ThreadCount, CancellationToken = token }, async (asset, threadToken) =>
                 {
                     // Assign a task depends on the asset type
                     switch (asset.FT)
@@ -90,11 +93,7 @@ namespace CollapseLauncher
                             await CheckGenericAssetType(asset, brokenAssetIndex, threadToken);
                             break;
                         case FileType.Block:
-                            await CheckAssetType(asset, brokenAssetIndex, threadToken);
-                            break;
                         case FileType.Audio:
-                            await CheckAssetType(asset, brokenAssetIndex, threadToken);
-                            break;
                         case FileType.Video:
                             await CheckAssetType(asset, brokenAssetIndex, threadToken);
                             break;
@@ -104,7 +103,7 @@ namespace CollapseLauncher
             catch (AggregateException ex)
             {
                 var innerExceptionsFirst = ex.Flatten().InnerExceptions.First();
-                SentryHelper.ExceptionHandler(innerExceptionsFirst, SentryHelper.ExceptionType.UnhandledOther);
+                await SentryHelper.ExceptionHandlerAsync(innerExceptionsFirst, SentryHelper.ExceptionType.UnhandledOther);
                 throw innerExceptionsFirst;
             }
 
@@ -117,15 +116,15 @@ namespace CollapseLauncher
         private async Task CheckGenericAssetType(FilePropertiesRemote asset, List<FilePropertiesRemote> targetAssetIndex, CancellationToken token)
         {
             // Update activity status
-            _status.ActivityStatus = string.Format(Lang._GameRepairPage.Status6,
-                                                   StarRailRepairExtension.GetFileRelativePath(asset.N, _gamePath));
+            Status.ActivityStatus = string.Format(Lang._GameRepairPage.Status6,
+                                                   StarRailRepairExtension.GetFileRelativePath(asset.N, GamePath));
 
             // Increment current total count
-            _progressAllCountCurrent++;
+            ProgressAllCountCurrent++;
 
             // Reset per file size counter
-            _progressPerFileSizeTotal = asset.S;
-            _progressPerFileSizeCurrent = 0;
+            ProgressPerFileSizeTotal = asset.S;
+            ProgressPerFileSizeCurrent = 0;
 
             // Get the file info
             FileInfo fileInfo = new FileInfo(asset.N);
@@ -149,53 +148,55 @@ namespace CollapseLauncher
             }
 
             // Skip CRC check if fast method is used
-            if (_useFastMethod)
+            if (UseFastMethod)
             {
                 return;
             }
 
             // Open and read fileInfo as FileStream 
-            await using FileStream filefs = await NaivelyOpenFileStreamAsync(fileInfo, FileMode.Open, FileAccess.Read, FileShare.Read);
+            await using FileStream fileStream = await NaivelyOpenFileStreamAsync(fileInfo, FileMode.Open, FileAccess.Read, FileShare.Read);
             // If pass the check above, then do CRC calculation
             // Additional: the total file size progress is disabled and will be incremented after this
-            byte[] localCRC = await GetCryptoHashAsync<MD5>(filefs, null, true, true, token);
+            byte[] localCrc = await GetCryptoHashAsync<MD5>(fileStream, null, true, true, token);
 
             // If local and asset CRC doesn't match, then add the asset
-            if (!IsArrayMatch(localCRC, asset.CRCArray))
+            if (IsArrayMatch(localCrc, asset.CRCArray))
             {
-                _progressAllSizeFound += asset.S;
-                _progressAllCountFound++;
-
-                Dispatch(() => AssetEntry.Add(
-                                              new AssetProperty<RepairAssetType>(
-                                                   Path.GetFileName(asset.N),
-                                                   ConvertRepairAssetTypeEnum(asset.FT),
-                                                   Path.GetDirectoryName(asset.N),
-                                                   asset.S,
-                                                   localCRC,
-                                                   asset.CRCArray
-                                                  )
-                                             ));
-
-                // Mark the main block as "need to be repaired"
-                asset.IsBlockNeedRepair = true;
-                targetAssetIndex.Add(asset);
-
-                LogWriteLine($"File [T: {asset.FT}]: {asset.N} is broken! Index CRC: {asset.CRC} <--> File CRC: {HexTool.BytesToHexUnsafe(localCRC)}", LogType.Warning, true);
+                return;
             }
+
+            ProgressAllSizeFound += asset.S;
+            ProgressAllCountFound++;
+
+            Dispatch(() => AssetEntry.Add(
+                                          new AssetProperty<RepairAssetType>(
+                                                                             Path.GetFileName(asset.N),
+                                                                             ConvertRepairAssetTypeEnum(asset.FT),
+                                                                             Path.GetDirectoryName(asset.N),
+                                                                             asset.S,
+                                                                             localCrc,
+                                                                             asset.CRCArray
+                                                                            )
+                                         ));
+
+            // Mark the main block as "need to be repaired"
+            asset.IsBlockNeedRepair = true;
+            targetAssetIndex.Add(asset);
+
+            LogWriteLine($"File [T: {asset.FT}]: {asset.N} is broken! Index CRC: {asset.CRC} <--> File CRC: {HexTool.BytesToHexUnsafe(localCrc)}", LogType.Warning, true);
             return;
 
             void AddIndex()
             {
                 // Update the total progress and found counter
-                _progressAllSizeFound += asset.S;
-                _progressAllCountFound++;
+                ProgressAllSizeFound += asset.S;
+                ProgressAllCountFound++;
 
                 // Set the per size progress
-                _progressPerFileSizeCurrent = asset.S;
+                ProgressPerFileSizeCurrent = asset.S;
 
                 // Increment the total current progress
-                _progressAllSizeCurrent += asset.S;
+                ProgressAllSizeCurrent += asset.S;
 
                 Dispatch(() => AssetEntry.Add(
                                               new AssetProperty<RepairAssetType>(
@@ -214,36 +215,36 @@ namespace CollapseLauncher
         private async Task CheckAssetType(FilePropertiesRemote asset, List<FilePropertiesRemote> targetAssetIndex, CancellationToken token)
         {
             // Update activity status
-            _status.ActivityStatus = string.Format(Lang._GameRepairPage.Status6,
-                                                   StarRailRepairExtension.GetFileRelativePath(asset.N, _gamePath));
+            Status.ActivityStatus = string.Format(Lang._GameRepairPage.Status6,
+                                                   StarRailRepairExtension.GetFileRelativePath(asset.N, GamePath));
 
             // Increment current total count
-            _progressAllCountCurrent++;
+            ProgressAllCountCurrent++;
 
             // Reset per file size counter
-            _progressPerFileSizeTotal = asset.S;
-            _progressPerFileSizeCurrent = 0;
+            ProgressPerFileSizeTotal = asset.S;
+            ProgressPerFileSizeCurrent = 0;
 
             // Get persistent and streaming paths
-            FileInfo fileInfoPersistent = new FileInfo(StarRailRepairExtension.ReplaceStreamingToPersistentPath(asset.N, _execName, asset.FT));
+            FileInfo fileInfoPersistent = new FileInfo(StarRailRepairExtension.ReplaceStreamingToPersistentPath(asset.N, ExecName, asset.FT));
             FileInfo fileInfoStreaming = new FileInfo(asset.N);
 
-            bool UsePersistent = asset.IsPatchApplicable || !fileInfoStreaming.Exists;
-            bool IsHasMark = asset.IsHasHashMark || UsePersistent;
-            bool IsPersistentExist = fileInfoPersistent.Exists && fileInfoPersistent.Length == asset.S;
-            bool IsStreamingExist = fileInfoStreaming.Exists && fileInfoStreaming.Length == asset.S;
+            bool usePersistent = asset.IsPatchApplicable || !fileInfoStreaming.Exists;
+            bool isHasMark = asset.IsHasHashMark || usePersistent;
+            bool isPersistentExist = fileInfoPersistent.Exists && fileInfoPersistent.Length == asset.S;
+            bool isStreamingExist = fileInfoStreaming.Exists && fileInfoStreaming.Length == asset.S;
 
             // Update the local path to full persistent or streaming path and add asset for missing/unmatched size file
-            asset.N = UsePersistent ? fileInfoPersistent.FullName : fileInfoStreaming.FullName;
+            asset.N = usePersistent ? fileInfoPersistent.FullName : fileInfoStreaming.FullName;
 
             // Check if the file exist on both persistent and streaming path for non-patch file, then mark the
             // persistent path as redundant (unused)
-            bool isNonPatchHasRedundantPersistent = !asset.IsPatchApplicable && IsPersistentExist && IsStreamingExist && fileInfoStreaming.Length == asset.S;
+            bool isNonPatchHasRedundantPersistent = !asset.IsPatchApplicable && isPersistentExist && isStreamingExist && fileInfoStreaming.Length == asset.S;
 
             if (isNonPatchHasRedundantPersistent)
             {
                 // Add the count and asset. Mark the type as "RepairAssetType.Unused"
-                _progressAllCountFound++;
+                ProgressAllCountFound++;
 
                 Dispatch(() => AssetEntry.Add(
                     new AssetProperty<RepairAssetType>(
@@ -271,21 +272,21 @@ namespace CollapseLauncher
             }
 
             // If the file has Hash Mark or is persistent, then create the hash mark file
-            if (IsHasMark) CreateHashMarkFile(asset.N, asset.CRC);
+            if (isHasMark) CreateHashMarkFile(asset.N, asset.CRC);
 
             // Check if both location has the file exist or has the size right
-            if ((UsePersistent && !IsPersistentExist && !IsStreamingExist)
-             || (UsePersistent && !IsPersistentExist))
+            if ((usePersistent && !isPersistentExist && !isStreamingExist)
+             || (usePersistent && !isPersistentExist))
             {
                 // Update the total progress and found counter
-                _progressAllSizeFound += asset.S;
-                _progressAllCountFound++;
+                ProgressAllSizeFound += asset.S;
+                ProgressAllCountFound++;
 
                 // Set the per size progress
-                _progressPerFileSizeCurrent = asset.S;
+                ProgressPerFileSizeCurrent = asset.S;
 
                 // Increment the total current progress
-                _progressAllSizeCurrent += asset.S;
+                ProgressAllSizeCurrent += asset.S;
 
                 Dispatch(() => AssetEntry.Add(
                     new AssetProperty<RepairAssetType>(
@@ -304,50 +305,48 @@ namespace CollapseLauncher
             }
 
             // Skip CRC check if fast method is used
-            if (_useFastMethod)
+            if (UseFastMethod)
             {
                 return;
             }
 
             // Open and read fileInfo as FileStream
-            string fileNameToOpen = UsePersistent ? fileInfoPersistent.FullName : fileInfoStreaming.FullName;
+            string fileNameToOpen = usePersistent ? fileInfoPersistent.FullName : fileInfoStreaming.FullName;
             try
             {
                 await CheckFile(fileNameToOpen, asset, targetAssetIndex, token);
             }
             catch (FileNotFoundException ex)
             {
-                SentryHelper.ExceptionHandler(ex);
-                LogWriteLine($"File {fileNameToOpen} is not found while UsePersistent is {UsePersistent}. " +
+                await SentryHelper.ExceptionHandlerAsync(ex);
+                LogWriteLine($"File {fileNameToOpen} is not found while UsePersistent is {usePersistent}. " +
                              $"Creating hard link and retrying...", LogType.Warning, true);
 
                 var targetFile = File.Exists(fileInfoPersistent.FullName) ? fileInfoPersistent.FullName : 
                     File.Exists(fileInfoStreaming.FullName)           ? fileInfoStreaming.FullName : 
                                                                         throw new FileNotFoundException(fileNameToOpen);
-                
-                string targetLink     = fileNameToOpen;
 
-                PInvoke.CreateHardLink(targetLink, targetFile, IntPtr.Zero);
+                PInvoke.CreateHardLink(fileNameToOpen, targetFile, IntPtr.Zero);
                 await CheckFile(fileNameToOpen, asset, targetAssetIndex, token);
             }
         }
 
-        async Task CheckFile(string fileNameToOpen, FilePropertiesRemote asset, List<FilePropertiesRemote> targetAssetIndex, CancellationToken token)
+        private async Task CheckFile(string fileNameToOpen, FilePropertiesRemote asset, List<FilePropertiesRemote> targetAssetIndex, CancellationToken token)
         {
-            await using FileStream filefs = new FileStream(fileNameToOpen,
+            await using FileStream fileStream = new FileStream(fileNameToOpen,
                                                            FileMode.Open,
                                                            FileAccess.Read,
                                                            FileShare.Read,
-                                                           _bufferBigLength);
+                                                           BufferBigLength);
             // If pass the check above, then do CRC calculation
             // Additional: the total file size progress is disabled and will be incremented after this
-            byte[] localCRC = await GetCryptoHashAsync<MD5>(filefs, null, true, true, token);
+            byte[] localCrc = await GetCryptoHashAsync<MD5>(fileStream, null, true, true, token);
 
             // If local and asset CRC doesn't match, then add the asset
-            if (!IsArrayMatch(localCRC, asset.CRCArray))
+            if (!IsArrayMatch(localCrc, asset.CRCArray))
             {
-                _progressAllSizeFound += asset.S;
-                _progressAllCountFound++;
+                ProgressAllSizeFound += asset.S;
+                ProgressAllCountFound++;
 
                 Dispatch(() => AssetEntry.Add(
                                               new AssetProperty<RepairAssetType>(
@@ -355,7 +354,7 @@ namespace CollapseLauncher
                                                    ConvertRepairAssetTypeEnum(asset.FT),
                                                    Path.GetDirectoryName(asset.N),
                                                    asset.S,
-                                                   localCRC,
+                                                   localCrc,
                                                    asset.CRCArray
                                                   )
                                              ));
@@ -364,14 +363,13 @@ namespace CollapseLauncher
                 asset.IsBlockNeedRepair = true;
                 targetAssetIndex.Add(asset);
 
-                LogWriteLine($"File [T: {asset.FT}]: {asset.N} is broken! Index CRC: {asset.CRC} <--> File CRC: {HexTool.BytesToHexUnsafe(localCRC)}", LogType.Warning, true);
+                LogWriteLine($"File [T: {asset.FT}]: {asset.N} is broken! Index CRC: {asset.CRC} <--> File CRC: {HexTool.BytesToHexUnsafe(localCrc)}", LogType.Warning, true);
             }
         }
 
-        private void CreateHashMarkFile(string filePath, string hash)
+        private static void CreateHashMarkFile(string filePath, string hash)
         {
-            string basePath, baseName;
-            RemoveHashMarkFile(filePath, out basePath, out baseName);
+            RemoveHashMarkFile(filePath, out var basePath, out var baseName);
 
             // Create base path if not exist
             if (!string.IsNullOrEmpty(basePath) && !Directory.Exists(basePath))

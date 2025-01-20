@@ -14,6 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using static Hi3Helper.Locale;
 using static Hi3Helper.Logger;
+// ReSharper disable IdentifierTypo
 
 namespace CollapseLauncher
 {
@@ -22,17 +23,17 @@ namespace CollapseLauncher
         private async Task<bool> Repair(List<PkgVersionProperties> repairAssetIndex, CancellationToken token)
         {
             // Set total activity string as "Waiting for repair process to start..."
-            _status.ActivityStatus = Lang._GameRepairPage.Status11;
-            _status.IsProgressAllIndetermined = true;
-            _status.IsProgressPerFileIndetermined = true;
+            Status.ActivityStatus = Lang._GameRepairPage.Status11;
+            Status.IsProgressAllIndetermined = true;
+            Status.IsProgressPerFileIndetermined = true;
 
             // Update status
             UpdateStatus();
 
             // Initialize new proxy-aware HttpClient
             using HttpClient client = new HttpClientBuilder<SocketsHttpHandler>()
-                .UseLauncherConfig(_downloadThreadCount + _downloadThreadCountReserved)
-                .SetUserAgent(_userAgent)
+                .UseLauncherConfig(DownloadThreadCount + DownloadThreadCountReserved)
+                .SetUserAgent(UserAgent)
                 .SetAllowedDecompression(DecompressionMethods.None)
                 .Create();
 
@@ -40,19 +41,19 @@ namespace CollapseLauncher
             DownloadClient downloadClient = DownloadClient.CreateInstance(client);
 
             // Iterate repair asset
-            ObservableCollection<IAssetProperty> assetProperty = new ObservableCollection<IAssetProperty>(AssetEntry);
-            if (_isBurstDownloadEnabled)
+            ObservableCollection<IAssetProperty> assetProperty = [.. AssetEntry];
+            if (IsBurstDownloadEnabled)
             {
-                var processingAsset = new ConcurrentDictionary<(PkgVersionProperties, IAssetProperty), byte>();
+                ConcurrentDictionary<(PkgVersionProperties, IAssetProperty), byte> processingAsset = new();
                 await Parallel.ForEachAsync(
                     PairEnumeratePropertyAndAssetIndexPackage(
 #if ENABLEHTTPREPAIR
-                    EnforceHTTPSchemeToAssetIndex(repairAssetIndex)
+                    EnforceHttpSchemeToAssetIndex(repairAssetIndex)
 #else
                     repairAssetIndex
 #endif
                     , assetProperty),
-                    new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = _downloadThreadCount },
+                    new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = DownloadThreadCount },
                     async (asset, innerToken) =>
                     {
                         if (!processingAsset.TryAdd(asset, 0))
@@ -67,11 +68,11 @@ namespace CollapseLauncher
             }
             else
             {
-                var processingAsset = new ConcurrentDictionary<(PkgVersionProperties, IAssetProperty), byte>();
+                ConcurrentDictionary<(PkgVersionProperties, IAssetProperty), byte> processingAsset = new();
                 foreach ((PkgVersionProperties AssetIndex, IAssetProperty AssetProperty) asset in
                     PairEnumeratePropertyAndAssetIndexPackage(
 #if ENABLEHTTPREPAIR
-                    EnforceHTTPSchemeToAssetIndex(repairAssetIndex)
+                    EnforceHttpSchemeToAssetIndex(repairAssetIndex)
 #else
                     repairAssetIndex
 #endif
@@ -95,12 +96,12 @@ namespace CollapseLauncher
         private async Task RepairAssetTypeGeneric((PkgVersionProperties AssetIndex, IAssetProperty AssetProperty) asset, DownloadClient downloadClient, DownloadProgressDelegate downloadProgress, CancellationToken token)
         {
             // Increment total count current
-            _progressAllCountCurrent++;
+            ProgressAllCountCurrent++;
             // Set repair activity status
-            string timeLeftString = string.Format(Lang!._Misc!.TimeRemainHMSFormat!, _progress.ProgressAllTimeLeft);
+            string timeLeftString = string.Format(Lang!._Misc!.TimeRemainHMSFormat!, Progress.ProgressAllTimeLeft);
             UpdateRepairStatus(
                 string.Format(Lang._GameRepairPage.Status8, asset.AssetIndex.remoteName),
-                string.Format(Lang._GameRepairPage.PerProgressSubtitle2, ConverterTool.SummarizeSizeSimple(_progressAllSizeCurrent), ConverterTool.SummarizeSizeSimple(_progressAllSizeTotal)) + $" | {timeLeftString}",
+                string.Format(Lang._GameRepairPage.PerProgressSubtitle2, ConverterTool.SummarizeSizeSimple(ProgressAllSizeCurrent), ConverterTool.SummarizeSizeSimple(ProgressAllSizeTotal)) + $" | {timeLeftString}",
                 true);
 
             string   assetPath     = ConverterTool.NormalizePath(asset.AssetIndex.localName);

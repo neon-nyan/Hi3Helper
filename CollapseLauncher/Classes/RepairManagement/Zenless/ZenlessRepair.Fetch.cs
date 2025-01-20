@@ -1,4 +1,5 @@
-﻿using CollapseLauncher.Helper;
+﻿using CollapseLauncher.GameSettings.Zenless;
+using CollapseLauncher.Helper;
 using CollapseLauncher.Helper.Metadata;
 using Hi3Helper;
 using Hi3Helper.Data;
@@ -17,6 +18,8 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+// ReSharper disable StringLiteralTypo
+// ReSharper disable CommentTypo
 
 namespace CollapseLauncher
 {
@@ -26,14 +29,14 @@ namespace CollapseLauncher
         private async Task Fetch(List<FilePropertiesRemote> assetIndex, CancellationToken token)
         {
             // Set total activity string as "Loading Indexes..."
-            _status.ActivityStatus = Locale.Lang._GameRepairPage.Status2;
-            _status.IsProgressAllIndetermined = true;
+            Status.ActivityStatus = Locale.Lang._GameRepairPage.Status2;
+            Status.IsProgressAllIndetermined = true;
             UpdateStatus();
 
             // Initialize new proxy-aware HttpClient
             using HttpClient client = new HttpClientBuilder()
-                .UseLauncherConfig(_downloadThreadCount + _downloadThreadCountReserved)
-                .SetUserAgent(_userAgent)
+                .UseLauncherConfig(DownloadThreadCount + DownloadThreadCountReserved)
+                .SetUserAgent(UserAgent)
                 .SetAllowedDecompression(DecompressionMethods.None)
                 .Create();
 
@@ -41,32 +44,32 @@ namespace CollapseLauncher
             DownloadClient downloadClient = DownloadClient.CreateInstance(client);
 
             // Create a hash set to overwrite local files
-            Dictionary<string, FilePropertiesRemote> hashSet = new Dictionary<string, FilePropertiesRemote>(StringComparer.OrdinalIgnoreCase);
+            Dictionary<string, FilePropertiesRemote> hashSet = new(StringComparer.OrdinalIgnoreCase);
 
             // If not in cache mode, then fetch main package
             if (!IsCacheUpdateMode)
             {
                 // Get the primary manifest
-                await GetPrimaryManifest(hashSet, token, assetIndex);
+                await GetPrimaryManifest(hashSet, assetIndex, token);
             }
 
             // Execute on non-recover main mode
             if (!IsOnlyRecoverMain)
             {
                 // Get the in-game res manifest
-                await GetResManifest(downloadClient, hashSet, token, assetIndex,
+                await GetResManifest(downloadClient, hashSet, assetIndex,
 #if DEBUG
                     true
 #else
                     false
 #endif
-                    );
+                  , token);
 
                 // Execute plugin things if not in cache mode only
                 if (!IsCacheUpdateMode)
                 {
                     // Force-Fetch the Bilibili SDK (if exist :pepehands:)
-                    await FetchBilibiliSDK(token);
+                    await FetchBilibiliSdk(token);
 
                     // Remove plugin from assetIndex
                     // Skip the removal for Delta-Patch
@@ -77,7 +80,7 @@ namespace CollapseLauncher
         #endregion
 
         #region PrimaryManifest
-        private async Task GetPrimaryManifest(Dictionary<string, FilePropertiesRemote> hashSet, CancellationToken token, List<FilePropertiesRemote> assetIndex)
+        private async Task GetPrimaryManifest(Dictionary<string, FilePropertiesRemote> hashSet, List<FilePropertiesRemote> assetIndex, CancellationToken token)
         {
             // If it's using cache update mode, then return since we don't need to add manifest
             // from pkg_version on cache update mode.
@@ -85,7 +88,7 @@ namespace CollapseLauncher
                 return;
 
             // Initialize pkgVersion list
-            List<PkgVersionProperties> pkgVersion = new List<PkgVersionProperties>();
+            List<PkgVersionProperties> pkgVersion = [];
 
             // Initialize repo metadata
             try
@@ -94,11 +97,11 @@ namespace CollapseLauncher
                 Dictionary<string, string> repoMetadata = await FetchMetadata(token);
 
                 // Check for manifest. If it doesn't exist, then throw and warn the user
-                if (!repoMetadata.TryGetValue(_gameVersion.VersionString, out var value))
+                if (!repoMetadata.TryGetValue(GameVersion.VersionString, out var value))
                 {
                     // If version override is on, then throw
-                    if (_isVersionOverride)
-                        throw new VersionNotFoundException($"Manifest for {_gameVersionManager.GamePreset.ZoneName} (version: {_gameVersion.VersionString}) doesn't exist! Please contact @neon-nyan or open an issue for this!");
+                    if (IsVersionOverride)
+                        throw new VersionNotFoundException($"Manifest for {GameVersionManager.GamePreset.ZoneName} (version: {GameVersion.VersionString}) doesn't exist! Please contact @neon-nyan or open an issue for this!");
 
                     // Otherwise, fallback to the launcher's pkg_version
                     RegionResourceVersion latestZipApi = GameVersionManagerCast?.GetGameLatestZip(GameInstallStateEnum.Installed).FirstOrDefault();
@@ -109,7 +112,7 @@ namespace CollapseLauncher
                         throw new NullReferenceException("Cannot find latest zip api url while failing back to pkg_version");
 
                     // Assign the URL based on the version
-                    _gameRepoURL = latestZipApiUrl;
+                    GameRepoURL = latestZipApiUrl;
 
                     // Combine pkg_version url
                     latestZipApiUrl = ConverterTool.CombineURLFromString(latestZipApiUrl, "pkg_version");
@@ -118,7 +121,7 @@ namespace CollapseLauncher
                     await using Stream stream = await FallbackCDNUtil.GetHttpStreamFromResponse(latestZipApiUrl, token);
                     await foreach (FilePropertiesRemote asset in stream
                         .EnumerateStreamToPkgVersionPropertiesAsync(token)
-                        .RegisterMainCategorizedAssetsToHashSetAsync(assetIndex, hashSet, _gamePath, _gameRepoURL, token))
+                        .RegisterMainCategorizedAssetsToHashSetAsync(assetIndex, hashSet, GamePath, GameRepoURL, token))
                     {
                         // If entry is null (means, an existing entry has been overwritten), then next
                         if (asset == null)
@@ -129,14 +132,14 @@ namespace CollapseLauncher
                 }
 
                 // Assign the URL based on the version
-                _gameRepoURL = value;
+                GameRepoURL = value;
             }
             // If the base._isVersionOverride is true, then throw. This sanity check is required if the delta patch is being performed.
-            catch when (_isVersionOverride) { throw; }
+            catch when (IsVersionOverride) { throw; }
 
             // Fetch the asset index from CDN
             // Set asset index URL
-            string urlIndex = string.Format(LauncherConfig.AppGameRepairIndexURLPrefix, _gameVersionManager.GamePreset.ProfileName, _gameVersion.VersionString) + ".binv2";
+            string urlIndex = string.Format(LauncherConfig.AppGameRepairIndexURLPrefix, GameVersionManager.GamePreset.ProfileName, GameVersion.VersionString) + ".binv2";
 
             // Start downloading asset index using FallbackCDNUtil and return its stream
             await Task.Run(async () =>
@@ -151,7 +154,7 @@ namespace CollapseLauncher
                 }
 
                 // Convert the pkg version list to asset index
-                foreach (FilePropertiesRemote entry in pkgVersion.RegisterMainCategorizedAssetsToHashSet(assetIndex, hashSet, _gamePath, _gameRepoURL))
+                foreach (FilePropertiesRemote entry in pkgVersion.RegisterMainCategorizedAssetsToHashSet(assetIndex, hashSet, GamePath, GameRepoURL))
                 {
                     // If entry is null (means, an existing entry has been overwritten), then next
                     if (entry == null)
@@ -172,17 +175,17 @@ namespace CollapseLauncher
 
             // Start downloading metadata using FallbackCDNUtil
             await using BridgedNetworkStream stream = await FallbackCDNUtil.TryGetCDNFallbackStream(urlMetadata, token);
-            return await stream.DeserializeAsync(CoreLibraryJSONContext.Default.DictionaryStringString, token);
+            return await stream.DeserializeAsync(CoreLibraryJsonContext.Default.DictionaryStringString, token: token);
         }
         #endregion
 
         #region ResManifest
         private async Task GetResManifest(
-            DownloadClient downloadClient,
+            DownloadClient                           downloadClient,
             Dictionary<string, FilePropertiesRemote> hashSet,
-            CancellationToken token,
-            List<FilePropertiesRemote> assetIndex,
-            bool throwIfError)
+            List<FilePropertiesRemote>               assetIndex,
+            bool                                     throwIfError,
+            CancellationToken                        token)
         {
             try
             {
@@ -194,7 +197,7 @@ namespace CollapseLauncher
                 SleepyInfo sleepyInfo = await TryGetSleepyInfo(
                     client,
                     gamePreset,
-                    GameSettings!.GeneralData.SelectedServerName,
+                    (GameSettings as ZenlessSettings)?.GeneralData.SelectedServerName,
                     gamePreset.GameDispatchDefaultName,
                     token);
 
@@ -218,14 +221,14 @@ namespace CollapseLauncher
                         infoKindSilence.RegisterSleepyFileInfoToManifest(client, assetIndex, true, persistentPath, token),
                         assetIndex,
                         hashSet,
-                        Path.Combine(_gamePath, $@"{ExecutableName}_Data\"),
+                        Path.Combine(GamePath, $@"{ExecutableName}_Data\"),
                         infoKindSilence.BaseUrl, baseResUrl);
 
                     IAsyncEnumerable<FilePropertiesRemote> infoDataEnumerable = EnumerateResManifestToAssetIndexAsync(
                         infoKindData.RegisterSleepyFileInfoToManifest(client, assetIndex, true, persistentPath, token),
                         assetIndex,
                         hashSet,
-                        Path.Combine(_gamePath, $@"{ExecutableName}_Data\"),
+                        Path.Combine(GamePath, $@"{ExecutableName}_Data\"),
                         infoKindData.BaseUrl, baseResUrl);
 
                     await foreach (FilePropertiesRemote asset in ZenlessRepairExtensions
@@ -245,16 +248,16 @@ namespace CollapseLauncher
                         infoKindRes.RegisterSleepyFileInfoToManifest(client, assetIndex, true, persistentPath, token),
                         assetIndex,
                         hashSet,
-                        Path.Combine(_gamePath, $@"{ExecutableName}_Data\"),
+                        Path.Combine(GamePath, $@"{ExecutableName}_Data\"),
                         infoKindRes.BaseUrl, baseResUrl);
 
                     IAsyncEnumerable<FilePropertiesRemote> infoAudioEnumerable = GetOnlyInstalledAudioPack(
                             EnumerateResManifestToAssetIndexAsync(
-                            infoKindAudio.RegisterSleepyFileInfoToManifest(client, assetIndex, true, persistentPath, token),
-                            assetIndex,
-                            hashSet,
-                            Path.Combine(_gamePath, $@"{ExecutableName}_Data\"),
-                            infoKindAudio.BaseUrl, baseResUrl)
+                                                                  infoKindAudio.RegisterSleepyFileInfoToManifest(client, assetIndex, true, persistentPath, token),
+                                                                  assetIndex,
+                                                                  hashSet,
+                                                                  Path.Combine(GamePath, $@"{ExecutableName}_Data\"),
+                                                                  infoKindAudio.BaseUrl, baseResUrl)
                         );
 
                     await foreach (FilePropertiesRemote asset in ZenlessRepairExtensions
@@ -273,7 +276,7 @@ namespace CollapseLauncher
             }
         }
 
-        private string GetBaseResUrl(string baseUrl, string stampRevision)
+        private static string GetBaseResUrl(string baseUrl, string stampRevision)
         {
             const string startMark = "output_";
             const string endMark = "/client";
@@ -383,7 +386,7 @@ namespace CollapseLauncher
 
         #region Utilities
 #nullable enable
-        private async IAsyncEnumerable<FilePropertiesRemote> EnumerateResManifestToAssetIndexAsync(
+        private static async IAsyncEnumerable<FilePropertiesRemote> EnumerateResManifestToAssetIndexAsync(
             IAsyncEnumerable<PkgVersionProperties> pkgVersion,
             List<FilePropertiesRemote> assetIndex,
             Dictionary<string, FilePropertiesRemote> hashSet,
@@ -404,7 +407,7 @@ namespace CollapseLauncher
 
         private void EliminatePluginAssetIndex(List<FilePropertiesRemote> assetIndex)
         {
-            _gameVersionManager.GameAPIProp.data!.plugins?.ForEach(plugin =>
+            GameVersionManager.GameApiProp.data!.plugins?.ForEach(plugin =>
               {
                   if (plugin.package?.validate == null) return;
                   assetIndex.RemoveAll(asset =>
@@ -420,16 +423,16 @@ namespace CollapseLauncher
               });
         }
 
-        private string[] GetCurrentAudioLangList(string fallbackCurrentLangname)
+        private string[] GetCurrentAudioLangList(string fallbackCurrentLangName)
         {
             // Initialize the variable.
-            string audioLangListPath = _gameAudioLangListPath;
-            string audioLangListPathStatic = _gameAudioLangListPathStatic;
-            string audioLangListPathAlternative = _gameAudioLangListPathAlternate;
-            string audioLangListPathAlternativeStatic = _gameAudioLangListPathAlternateStatic;
+            string audioLangListPath = GameAudioLangListPath;
+            string audioLangListPathStatic = GameAudioLangListPathStatic;
+            string audioLangListPathAlternative = GameAudioLangListPathAlternate;
+            string audioLangListPathAlternativeStatic = GameAudioLangListPathAlternateStatic;
 
             string[] returnValue;
-            string fallbackCurrentLangnameNative = fallbackCurrentLangname switch
+            string fallbackCurrentLangNameNative = fallbackCurrentLangName switch
             {
                 "Jp" => "Japanese",
                 "En" => "English(US)",
@@ -448,7 +451,7 @@ namespace CollapseLauncher
                     Directory.CreateDirectory(audioLangPathDir);
 
                 // Assign the default value and write to the file, then return.
-                returnValue = new[] { fallbackCurrentLangname };
+                returnValue = [fallbackCurrentLangName];
                 File.WriteAllLines(audioLangListPathStatic, returnValue);
                 return returnValue;
             }
@@ -457,7 +460,7 @@ namespace CollapseLauncher
             returnValue = File.ReadAllLines(audioLangListPathStatic);
             if (returnValue.Length == 0)
             {
-                returnValue = new[] { fallbackCurrentLangname };
+                returnValue = [fallbackCurrentLangName];
                 File.WriteAllLines(audioLangListPathStatic, returnValue);
             }
 
@@ -473,18 +476,20 @@ namespace CollapseLauncher
                     Directory.CreateDirectory(audioLangPathDir);
 
                 // Assign the default value and write to the file, then return.
-                returnValueAlternate = new[] { fallbackCurrentLangnameNative };
+                returnValueAlternate = [fallbackCurrentLangNameNative];
                 File.WriteAllLines(audioLangListPathAlternativeStatic, returnValueAlternate);
                 return returnValueAlternate;
             }
 
             // Read all the lines. If empty, then assign the default value and rewrite it
             returnValueAlternate = File.ReadAllLines(audioLangListPathAlternativeStatic);
-            if (returnValueAlternate.Length == 0)
+            if (returnValueAlternate.Length != 0)
             {
-                returnValueAlternate = new[] { fallbackCurrentLangnameNative };
-                File.WriteAllLines(audioLangListPathAlternativeStatic, returnValueAlternate);
+                return returnValueAlternate;
             }
+
+            returnValueAlternate = [fallbackCurrentLangNameNative];
+            File.WriteAllLines(audioLangListPathAlternativeStatic, returnValueAlternate);
 
             // Return the value
             return returnValueAlternate;
@@ -493,10 +498,10 @@ namespace CollapseLauncher
         private void CountAssetIndex(List<FilePropertiesRemote> assetIndex)
         {
             // Sum the assetIndex size and assign to _progressAllSize
-            _progressAllSizeTotal = assetIndex.Sum(x => x.S);
+            ProgressAllSizeTotal = assetIndex.Sum(x => x.S);
 
             // Assign the assetIndex count to _progressAllCount
-            _progressAllCountTotal = assetIndex.Count;
+            ProgressAllCountTotal = assetIndex.Count;
         }
         #endregion
     }

@@ -36,9 +36,9 @@ namespace CollapseLauncher.Helper
         /// <returns>True if a new file is found, and false if it timed out</returns>
         public static async Task<bool> WaitForNewFileAsync(string directoryPath, int timeoutMilliseconds)
         {
-            var tcs     = new TaskCompletionSource<string>();
-            var cts     = new CancellationTokenSource(timeoutMilliseconds);
-            var watcher = new FileSystemWatcher(directoryPath);
+            TaskCompletionSource<string> tcs     = new();
+            var                          cts     = new CancellationTokenSource(timeoutMilliseconds);
+            var                          watcher = new FileSystemWatcher(directoryPath);
 
             watcher.Filter              =  "*.*";
             watcher.NotifyFilter        =  NotifyFilters.FileName | NotifyFilters.CreationTime;

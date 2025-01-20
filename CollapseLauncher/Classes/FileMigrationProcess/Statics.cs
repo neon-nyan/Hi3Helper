@@ -34,11 +34,12 @@ namespace CollapseLauncher
                 return null;
             }
 
-            if (showWarningMessage)
-                if (await ShowNotCancellableProcedureMessage(parentUI) == ContentDialogResult.None)
-                    return null;
+            if (!showWarningMessage)
+            {
+                return new FileMigrationProcess(parentUI, dialogTitle, inputPath, outputPath, isFileTransfer, token);
+            }
 
-            return new FileMigrationProcess(parentUI, dialogTitle, inputPath, outputPath, isFileTransfer, token);
+            return await ShowNotCancellableProcedureMessage(parentUI) == ContentDialogResult.None ? null : new FileMigrationProcess(parentUI, dialogTitle, inputPath, outputPath, isFileTransfer, token);
         }
 
         private static async ValueTask<string> InitializeAndCheckOutputPath(UIElement parentUI, string dialogTitle, string inputPath, string outputPath, bool isFileTransfer)
@@ -58,8 +59,7 @@ namespace CollapseLauncher
             if (!isFilePath) inputPath = Path.GetDirectoryName(inputPath);
             bool isPathEqual = inputPath.AsSpan().TrimEnd('\\').SequenceEqual(outputPath.AsSpan().TrimEnd('\\'));
 
-            if (isStringEmpty) return true;
-            return isPathEqual;
+            return isStringEmpty || isPathEqual;
         }
 
         private static async Task<ContentDialogResult> ShowNotCancellableProcedureMessage(UIElement parentUI) => await SimpleDialogs.Dialog_WarningOperationNotCancellable(parentUI);

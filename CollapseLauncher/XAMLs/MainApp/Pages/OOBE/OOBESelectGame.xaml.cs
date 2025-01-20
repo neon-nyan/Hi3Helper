@@ -2,6 +2,7 @@
 using CollapseLauncher.Helper.Background;
 using CollapseLauncher.Helper.Metadata;
 using Hi3Helper;
+using Hi3Helper.SentryHelper;
 using Hi3Helper.Win32.ToastCOM.Notification;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -14,6 +15,10 @@ using Windows.UI.Notifications;
 using static CollapseLauncher.InnerLauncherConfig;
 using static CollapseLauncher.Pages.OOBE.OOBESelectGameBGProp;
 using static Hi3Helper.Shared.Region.LauncherConfig;
+// ReSharper disable IdentifierTypo
+// ReSharper disable InconsistentNaming
+// ReSharper disable StringLiteralTypo
+// ReSharper disable CommentTypo
 
 #nullable enable
 namespace CollapseLauncher.Pages.OOBE
@@ -55,41 +60,43 @@ namespace CollapseLauncher.Pages.OOBE
 
         private static void SpawnGreetingsToastNotification(string? gameName, string? regionName)
         {
-            if (!string.IsNullOrEmpty(gameName)
-             && !string.IsNullOrEmpty(regionName))
+            if (string.IsNullOrEmpty(gameName)
+                || string.IsNullOrEmpty(regionName))
             {
-                string gameNameTranslated = GetGameTitleRegionTranslationString(gameName, Locale.Lang._GameClientTitles) ?? gameName;
-                string gameRegionTranslated = GetGameTitleRegionTranslationString(regionName, Locale.Lang._GameClientRegions) ?? regionName;
-
-                // Get game preset config
-                PresetConfig? gamePresetConfig = LauncherMetadataHelper.LauncherMetadataConfig?[gameName]?[regionName];
-                if (gamePresetConfig == null) // If empty, return
-                    return;
-
-                // Get logo name and poster name
-                (string? logoName, string? posterName) = GetLogoAndHeroImgPath(gamePresetConfig);
-
-                // Create Toast Notification Content
-                NotificationContent toastContent = NotificationContent.Create()
-                    .SetTitle(Locale.Lang._NotificationToast.OOBE_WelcomeTitle)
-                    .SetContent(
-                        string.Format(
-                            Locale.Lang._NotificationToast.OOBE_WelcomeSubtitle,
-                            gameNameTranslated,
-                            gameRegionTranslated))
-                    .SetAppLogoPath(
-                        logoName,
-                        true)
-                    .AddAppHeroImagePath(
-                        posterName);
-
-                // Create Toast Notification Service
-                ToastNotification? toastService = WindowUtility.CurrentToastNotificationService?.CreateToastNotification(toastContent);
-
-                // Create Toast Notifier
-                ToastNotifier? toastNotifier = WindowUtility.CurrentToastNotificationService?.CreateToastNotifier();
-                toastNotifier?.Show(toastService);
+                return;
             }
+
+            string gameNameTranslated   = GetGameTitleRegionTranslationString(gameName,   Locale.Lang._GameClientTitles) ?? gameName;
+            string gameRegionTranslated = GetGameTitleRegionTranslationString(regionName, Locale.Lang._GameClientRegions) ?? regionName;
+
+            // Get game preset config
+            PresetConfig? gamePresetConfig = LauncherMetadataHelper.LauncherMetadataConfig?[gameName]?[regionName];
+            if (gamePresetConfig == null) // If empty, return
+                return;
+
+            // Get logo name and poster name
+            (string? logoName, string? posterName) = GetLogoAndHeroImgPath(gamePresetConfig);
+
+            // Create Toast Notification Content
+            NotificationContent toastContent = NotificationContent.Create()
+                                                                  .SetTitle(Locale.Lang._NotificationToast.OOBE_WelcomeTitle)
+                                                                  .SetContent(
+                                                                              string.Format(
+                                                                                   Locale.Lang._NotificationToast.OOBE_WelcomeSubtitle,
+                                                                                   gameNameTranslated,
+                                                                                   gameRegionTranslated))
+                                                                  .SetAppLogoPath(
+                                                                        logoName,
+                                                                        true)
+                                                                  .AddAppHeroImagePath(
+                                                                        posterName);
+
+            // Create Toast Notification Service
+            ToastNotification? toastService = WindowUtility.CurrentToastNotificationService?.CreateToastNotification(toastContent);
+
+            // Create Toast Notifier
+            ToastNotifier? toastNotifier = WindowUtility.CurrentToastNotificationService?.CreateToastNotifier();
+            toastNotifier?.Show(toastService);
         }
 
         internal static (string? LogoPath, string? HeroPath) GetLogoAndHeroImgPath(PresetConfig? gamePresetConfig)
@@ -107,14 +114,8 @@ namespace CollapseLauncher.Pages.OOBE
             };
 
             // Return paths
-            return (string.Format(
-                            @"Assets\Images\GameLogo\{0}-logo.png",
-                            logoName
-                        ),
-                        string.Format(
-                            @"Assets\Images\GamePoster\poster_{0}.png",
-                            posterName
-                        ));
+            return ($@"Assets\Images\GameLogo\{logoName}-logo.png",
+                    $@"Assets\Images\GamePoster\poster_{posterName}.png");
         }
 
 
@@ -127,93 +128,107 @@ namespace CollapseLauncher.Pages.OOBE
 
         private async void GameSelect_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            object value = ((ComboBox)sender).SelectedValue;
-            if (value is not null)
+            try
             {
-                SelectedRegion = GetComboBoxGameRegionValue(value);
+                object value = ((ComboBox)sender).SelectedValue;
+                if (value is not null)
+                {
+                    SelectedRegion = GetComboBoxGameRegionValue(value);
+
+                    NextPage.IsEnabled = true;
+                    NextPage.Opacity   = 1;
+
+                    BarBGLoading.Visibility      = Visibility.Visible;
+                    BarBGLoading.IsIndeterminate = true;
+                    FadeBackground(1, 0.25);
+                    PresetConfig? gameConfig = await LauncherMetadataHelper.GetMetadataConfig(SelectedCategory, SelectedRegion);
+                    bool          isSuccess  = await TryLoadGameDetails(gameConfig);
+
+                    BitmapData? bitmapData = null;
+
+                    try
+                    {
+                        int bitmapChannelCount = _gamePosterBitmap.PixelFormat switch
+                                                 {
+                                                     PixelFormat.Format32bppRgb => 4,
+                                                     PixelFormat.Format32bppArgb => 4,
+                                                     PixelFormat.Format24bppRgb => 3,
+                                                     _ => throw new NotSupportedException($"Pixel format of the image: {_gamePosterBitmap.PixelFormat} is unsupported!")
+                                                 };
+
+                        bitmapData = _gamePosterBitmap.LockBits(new Rectangle(new Point(), _gamePosterBitmap.Size),
+                                                                ImageLockMode.ReadOnly, _gamePosterBitmap.PixelFormat);
+
+                        BitmapInputStruct bitmapInputStruct = new BitmapInputStruct
+                        {
+                            Buffer  = bitmapData.Scan0,
+                            Width   = bitmapData.Width,
+                            Height  = bitmapData.Height,
+                            Channel = bitmapChannelCount
+                        };
+
+                        if (isSuccess)
+                        {
+                            await ColorPaletteUtility.ApplyAccentColor(this, bitmapInputStruct, _gamePosterPath);
+                        }
+                    }
+                    finally
+                    {
+                        if (bitmapData != null)
+                        {
+                            _gamePosterBitmap.UnlockBits(bitmapData);
+                        }
+                    }
+
+                    NavigationTransitionInfo transition = _lastSelectedCategory == SelectedCategory
+                        ? new SuppressNavigationTransitionInfo()
+                        : new DrillInNavigationTransitionInfo();
+
+                    BackgroundFrame.Navigate(typeof(OOBESelectGameBG), null, transition);
+                    FadeBackground(0.25, 1);
+                    BarBGLoading.IsIndeterminate = false;
+                    BarBGLoading.Visibility      = Visibility.Collapsed;
+
+                    _lastSelectedCategory = SelectedCategory;
+
+                    return;
+                }
 
                 NextPage.IsEnabled = true;
                 NextPage.Opacity   = 1;
-
-                BarBGLoading.Visibility      = Visibility.Visible;
-                BarBGLoading.IsIndeterminate = true;
-                FadeBackground(1, 0.25);
-                PresetConfig? gameConfig = await LauncherMetadataHelper.GetMetadataConfig(SelectedCategory, SelectedRegion);
-                bool          isSuccess  = await TryLoadGameDetails(gameConfig);
-
-                BitmapData? bitmapData = null;
-
-                try
-                {
-                    int bitmapChannelCount = _gamePosterBitmap.PixelFormat switch
-                    {
-                        PixelFormat.Format32bppRgb => 4,
-                        PixelFormat.Format32bppArgb => 4,
-                        PixelFormat.Format24bppRgb => 3,
-                        _ => throw new NotSupportedException($"Pixel format of the image: {_gamePosterBitmap.PixelFormat} is unsupported!")
-                    };
-
-                    bitmapData = _gamePosterBitmap.LockBits(new Rectangle(new Point(), _gamePosterBitmap.Size),
-                                                            ImageLockMode.ReadOnly, _gamePosterBitmap.PixelFormat);
-
-                    BitmapInputStruct bitmapInputStruct = new BitmapInputStruct
-                    {
-                        Buffer  = bitmapData.Scan0,
-                        Width   = bitmapData.Width,
-                        Height  = bitmapData.Height,
-                        Channel = bitmapChannelCount
-                    };
-
-                    if (isSuccess)
-                    {
-                        await ColorPaletteUtility.ApplyAccentColor(this, bitmapInputStruct, _gamePosterPath);
-                    }
-                }
-                finally
-                {
-                    if (bitmapData != null)
-                    {
-                        _gamePosterBitmap.UnlockBits(bitmapData);
-                    }
-                }
-
-                NavigationTransitionInfo transition = _lastSelectedCategory == SelectedCategory
-                    ? new SuppressNavigationTransitionInfo()
-                    : new DrillInNavigationTransitionInfo();
-
-                BackgroundFrame.Navigate(typeof(OOBESelectGameBG), null, transition);
-                FadeBackground(0.25, 1);
-                BarBGLoading.IsIndeterminate = false;
-                BarBGLoading.Visibility      = Visibility.Collapsed;
-
-                _lastSelectedCategory = SelectedCategory;
-
-                return;
             }
-
-            NextPage.IsEnabled = true;
-            NextPage.Opacity   = 1;
+            catch (Exception ex)
+            {
+                await SentryHelper.ExceptionHandlerAsync(ex);
+            }
         }
 
         private async void FadeBackground(double from, double to)
         {
-            double     dur          = 0.250;
-            Storyboard storyBufBack = new Storyboard();
-
-            DoubleAnimation opacityBufBack = new DoubleAnimation
+            try
             {
-                Duration = new Duration(TimeSpan.FromSeconds(dur)),
-                From     = from,
-                To       = to
-            };
+                const double dur          = 0.250;
+                Storyboard   storyBufBack = new Storyboard();
 
-            Storyboard.SetTarget(opacityBufBack, BackgroundFrame);
-            Storyboard.SetTargetProperty(opacityBufBack, "Opacity");
-            storyBufBack.Children.Add(opacityBufBack);
+                DoubleAnimation opacityBufBack = new DoubleAnimation
+                {
+                    Duration = new Duration(TimeSpan.FromSeconds(dur)),
+                    From     = from,
+                    To       = to
+                };
 
-            storyBufBack.Begin();
+                Storyboard.SetTarget(opacityBufBack, BackgroundFrame);
+                Storyboard.SetTargetProperty(opacityBufBack, "Opacity");
+                storyBufBack.Children.Add(opacityBufBack);
 
-            await Task.Delay((int)(dur * 1000));
+                storyBufBack.Begin();
+
+                await Task.Delay((int)(dur * 1000));
+            }
+            catch (Exception ex)
+            {
+                await SentryHelper.ExceptionHandlerAsync(ex);
+            }
         }
 
         private void GameCategorySelect_SelectionChanged(object sender, SelectionChangedEventArgs e)

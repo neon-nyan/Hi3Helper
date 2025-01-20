@@ -7,5 +7,5 @@ namespace CollapseLauncher.GameSettings.StarRail.Context
     [JsonSourceGenerationOptions(IncludeFields = false, GenerationMode = JsonSourceGenerationMode.Metadata, IgnoreReadOnlyFields = true)]
     [JsonSerializable(typeof(Model))]
     [JsonSerializable(typeof(PCResolution))]
-    internal sealed partial class StarRailSettingsJSONContext : JsonSerializerContext { }
+    internal sealed partial class StarRailSettingsJsonContext : JsonSerializerContext { }
 }

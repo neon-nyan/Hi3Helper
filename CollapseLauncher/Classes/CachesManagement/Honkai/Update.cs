@@ -14,6 +14,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using static Hi3Helper.Locale;
 using static Hi3Helper.Logger;
+// ReSharper disable CommentTypo
+// ReSharper disable GrammarMistakeInComment
 
 namespace CollapseLauncher
 {
@@ -23,8 +25,8 @@ namespace CollapseLauncher
         {
             // Initialize new proxy-aware HttpClient
             using HttpClient client = new HttpClientBuilder<SocketsHttpHandler>()
-                .UseLauncherConfig(_downloadThreadCount + _downloadThreadCountReserved)
-                .SetUserAgent(_userAgent)
+                .UseLauncherConfig(DownloadThreadCount + DownloadThreadCountReserved)
+                .SetUserAgent(UserAgent)
                 .SetAllowedDecompression(DecompressionMethods.None)
                 .Create();
 
@@ -33,24 +35,24 @@ namespace CollapseLauncher
             try
             {
                 // Set IsProgressAllIndetermined as false and update the status 
-                _status.IsProgressAllIndetermined = true;
+                Status.IsProgressAllIndetermined = true;
                 UpdateStatus();
 
                 // Iterate the asset index and do update operation
-                ObservableCollection<IAssetProperty> assetProperty   = new ObservableCollection<IAssetProperty>(AssetEntry);
+                ObservableCollection<IAssetProperty> assetProperty   = [.. AssetEntry];
 
-                var runningTask = new ConcurrentDictionary<(CacheAsset, IAssetProperty), byte>();
-                if (_isBurstDownloadEnabled)
+                ConcurrentDictionary<(CacheAsset, IAssetProperty), byte> runningTask = new();
+                if (IsBurstDownloadEnabled)
                 {
                     await Parallel.ForEachAsync(
                         PairEnumeratePropertyAndAssetIndexPackage(
 #if ENABLEHTTPREPAIR    
-                        EnforceHTTPSchemeToAssetIndex(updateAssetIndex)
+                        EnforceHttpSchemeToAssetIndex(updateAssetIndex)
 #else
                         updateAssetIndex
 #endif
                         , assetProperty),
-                        new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = _downloadThreadCount },
+                        new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = DownloadThreadCount },
                         async (asset, innerToken) =>
                         {
                             if (!runningTask.TryAdd(asset, 0))
@@ -67,7 +69,7 @@ namespace CollapseLauncher
                     foreach ((CacheAsset, IAssetProperty) asset in
                         PairEnumeratePropertyAndAssetIndexPackage(
 #if ENABLEHTTPREPAIR    
-                        EnforceHTTPSchemeToAssetIndex(updateAssetIndex)
+                        EnforceHttpSchemeToAssetIndex(updateAssetIndex)
 #else
                         updateAssetIndex
 #endif
@@ -100,29 +102,28 @@ namespace CollapseLauncher
         private void UpdateCacheVerifyList(List<CacheAsset> assetIndex)
         {
             // Get listFile path
-            string listFile = Path.Combine(_gamePath!, "Data", "Verify.txt");
+            string listFile = Path.Combine(GamePath!, "Data", "Verify.txt");
 
             // Initialize listFile File Stream
-            using (FileStream fs = new FileStream(listFile, FileMode.Create, FileAccess.Write))
-                using (StreamWriter sw = new StreamWriter(fs))
-                {
-                    // Iterate asset index and generate the path for the cache path
-                    foreach (CacheAsset asset in assetIndex!)
-                    {
-                        // Yes, the path is written in this way. Idk why miHoYo did this...
-                        // Update 6.8: They finally notices that they use "//" instead of "/"
-                        string basePath = GetAssetBasePathByType(asset!.DataType)!.Replace('\\', '/');
-                        string path = basePath + "/" + asset.ConcatN;
-                        sw.WriteLine(path);
-                    }
-                }
+            using FileStream   fs = new FileStream(listFile, FileMode.Create, FileAccess.Write);
+            using StreamWriter sw = new StreamWriter(fs);
+            // Iterate asset index and generate the path for the cache path
+            for (var index = 0; index < assetIndex!.Count; index++)
+            {
+                var asset = assetIndex![index];
+                // Yes, the path is written in this way. Idk why miHoYo did this...
+                // Update 6.8: They finally notices that they use "//" instead of "/"
+                string basePath = GetAssetBasePathByType(asset!.DataType)!.Replace('\\', '/');
+                string path     = basePath + "/" + asset.ConcatN;
+                sw.WriteLine(path);
+            }
         }
 
         private async Task UpdateCacheAsset((CacheAsset AssetIndex, IAssetProperty AssetProperty) asset, DownloadClient downloadClient, DownloadProgressDelegate downloadProgress, CancellationToken token)
         {
             // Increment total count and update the status
-            _progressAllCountCurrent++;
-            _status.ActivityStatus = string.Format(Lang!._Misc!.Downloading + " {0}: {1}", asset!.AssetIndex.DataType, asset.AssetIndex.N);
+            ProgressAllCountCurrent++;
+            Status.ActivityStatus = string.Format(Lang!._Misc!.Downloading + " {0}: {1}", asset!.AssetIndex.DataType, asset.AssetIndex.N);
             UpdateAll();
 
             FileInfo fileInfo = new FileInfo(asset.AssetIndex.ConcatPath!)
@@ -140,15 +141,15 @@ namespace CollapseLauncher
             // Other than unused file, do this action
             else
             {
-#if DEBUG
+            #if DEBUG
                 LogWriteLine($"Downloading cache [T: {asset.AssetIndex.DataType}]: {asset.AssetIndex.N} at URL: {asset.AssetIndex.ConcatURL}", LogType.Debug, true);
-#endif
+            #endif
 
                 await RunDownloadTask(asset.AssetIndex.CS, fileInfo, asset.AssetIndex.ConcatURL, downloadClient, downloadProgress, token);
 
-#if !DEBUG
+            #if !DEBUG
                 LogWriteLine($"Downloaded cache [T: {asset.AssetIndex.DataType}]: {asset.AssetIndex.N}", LogType.Default, true);
-#endif
+            #endif
             }
 
             // Remove Asset Entry display

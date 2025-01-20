@@ -10,13 +10,13 @@ using System.Threading.Tasks;
 #nullable enable
 namespace CollapseLauncher
 {
-    internal static partial class JSONSerializerHelper
+    internal static partial class JsonSerializerHelper
     {
-        internal static async ValueTask<T?> DeserializeAsync<T>(this Stream data, JsonTypeInfo<T?> typeInfo, CancellationToken token = default, T? defaultType = null)
-            where T : class => await InnerDeserializeStreamAsync(data, typeInfo, token, defaultType);
+        internal static async ValueTask<T?> DeserializeAsync<T>(this Stream data, JsonTypeInfo<T?> typeInfo, T? defaultType = null, CancellationToken token = default)
+            where T : class => await InnerDeserializeStreamAsync(data, typeInfo, defaultType, token);
 
-        internal static async ValueTask<T?> DeserializeAsync<T>(this Stream data, JsonTypeInfo<T?> typeInfo, CancellationToken token = default, T? defaultType = null)
-            where T : struct => await InnerDeserializeStreamAsync(data, typeInfo, token, defaultType);
+        internal static async ValueTask<T?> DeserializeAsync<T>(this Stream data, JsonTypeInfo<T?> typeInfo, T? defaultType = null, CancellationToken token = default)
+            where T : struct => await InnerDeserializeStreamAsync(data, typeInfo, defaultType, token);
 
         internal static async Task<JsonNode?> DeserializeAsNodeAsync(this Stream data, CancellationToken token = default)
             => await InnerDeserializeStreamAsNodeAsync(data, token);
@@ -27,7 +27,7 @@ namespace CollapseLauncher
         internal static async Task<List<T?>> DeserializeAsListAsync<T>(this Stream data, JsonTypeInfo<T?> typeInfo, CancellationToken token = default)
         {
             // Create List of T
-            List<T?> listItem = new List<T?>();
+            List<T?> listItem = [];
 
             // Enumerate in async
             await foreach (T? item in data.DeserializeAsEnumerable(typeInfo, token))
@@ -40,17 +40,17 @@ namespace CollapseLauncher
             return listItem;
         }
 
-        private static async ValueTask<T?> InnerDeserializeStreamAsync<T>(Stream data, JsonTypeInfo<T?> typeInfo, CancellationToken token, T? defaultType) =>
+        private static async ValueTask<T?> InnerDeserializeStreamAsync<T>(Stream data, JsonTypeInfo<T?> typeInfo, T? defaultType, CancellationToken token) =>
         // Check if the data cannot be read, then throw
         !data.CanRead ? throw new NotSupportedException("Stream is not readable! Cannot deserialize the stream to JSON!") :
-        // Try deserialize. If it returns a null, then return the default value
+        // Try to deserialize. If it returns a null, then return the default value
             await JsonSerializer.DeserializeAsync(data, typeInfo, token) ?? defaultType;
 
         private static async Task<JsonNode?> InnerDeserializeStreamAsNodeAsync(Stream data, CancellationToken token) =>
         // Check if the data cannot be read, then throw
         !data.CanRead ? throw new NotSupportedException("Stream is not readable! Cannot deserialize the stream to JSON!") :
         // Try deserialize to JSON Node
-            await JsonNode.ParseAsync(data, jsonNodeOptions, jsonDocumentOptions, token);
+            await JsonNode.ParseAsync(data, JsonNodeOptions, JsonDocumentOptions, token);
 
         internal static async ValueTask SerializeAsync<T>(this T? value, Stream targetStream, JsonTypeInfo<T?> typeInfo, CancellationToken token = default)
             where T : class => await InnerSerializeStreamAsync(value, targetStream, typeInfo, token);

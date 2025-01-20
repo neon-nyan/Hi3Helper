@@ -3,7 +3,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:animatedvisuals="using:Microsoft.UI.Xaml.Controls.AnimatedVisuals"
              xmlns:conv="using:CollapseLauncher.Pages"
-             xmlns:interactions="using:Microsoft.Xaml.Interactions.Core"
              xmlns:interactivity="using:Microsoft.Xaml.Interactivity"
              xmlns:controls="using:Microsoft.UI.Xaml.Controls"
              xmlns:primitives="using:Microsoft.UI.Xaml.Controls.Primitives"
@@ -2190,13 +2189,13 @@
                                             <!--  Force ShouldConstrainToRootBounds to True  -->
                                             <!--  Fix https://github.com/microsoft/microsoft-ui-xaml/issues/8657  -->
                                             <interactivity:Interaction.Behaviors>
-                                                <interactions:DataTriggerBehavior Binding="{Binding ShouldConstrainToRootBounds, ElementName=Popup}"
+                                                <interactivity:DataTriggerBehavior Binding="{Binding ShouldConstrainToRootBounds, ElementName=Popup}"
                                                                                   ComparisonCondition="Equal"
                                                                                   Value="False">
-                                                    <interactions:ChangePropertyAction PropertyName="ShouldConstrainToRootBounds"
+                                                    <interactivity:ChangePropertyAction PropertyName="ShouldConstrainToRootBounds"
                                                                                        TargetObject="{Binding ElementName=Popup}"
                                                                                        Value="True" />
-                                                </interactions:DataTriggerBehavior>
+                                                </interactivity:DataTriggerBehavior>
                                             </interactivity:Interaction.Behaviors>
                                             <Border x:Name="PopupBorder"
                                                     Margin="0,-0.5,0,-1"
@@ -2627,13 +2626,13 @@
                                             <!--  Force ShouldConstrainToRootBounds to True  -->
                                             <!--  Fix https://github.com/microsoft/microsoft-ui-xaml/issues/8657  -->
                                             <interactivity:Interaction.Behaviors>
-                                                <interactions:DataTriggerBehavior Binding="{Binding ShouldConstrainToRootBounds, ElementName=Popup}"
+                                                <interactivity:DataTriggerBehavior Binding="{Binding ShouldConstrainToRootBounds, ElementName=Popup}"
                                                                                   ComparisonCondition="Equal"
                                                                                   Value="False">
-                                                    <interactions:ChangePropertyAction PropertyName="ShouldConstrainToRootBounds"
+                                                    <interactivity:ChangePropertyAction PropertyName="ShouldConstrainToRootBounds"
                                                                                        TargetObject="{Binding ElementName=Popup}"
                                                                                        Value="True" />
-                                                </interactions:DataTriggerBehavior>
+                                                </interactivity:DataTriggerBehavior>
                                             </interactivity:Interaction.Behaviors>
                                             <Border x:Name="PopupBorder"
                                                     Margin="0,-0.5,0,-1"

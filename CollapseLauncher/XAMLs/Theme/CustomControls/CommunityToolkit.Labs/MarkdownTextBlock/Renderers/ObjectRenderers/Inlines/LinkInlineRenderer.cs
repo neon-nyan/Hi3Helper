@@ -31,7 +31,7 @@ internal class LinkInlineRenderer : MarkdownObjectRenderer<WinUIRenderer, LinkIn
         }
         else
         {
-            if (link.FirstChild is LinkInline linkInlineChild && linkInlineChild.IsImage)
+            if (link.FirstChild is LinkInline { IsImage: true })
             {
                 renderer.Push(new MyHyperlinkButton(link, renderer.Config.BaseUrl));
             }

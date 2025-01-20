@@ -54,7 +54,7 @@ internal static class Sleepy
         ObjectUser     = 4,
         ObjectArray    = 5,
         StringArray    = 6,
-        PrimitiveArray = 7,
+        PrimitiveArray = 7
     }
 
     // https://github.com/dotnet/runtime/blob/a7efcd9ca9255dc9faa8b4a2761cdfdb62619610/src/libraries/System.Runtime.Serialization.Formatters/src/System/Runtime/Serialization/Formatters/Binary/BinaryEnums.cs#L47
@@ -65,7 +65,7 @@ internal static class Sleepy
         Rectangular       = 2,
         SingleOffset      = 3,
         JaggedOffset      = 4,
-        RectangularOffset = 5,
+        RectangularOffset = 5
     }
 
     // https://github.com/dotnet/runtime/blob/a7efcd9ca9255dc9faa8b4a2761cdfdb62619610/src/libraries/System.Runtime.Serialization.Formatters/src/System/Runtime/Serialization/Formatters/Binary/BinaryEnums.cs#L99
@@ -75,7 +75,7 @@ internal static class Sleepy
         Single      = 1,
         Jagged      = 2,
         Rectangular = 3,
-        Base64      = 4,
+        Base64      = 4
     }
 
     internal static string ReadString(string filePath, ReadOnlySpan<byte> magic)

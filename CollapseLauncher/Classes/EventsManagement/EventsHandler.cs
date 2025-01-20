@@ -14,32 +14,32 @@ using static Hi3Helper.Locale;
 using static Hi3Helper.Shared.Region.LauncherConfig;
 // ReSharper disable CheckNamespace
 // ReSharper disable AssignNullToNotNullAttribute
+// ReSharper disable SwitchStatementHandlesSomeKnownEnumValuesWithDefault
+// ReSharper disable IdentifierTypo
 
 namespace CollapseLauncher
 {
     #region LauncherUpdateRegion
     internal static class LauncherUpdateWatcher
     {
+        private static readonly LauncherUpdateInvoker Invoker = new();
+        public static           void                  GetStatus(LauncherUpdateProperty e) => Invoker!.GetStatus(e);
         
-    #pragma warning disable CS0649 // Field is never assigned to, and will always have its default value
-        public static AppUpdateVersionProp UpdateProperty;
-        public static bool                 isUpdateCooldownActive;
-    #pragma warning restore CS0649 // Field is never assigned to, and will always have its default value
-        
-        private static LauncherUpdateInvoker invoker = new();
-        public static void GetStatus(LauncherUpdateProperty e) => invoker!.GetStatus(e);
-        
-        public static bool isMetered
+        public static bool IsMetered
         {
             get
             {
                 NetworkCostType currentNetCostType = NetworkInformation.GetInternetConnectionProfile()?.GetConnectionCost()?.NetworkCostType ?? NetworkCostType.Fixed;
-                return !(currentNetCostType == NetworkCostType.Unrestricted || currentNetCostType == NetworkCostType.Unknown);
+                return currentNetCostType is not (NetworkCostType.Unrestricted or NetworkCostType.Unknown);
             }
         }
     }
 
-    public class AppUpdateVersionProp
+    [JsonSourceGenerationOptions(IncludeFields = false, GenerationMode = JsonSourceGenerationMode.Metadata, IgnoreReadOnlyFields = true)]
+    [JsonSerializable(typeof(AppUpdateVersionProp))]
+    internal sealed partial class AppUpdateVersionPropJsonContext : JsonSerializerContext;
+    
+    public sealed class AppUpdateVersionProp
     {
         [JsonPropertyName("f")]
         public List<AppUpdateVersionFileProp> FileList { get; set; }
@@ -61,10 +61,7 @@ namespace CollapseLauncher
         {
             get
             {
-                if (!GameVersion.TryParse(VersionString, out GameVersion? result))
-                    return null;
-
-                return result;
+                return !GameVersion.TryParse(VersionString, out GameVersion? result) ? null : result;
             }
         }
 
@@ -95,7 +92,7 @@ namespace CollapseLauncher
     #region ThemeChangeRegion
     internal static class ThemeChanger
     {
-        static ThemeChangerInvoker invoker = new ThemeChangerInvoker();
+        private static readonly ThemeChangerInvoker Invoker = new();
         public static void ChangeTheme(ElementTheme e)
         {
             CurrentAppTheme = e switch
@@ -106,7 +103,7 @@ namespace CollapseLauncher
             };
 
             SetAppConfigValue("ThemeMode", CurrentAppTheme.ToString());
-            invoker!.ChangeTheme(e);
+            Invoker.ChangeTheme(e);
         }
     }
 
@@ -128,21 +125,21 @@ namespace CollapseLauncher
 
     internal static class ErrorSender
     {
-        static ErrorSenderInvoker invoker = new ErrorSenderInvoker();
-        public static string ExceptionContent;
-        public static ErrorType ExceptionType;
-        public static string ExceptionTitle;
-        public static string ExceptionSubtitle;
+        private static readonly ErrorSenderInvoker Invoker = new();
+        public static           string             ExceptionContent;
+        public static           ErrorType          ExceptionType;
+        public static           string             ExceptionTitle;
+        public static           string             ExceptionSubtitle;
 
         public static void SendException(Exception e, ErrorType eT = ErrorType.Unhandled, bool isSendToSentry = true)
         {
             if (isSendToSentry)
                 SentryHelper.ExceptionHandler(e, eT == ErrorType.Unhandled ? 
                                                   SentryHelper.ExceptionType.UnhandledOther : SentryHelper.ExceptionType.Handled);
-            invoker!.SendException(e, eT);
+            Invoker.SendException(e, eT);
         } 
         public static void SendWarning(Exception e, ErrorType eT = ErrorType.Warning) =>
-            invoker!.SendException(e, eT);
+            Invoker.SendException(e, eT);
         public static void SendExceptionWithoutPage(Exception e, ErrorType eT = ErrorType.Unhandled)
         {
             SentryHelper.ExceptionHandler(e, eT == ErrorType.Unhandled ? SentryHelper.ExceptionType.UnhandledOther : SentryHelper.ExceptionType.Handled);
@@ -153,28 +150,28 @@ namespace CollapseLauncher
 
         public static void SetPageTitle(ErrorType errorType)
         {
-            var _locUnhandledException = Lang!._UnhandledExceptionPage!;
+            var locUnhandledException = Lang!._UnhandledExceptionPage!;
             switch (errorType)
             {
                 case ErrorType.Unhandled:
-                    ExceptionTitle    = _locUnhandledException.UnhandledTitle1;
-                    ExceptionSubtitle = _locUnhandledException.UnhandledTitle1;
+                    ExceptionTitle    = locUnhandledException.UnhandledTitle1;
+                    ExceptionSubtitle = locUnhandledException.UnhandledTitle1;
                     break;
                 case ErrorType.Connection:
-                    ExceptionTitle    = _locUnhandledException.UnhandledTitle2;
-                    ExceptionSubtitle = _locUnhandledException.UnhandledSubtitle2;
+                    ExceptionTitle    = locUnhandledException.UnhandledTitle2;
+                    ExceptionSubtitle = locUnhandledException.UnhandledSubtitle2;
                     break;
                 case ErrorType.GameError:
-                    ExceptionTitle    = _locUnhandledException.UnhandledTitle3;
-                    ExceptionSubtitle = _locUnhandledException.UnhandledSubtitle3;
+                    ExceptionTitle    = locUnhandledException.UnhandledTitle3;
+                    ExceptionSubtitle = locUnhandledException.UnhandledSubtitle3;
                     break;
                 case ErrorType.Warning:
-                    ExceptionTitle    = _locUnhandledException.UnhandledTitle4;
-                    ExceptionSubtitle = _locUnhandledException.UnhandledSubtitle4;
+                    ExceptionTitle    = locUnhandledException.UnhandledTitle4;
+                    ExceptionSubtitle = locUnhandledException.UnhandledSubtitle4;
                     break;
                 case ErrorType.DiskCrc:
-                    ExceptionTitle    = _locUnhandledException.UnhandledTitleDiskCrc;
-                    ExceptionSubtitle = _locUnhandledException.UnhandledSubDiskCrc;
+                    ExceptionTitle    = locUnhandledException.UnhandledTitleDiskCrc;
+                    ExceptionSubtitle = locUnhandledException.UnhandledSubDiskCrc;
                     break;
             }
         }
@@ -191,45 +188,39 @@ namespace CollapseLauncher
         internal ErrorProperties(Exception e, ErrorType errorType)
         {
             Exception                    = e;
-            ExceptionString              = e?.ToString() ?? String.Empty;
+            ExceptionString              = e?.ToString() ?? string.Empty;
             ErrorSender.ExceptionContent = ExceptionString;
             ErrorSender.ExceptionType    = errorType;
             ErrorSender.SetPageTitle(errorType);
         }
         public Exception Exception { get; private set; }
-        public string ExceptionString { get; private set; }
+        public string ExceptionString { get; }
     }
     #endregion
     #region MainFrameRegion
     internal static class MainFrameChanger
     {
-        private static Type currentWindow;
-        private static Type currentPage;
-        static MainFrameChangerInvoker invoker = new MainFrameChangerInvoker();
-        public static void GoBackWindowFrame() => invoker!.GoBackWindowFrame();
-        public static void ChangeWindowFrame(Type toPage) => ChangeWindowFrame(toPage, new DrillInNavigationTransitionInfo());
+        private static          Type                    _currentWindow;
+        private static          Type                    _currentPage;
+        private static readonly MainFrameChangerInvoker Invoker = new();
+        public static           void                    GoBackWindowFrame()            => Invoker.GoBackWindowFrame();
+        public static           void                    ChangeWindowFrame(Type toPage) => ChangeWindowFrame(toPage, new DrillInNavigationTransitionInfo());
         public static void ChangeWindowFrame(Type toPage, NavigationTransitionInfo transition)
         {
-            if (toPage == null)
-                throw new NullReferenceException("Argument: toPage cannot be null!");
-
-            currentWindow = toPage;
-            invoker!.ChangeWindowFrame(toPage, transition);
+            _currentWindow = toPage ?? throw new NullReferenceException("Argument: toPage cannot be null!");
+            Invoker.ChangeWindowFrame(toPage, transition);
         }
 
-        public static void GoBackMainFrame() => invoker!.GoBackMainFrame();
+        public static void GoBackMainFrame() => Invoker.GoBackMainFrame();
         public static void ChangeMainFrame(Type toPage) => ChangeMainFrame(toPage, new DrillInNavigationTransitionInfo());
         public static void ChangeMainFrame(Type toPage, NavigationTransitionInfo transition)
         {
-            if (toPage == null)
-                throw new NullReferenceException("Argument: toPage cannot be null!");
-
-            currentPage = toPage;
-            invoker!.ChangeMainFrame(toPage, transition);
+            _currentPage = toPage ?? throw new NullReferenceException("Argument: toPage cannot be null!");
+            Invoker!.ChangeMainFrame(toPage, transition);
         }
 
-        public static void ReloadCurrentWindowFrame() => ChangeWindowFrame(currentWindow);
-        public static void ReloadCurrentMainFrame() => ChangeMainFrame(currentPage);
+        public static void ReloadCurrentWindowFrame() => ChangeWindowFrame(_currentWindow);
+        public static void ReloadCurrentMainFrame() => ChangeMainFrame(_currentPage);
     }
 
     internal class MainFrameChangerInvoker
@@ -246,10 +237,10 @@ namespace CollapseLauncher
 
     internal class MainFrameProperties
     {
-        internal MainFrameProperties(Type FrameTo, NavigationTransitionInfo Transition)
+        internal MainFrameProperties(Type frameTo, NavigationTransitionInfo transition)
         {
-            this.FrameTo = FrameTo;
-            this.Transition = Transition;
+            FrameTo = frameTo;
+            Transition = transition;
         }
         public Type FrameTo { get; private set; }
         public NavigationTransitionInfo Transition { get; private set; }
@@ -258,25 +249,25 @@ namespace CollapseLauncher
     #region NotificationPushRegion
     internal static class NotificationSender
     {
-        static NotificationInvoker invoker = new NotificationInvoker();
-        public static void SendNotification(NotificationInvokerProp e) => invoker!.SendNotification(e);
-        public static void SendCustomNotification(int tagID, InfoBar infoBarUI) => invoker!.SendNotification(new NotificationInvokerProp
+        private static readonly NotificationInvoker Invoker = new();
+        public static           void                SendNotification(NotificationInvokerProp e) => Invoker.SendNotification(e);
+        public static void SendCustomNotification(int tagID, InfoBar infoBarUI) => Invoker.SendNotification(new NotificationInvokerProp
         {
             IsCustomNotif = true,
             CustomNotifAction = NotificationCustomAction.Add,
             Notification = new NotificationProp
             {
-                MsgId = tagID,
+                MsgId = tagID
             },
             OtherContent = infoBarUI
         });
-        public static void RemoveCustomNotification(int tagID) => invoker!.SendNotification(new NotificationInvokerProp
+        public static void RemoveCustomNotification(int tagID) => Invoker.SendNotification(new NotificationInvokerProp
         {
             IsCustomNotif = true,
             CustomNotifAction = NotificationCustomAction.Remove,
             Notification = new NotificationProp
             {
-                MsgId = tagID,
+                MsgId = tagID
             }
         });
     }
@@ -302,13 +293,13 @@ namespace CollapseLauncher
     #region BackgroundRegion
     internal static class BackgroundImgChanger
     {
-        static BackgroundImgChangerInvoker invoker = new();
-        public static void ChangeBackground(string ImgPath, Action ActionAfterLoaded,
-            bool IsCustom = true, bool IsForceRecreateCache = false, bool IsRequestInit = false)
+        private static readonly BackgroundImgChangerInvoker Invoker = new();
+        public static void ChangeBackground(string imgPath, Action actionAfterLoaded,
+            bool isCustom = true, bool isForceRecreateCache = false, bool isRequestInit = false)
         {
-            invoker!.ChangeBackground(ImgPath, ActionAfterLoaded, IsCustom, IsForceRecreateCache, IsRequestInit);
+            Invoker!.ChangeBackground(imgPath, actionAfterLoaded, isCustom, isForceRecreateCache, isRequestInit);
         }
-        public static void ToggleBackground(bool Hide) => invoker!.ToggleBackground(Hide);
+        public static void ToggleBackground(bool hide) => Invoker!.ToggleBackground(hide);
     }
 
     internal class BackgroundImgChangerInvoker
@@ -316,24 +307,24 @@ namespace CollapseLauncher
         public static event EventHandler<BackgroundImgProperty> ImgEvent;
         public static event EventHandler<bool> IsImageHide;
 
-        public void ChangeBackground(string ImgPath, Action ActionAfterLoaded,
-                                     bool IsCustom, bool IsForceRecreateCache = false, bool IsRequestInit = false)
+        public void ChangeBackground(string imgPath, Action actionAfterLoaded,
+                                     bool isCustom, bool isForceRecreateCache = false, bool isRequestInit = false)
         {
-            ImgEvent?.Invoke(this, new BackgroundImgProperty(ImgPath, IsCustom, IsForceRecreateCache, IsRequestInit, ActionAfterLoaded));
+            ImgEvent?.Invoke(this, new BackgroundImgProperty(imgPath, isCustom, isForceRecreateCache, isRequestInit, actionAfterLoaded));
         }
 
-        public void ToggleBackground(bool Hide) => IsImageHide?.Invoke(this, Hide);
+        public void ToggleBackground(bool hide) => IsImageHide?.Invoke(this, hide);
     }
 
     internal class BackgroundImgProperty
     {
-        internal BackgroundImgProperty(string ImgPath, bool IsCustom, bool IsForceRecreateCache, bool IsRequestInit, Action ActionAfterLoaded)
+        internal BackgroundImgProperty(string imgPath, bool isCustom, bool isForceRecreateCache, bool isRequestInit, Action actionAfterLoaded)
         {
-            this.ImgPath              = ImgPath;
-            this.IsCustom             = IsCustom;
-            this.IsForceRecreateCache = IsForceRecreateCache;
-            this.IsRequestInit        = IsRequestInit;
-            this.ActionAfterLoaded    = ActionAfterLoaded;
+            ImgPath              = imgPath;
+            IsCustom             = isCustom;
+            IsForceRecreateCache = isForceRecreateCache;
+            IsRequestInit        = isRequestInit;
+            ActionAfterLoaded    = actionAfterLoaded;
         }
 
         public Action ActionAfterLoaded { get; set; }
@@ -346,34 +337,34 @@ namespace CollapseLauncher
     #region SpawnWebView2Region
     internal static class SpawnWebView2
     {
-        static SpawnWebView2Invoker invoker = new SpawnWebView2Invoker();
-        public static void SpawnWebView2Window(string URL, UIElement parentUI)
+        private static readonly SpawnWebView2Invoker Invoker = new();
+        public static void SpawnWebView2Window(string url, UIElement parentUI)
         {
             if (GetAppConfigValue("UseExternalBrowser").ToBool())
             {
-                if (string.IsNullOrEmpty(URL)) return;
+                if (string.IsNullOrEmpty(url)) return;
                 parentUI!.DispatcherQueue!.TryEnqueue(() =>
                 {
                     Process.Start(new ProcessStartInfo
                     {
-                        FileName = URL,
-                        UseShellExecute = true,
+                        FileName = url,
+                        UseShellExecute = true
                     });
                 });
             }
-            else invoker!.SpawnWebView2Window(URL);
+            else Invoker!.SpawnWebView2Window(url);
         }
     }
 
     internal class SpawnWebView2Invoker
     {
         public static event EventHandler<SpawnWebView2Property> SpawnEvent;
-        public void SpawnWebView2Window(string URL) => SpawnEvent?.Invoke(this, new SpawnWebView2Property(URL));
+        public void SpawnWebView2Window(string url) => SpawnEvent?.Invoke(this, new SpawnWebView2Property(url));
     }
 
     internal class SpawnWebView2Property
     {
-        internal SpawnWebView2Property(string URL) => this.URL = URL;
+        internal SpawnWebView2Property(string url) => URL = url;
 
         public string URL { get; set; }
     }
@@ -381,23 +372,23 @@ namespace CollapseLauncher
     #region ShowLoadingPage
     internal static class ShowLoadingPage
     {
-        static ShowLoadingPageInvoker invoker = new ShowLoadingPageInvoker();
-        public static void ShowLoading(string Title, string Subtitle, bool Hide = false) => invoker!.ShowLoading(Hide, Title, Subtitle);
+        private static readonly ShowLoadingPageInvoker Invoker = new();
+        public static           void                   ShowLoading(string title, string subtitle, bool hide = false) => Invoker.ShowLoading(hide, title, subtitle);
     }
 
     internal class ShowLoadingPageInvoker
     {
         public static event EventHandler<ShowLoadingPageProperty> PageEvent;
-        public void ShowLoading(bool Hide, string Title, string Subtitle) => PageEvent?.Invoke(this, new ShowLoadingPageProperty(Hide, Title, Subtitle));
+        public void ShowLoading(bool hide, string title, string subtitle) => PageEvent?.Invoke(this, new ShowLoadingPageProperty(hide, title, subtitle));
     }
 
     internal class ShowLoadingPageProperty
     {
-        internal ShowLoadingPageProperty(bool Hide, string Title, string Subtitle)
+        internal ShowLoadingPageProperty(bool hide, string title, string subtitle)
         {
-            this.Hide = Hide;
-            this.Title = Title;
-            this.Subtitle = Subtitle;
+            Hide = hide;
+            Title = title;
+            Subtitle = subtitle;
         }
         public bool Hide { get; private set; }
         public string Title { get; private set; }
@@ -414,21 +405,21 @@ namespace CollapseLauncher
 
     internal static class ChangeTitleDragArea
     {
-        static ChangeTitleDragAreaInvoker invoker = new ChangeTitleDragAreaInvoker();
-        public static void Change(DragAreaTemplate Template) => invoker!.Change(Template);
+        private static readonly ChangeTitleDragAreaInvoker Invoker = new();
+        public static   void                       Change(DragAreaTemplate template) => Invoker.Change(template);
     }
 
     internal class ChangeTitleDragAreaInvoker
     {
         public static event EventHandler<ChangeTitleDragAreaProperty> TitleBarEvent;
-        public void Change(DragAreaTemplate Template) => TitleBarEvent?.Invoke(this, new ChangeTitleDragAreaProperty(Template));
+        public void Change(DragAreaTemplate template) => TitleBarEvent?.Invoke(this, new ChangeTitleDragAreaProperty(template));
     }
 
     internal class ChangeTitleDragAreaProperty
     {
-        internal ChangeTitleDragAreaProperty(DragAreaTemplate Template)
+        internal ChangeTitleDragAreaProperty(DragAreaTemplate template)
         {
-            this.Template = Template;
+            Template = template;
         }
 
         public DragAreaTemplate Template { get; private set; }
@@ -437,15 +428,15 @@ namespace CollapseLauncher
     #region UpdateBindings
     internal static class UpdateBindings
     {
-        static UpdateBindingsInvoker invoker = new UpdateBindingsInvoker();
-        public static void Update() => invoker!.Update();
+        private static readonly UpdateBindingsInvoker Invoker = new();
+        public static   void                  Update() => Invoker!.Update();
     }
 
     internal class UpdateBindingsInvoker
     {
-        private static EventArgs DummyArgs = new();
-        public static event EventHandler UpdateEvents;
-        public void Update() => UpdateEvents?.Invoke(this, DummyArgs!);
+        private static readonly EventArgs DummyArgs = EventArgs.Empty;
+        public static event EventHandler  UpdateEvents;
+        public void                       Update() => UpdateEvents?.Invoke(this, DummyArgs);
     }
     #endregion
 }

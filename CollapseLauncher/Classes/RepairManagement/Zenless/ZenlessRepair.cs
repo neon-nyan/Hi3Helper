@@ -16,8 +16,7 @@ namespace CollapseLauncher
     internal partial class ZenlessRepair : ProgressBase<FilePropertiesRemote>, IRepair, IRepairAssetIndex
     {
         #region Properties
-        internal const string _assetGamePersistentPath = @"{0}_Data\Persistent";
-        internal const string _assetGameStreamingPath = @"{0}_Data\StreamingAssets";
+        internal const string AssetGamePersistentPath = @"{0}_Data\Persistent";
 
         // ReSharper disable AutoPropertyCanBeMadeGetOnly.Local
         private bool IsOnlyRecoverMain { get; set; }
@@ -27,12 +26,11 @@ namespace CollapseLauncher
         
         // ReSharper disable once UnusedAutoPropertyAccessor.Local
         private List<FilePropertiesRemote>? OriginAssetIndex { get; set; }
-        private GameTypeZenlessVersion? GameVersionManagerCast { get => _gameVersionManager as GameTypeZenlessVersion; }
-        private ZenlessSettings? GameSettings { get; init; }
+        private GameTypeZenlessVersion? GameVersionManagerCast { get => GameVersionManager as GameTypeZenlessVersion; }
 
-        private string GameDataPersistentPath { get => Path.Combine(_gamePath, string.Format(_assetGamePersistentPath, ExecutableName)); }
+        private string GameDataPersistentPath { get => Path.Combine(GamePath, string.Format(AssetGamePersistentPath, ExecutableName)); }
 
-        protected string? _gameAudioLangListPath
+        protected string? GameAudioLangListPath
         {
             get
             {
@@ -41,12 +39,12 @@ namespace CollapseLauncher
                     return null;
 
                 // Get the audio lang path index
-                string audioLangPath = _gameAudioLangListPathStatic;
+                string audioLangPath = GameAudioLangListPathStatic;
                 return File.Exists(audioLangPath) ? audioLangPath : null;
             }
         }
 
-        private string? _gameAudioLangListPathAlternate
+        private string? GameAudioLangListPathAlternate
         {
             get
             {
@@ -55,17 +53,17 @@ namespace CollapseLauncher
                     return null;
 
                 // Get the audio lang path index
-                string audioLangPath = _gameAudioLangListPathAlternateStatic;
+                string audioLangPath = GameAudioLangListPathAlternateStatic;
                 return File.Exists(audioLangPath) ? audioLangPath : null;
             }
         }
 
-        private string _gameAudioLangListPathStatic =>
+        private string GameAudioLangListPathStatic =>
             Path.Combine(GameDataPersistentPath, "audio_lang_launcher");
-        private string _gameAudioLangListPathAlternateStatic =>
+        private string GameAudioLangListPathAlternateStatic =>
             Path.Combine(GameDataPersistentPath, "audio_lang");
 
-        protected override string _userAgent { get; set; } = "UnityPlayer/2019.4.40f1 (UnityWebRequest/1.0, libcurl/7.80.0-DEV)";
+        protected override string UserAgent { get; set; } = "UnityPlayer/2019.4.40f1 (UnityWebRequest/1.0, libcurl/7.80.0-DEV)";
 
         public ZenlessRepair(UIElement parentUI, IGameVersionCheck gameVersionManager, ZenlessSettings gameSettings, bool isOnlyRecoverMain = false, string? versionOverride = null, bool isCacheUpdateMode = false)
             : base(parentUI, gameVersionManager, null, "", versionOverride)
@@ -87,17 +85,17 @@ namespace CollapseLauncher
 
         public async Task<bool> StartCheckRoutine(bool useFastCheck)
         {
-            _useFastMethod = useFastCheck;
+            UseFastMethod = useFastCheck;
             return await TryRunExamineThrow(CheckRoutine());
         }
 
         public async Task StartRepairRoutine(bool showInteractivePrompt = false, Action? actionIfInteractiveCancel = null)
         {
-            if (_assetIndex.Count == 0) throw new InvalidOperationException("There's no broken file being reported! You can't do the repair process!");
+            if (AssetIndex.Count == 0) throw new InvalidOperationException("There's no broken file being reported! You can't do the repair process!");
 
             if (showInteractivePrompt)
             {
-                await SpawnRepairDialog(_assetIndex, actionIfInteractiveCancel);
+                await SpawnRepairDialog(AssetIndex, actionIfInteractiveCancel);
             }
 
             _ = await TryRunExamineThrow(RepairRoutine());
@@ -106,34 +104,34 @@ namespace CollapseLauncher
         private async Task<bool> CheckRoutine()
         {
             // Always clear the asset index list
-            _assetIndex.Clear();
+            AssetIndex.Clear();
 
             // Reset status and progress
             ResetStatusAndProgress();
 
             // Step 1: Fetch asset indexes
-            await Fetch(_assetIndex, _token.Token);
+            await Fetch(AssetIndex, Token.Token);
 
             // Step 2: Calculate the total size and count of the files
-            CountAssetIndex(_assetIndex);
+            CountAssetIndex(AssetIndex);
 
             // Step 3: Check for the asset indexes integrity
-            await Check(_assetIndex, _token.Token);
+            await Check(AssetIndex, Token.Token);
 
             // Step 4: Summarize and returns true if the assetIndex count != 0 indicates broken file was found.
             //         either way, returns false.
             string status3Msg = IsCacheUpdateMode ? Locale.Lang._CachesPage.CachesStatusNeedUpdate : Locale.Lang._GameRepairPage.Status3;
             string status4Msg = IsCacheUpdateMode ? Locale.Lang._CachesPage.CachesStatusUpToDate : Locale.Lang._GameRepairPage.Status4;
             return SummarizeStatusAndProgress(
-                _assetIndex,
-                string.Format(status3Msg, _progressAllCountFound, ConverterTool.SummarizeSizeSimple(_progressAllSizeFound)),
+                AssetIndex,
+                string.Format(status3Msg, ProgressAllCountFound, ConverterTool.SummarizeSizeSimple(ProgressAllSizeFound)),
                 status4Msg);
         }
 
         private async Task<bool> RepairRoutine()
         {
             // Assign repair task
-            Task<bool> repairTask = Repair(_assetIndex, _token.Token);
+            Task<bool> repairTask = Repair(AssetIndex, Token.Token);
 
             // Run repair process
             bool repairTaskSuccess = await TryRunExamineThrow(repairTask);
@@ -142,9 +140,9 @@ namespace CollapseLauncher
             ResetStatusAndProgress();
 
             // Set as completed
-            _status.IsCompleted = true;
-            _status.IsCanceled = false;
-            _status.ActivityStatus = IsCacheUpdateMode ? Locale.Lang._CachesPage.CachesStatusUpToDate : Locale.Lang._GameRepairPage.Status7;
+            Status.IsCompleted = true;
+            Status.IsCanceled = false;
+            Status.ActivityStatus = IsCacheUpdateMode ? Locale.Lang._CachesPage.CachesStatusUpToDate : Locale.Lang._GameRepairPage.Status7;
             
             // Update status and progress
             UpdateAll();
@@ -155,12 +153,13 @@ namespace CollapseLauncher
         public void CancelRoutine()
         {
             // Trigger token cancellation
-            _token.Cancel();
+            Token.Cancel();
         }
 
         public void Dispose()
         {
             CancelRoutine();
+            GC.SuppressFinalize(this);
         }
         #endregion
     }

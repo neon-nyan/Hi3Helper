@@ -13,8 +13,8 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.TextElements;
 
 internal class MyTable : IAddChild
 {
-    private Paragraph _paragraph;
-    private MyTableUIElement _tableElement;
+    private readonly Paragraph        _paragraph;
+    private readonly MyTableUIElement _tableElement;
 
     public TextElement TextElement
     {
@@ -24,8 +24,7 @@ internal class MyTable : IAddChild
     public MyTable(Table table)
     {
         _paragraph = new Paragraph();
-        var row = table.FirstOrDefault() as TableRow;
-        var column = row == null ? 0 : row.Count;
+        var column = table.FirstOrDefault() is not TableRow row ? 0 : row.Count;
 
         _tableElement = new MyTableUIElement
         (
@@ -35,8 +34,10 @@ internal class MyTable : IAddChild
             new SolidColorBrush(Colors.Gray)
         );
 
-        var inlineUIContainer = new InlineUIContainer();
-        inlineUIContainer.Child = _tableElement;
+        var inlineUIContainer = new InlineUIContainer
+        {
+            Child = _tableElement
+        };
         _paragraph.Inlines.Add(inlineUIContainer);
     }
 

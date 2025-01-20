@@ -15,6 +15,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using static Hi3Helper.Locale;
 using static Hi3Helper.Logger;
+// ReSharper disable CommentTypo
 
 namespace CollapseLauncher
 {
@@ -26,8 +27,8 @@ namespace CollapseLauncher
         {
             // Initialize new proxy-aware HttpClient
             using HttpClient client = new HttpClientBuilder<SocketsHttpHandler>()
-                .UseLauncherConfig(_downloadThreadCount + _downloadThreadCountReserved)
-                .SetUserAgent(_userAgent)
+                .UseLauncherConfig(DownloadThreadCount + DownloadThreadCountReserved)
+                .SetUserAgent(UserAgent)
                 .SetAllowedDecompression(DecompressionMethods.None)
                 .Create();
 
@@ -36,24 +37,24 @@ namespace CollapseLauncher
             try
             {
                 // Set IsProgressAllIndetermined as false and update the status 
-                _status.IsProgressAllIndetermined = true;
+                Status.IsProgressAllIndetermined = true;
                 UpdateStatus();
 
                 // Iterate the asset index and do update operation
-                ObservableCollection<IAssetProperty> assetProperty = new ObservableCollection<IAssetProperty>(AssetEntry);
+                ObservableCollection<IAssetProperty> assetProperty = [.. AssetEntry];
                 
-                var runningTask = new ConcurrentDictionary<(SRAsset, IAssetProperty), byte>();
-                if (_isBurstDownloadEnabled)
+                ConcurrentDictionary<(SRAsset, IAssetProperty), byte> runningTask = new();
+                if (IsBurstDownloadEnabled)
                 {
                     await Parallel.ForEachAsync(
                         PairEnumeratePropertyAndAssetIndexPackage(
 #if ENABLEHTTPREPAIR    
-                        EnforceHTTPSchemeToAssetIndex(updateAssetIndex)
+                        EnforceHttpSchemeToAssetIndex(updateAssetIndex)
 #else
                         updateAssetIndex
 #endif
                         , assetProperty),
-                        new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = _downloadThreadCount },
+                        new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = DownloadThreadCount },
                         async (asset, innerToken) =>
                         {
                             if (!runningTask.TryAdd(asset, 0))
@@ -70,7 +71,7 @@ namespace CollapseLauncher
                     foreach ((SRAsset, IAssetProperty) asset in
                         PairEnumeratePropertyAndAssetIndexPackage(
 #if ENABLEHTTPREPAIR    
-                        EnforceHTTPSchemeToAssetIndex(updateAssetIndex)
+                        EnforceHttpSchemeToAssetIndex(updateAssetIndex)
 #else
                         updateAssetIndex
 #endif
@@ -100,9 +101,9 @@ namespace CollapseLauncher
         private async Task UpdateCacheAsset((SRAsset AssetIndex, IAssetProperty AssetProperty) asset, DownloadClient downloadClient, DownloadProgressDelegate downloadProgress, CancellationToken token)
         {
             // Increment total count and update the status
-            _progressAllCountCurrent++;
+            ProgressAllCountCurrent++;
             FileInfo fileInfo = new FileInfo(asset.AssetIndex.LocalName!).EnsureCreationOfDirectory().EnsureNoReadOnly();
-            _status.ActivityStatus = string.Format(Lang._Misc.Downloading + " {0}: {1}", asset.AssetIndex.AssetType, Path.GetFileName(fileInfo.Name));
+            Status.ActivityStatus = string.Format(Lang._Misc.Downloading + " {0}: {1}", asset.AssetIndex.AssetType, Path.GetFileName(fileInfo.Name));
             UpdateAll();
 
             // Run download task

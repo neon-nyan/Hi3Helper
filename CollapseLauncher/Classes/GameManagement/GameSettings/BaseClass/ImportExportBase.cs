@@ -13,6 +13,7 @@ using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using static CollapseLauncher.GameSettings.Base.SettingsBase;
 using static Hi3Helper.Locale;
 
@@ -21,34 +22,32 @@ namespace CollapseLauncher.GameSettings.Base
 {
     internal class ImportExportBase
     {
-        private const byte xorKey = 69;
-        public Exception? ImportSettings(string? gameBasePath = null)
+        private const byte XorKey = 69;
+        public async Task<Exception?> ImportSettings(string? gameBasePath = null)
         {
             try
             {
-                string path = FileDialogNative.GetFilePicker(new Dictionary<string, string> { { "Collapse Registry", "*.clreg" } }, Lang._GameSettingsPage.SettingsRegImportTitle).GetAwaiter().GetResult();
+                string path = await FileDialogNative.GetFilePicker(new Dictionary<string, string> { { "Collapse Registry", "*.clreg" } }, Lang._GameSettingsPage.SettingsRegImportTitle);
 
                 if (string.IsNullOrEmpty(path)) throw new OperationCanceledException(Lang._GameSettingsPage.SettingsRegErr1);
 
-                using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
+                await using FileStream fs   = new FileStream(path, FileMode.Open, FileAccess.Read);
+                byte[]           head = new byte[6];
+                _ = fs.Read(head, 0, head.Length);
+
+                Logger.LogWriteLine($"Importing registry {RegistryPath}...");
+
+                string header = Encoding.UTF8.GetString(head);
+                switch (header)
                 {
-                    byte[] head = new byte[6];
-                    _ = fs.Read(head, 0, head.Length);
-
-                    Logger.LogWriteLine($"Importing registry {RegistryPath}...");
-
-                    string header = Encoding.UTF8.GetString(head);
-                    switch (header)
-                    {
-                        case "clReg\0":
-                            ReadLegacyValues(fs);
-                            break;
-                        case "ColReg":
-                            ReadNewerValues(fs, gameBasePath);
-                            break;
-                        default:
-                            throw new FormatException(Lang._GameSettingsPage.SettingsRegErr2);
-                    }
+                    case "clReg\0":
+                        ReadLegacyValues(fs);
+                        break;
+                    case "ColReg":
+                        ReadNewerValues(fs, gameBasePath);
+                        break;
+                    default:
+                        throw new FormatException(Lang._GameSettingsPage.SettingsRegErr2);
                 }
             }
             catch (Exception ex)
@@ -67,7 +66,7 @@ namespace CollapseLauncher.GameSettings.Base
             switch (version)
             {
                 case 1:
-                    using (XORStream xorS = new XORStream(fs, xorKey, true))
+                    using (XORStream xorS = new XORStream(fs, XorKey, true))
                         using (BrotliStream comp = new BrotliStream(xorS, CompressionMode.Decompress, true))
                         {
                             ReadLegacyValues(comp);
@@ -86,27 +85,25 @@ namespace CollapseLauncher.GameSettings.Base
 
         private void ReadLegacyValues(Stream fs)
         {
-            using (EndianBinaryReader reader = new EndianBinaryReader(fs, EndianType.BigEndian, true))
+            using EndianBinaryReader reader = new EndianBinaryReader(fs, EndianType.BigEndian, true);
+            short                    count  = reader.ReadInt16();
+            Logger.LogWriteLine($"File has {count} values.");
+            while (count-- > 0)
             {
-                short count = reader.ReadInt16();
-                Logger.LogWriteLine($"File has {count} values.");
-                while (count-- > 0)
+                string valueName = ReadValueName(reader);
+                byte   type      = reader.ReadByte();
+                switch (type)
                 {
-                    string valueName = ReadValueName(reader);
-                    byte type = reader.ReadByte();
-                    switch (type)
-                    {
-                        case 0:
-                            ReadDWord(reader, valueName); break;
-                        case 1:
-                            ReadQWord(reader, valueName); break;
-                        case 2:
-                            ReadString(reader, valueName); break;
-                        case 3:
-                            ReadBinary(reader, valueName); break;
-                    }
-                    Logger.LogWriteLine($"Value {valueName} imported!");
+                    case 0:
+                        ReadDWord(reader, valueName); break;
+                    case 1:
+                        ReadQWord(reader, valueName); break;
+                    case 2:
+                        ReadString(reader, valueName); break;
+                    case 3:
+                        ReadBinary(reader, valueName); break;
                 }
+                Logger.LogWriteLine($"Value {valueName} imported!");
             }
         }
 
@@ -146,21 +143,21 @@ namespace CollapseLauncher.GameSettings.Base
                 ImportStreamToFiles(stream, gameBasePath);
         }
 
-        public Exception? ExportSettings(bool isCompressed = true, string? parentPathToImport = null, string[]? relativePathToImport = null)
+        public async Task<Exception?> ExportSettings(bool isCompressed = true, string? parentPathToImport = null, string[]? relativePathToImport = null)
         {
             try
             {
-                string path = FileDialogNative.GetFileSavePicker(new Dictionary<string, string> { { "Collapse Registry", "*.clreg" } }, Lang._GameSettingsPage.SettingsRegExportTitle).GetAwaiter().GetResult();
+                string path = await FileDialogNative.GetFileSavePicker(new Dictionary<string, string> { { "Collapse Registry", "*.clreg" } }, Lang._GameSettingsPage.SettingsRegExportTitle);
                 EnsureFileSaveHasExtension(ref path, ".clreg");
 
                 if (string.IsNullOrEmpty(path)) throw new OperationCanceledException(Lang._GameSettingsPage.SettingsRegErr1);
                 Logger.LogWriteLine($"Exporting registry V3 {RegistryPath}...");
 
-                using FileStream fileStream = new FileStream(path, FileMode.Create, FileAccess.Write);
-                using Stream writeStream = isCompressed ? new BrotliStream(fileStream, CompressionLevel.Optimal, true) : fileStream;
+                await using FileStream fileStream  = new FileStream(path, FileMode.Create, FileAccess.Write);
+                await using Stream     writeStream = isCompressed ? new BrotliStream(fileStream, CompressionLevel.Optimal, true) : fileStream;
 
                 // Magic
-                fileStream.Write(Encoding.UTF8.GetBytes("ColReg"));
+                fileStream.Write("ColReg"u8);
                 fileStream.WriteByte(3); // Write V3
                 // Is compressed
                 fileStream.WriteByte((byte)(isCompressed ? 1 : 0));
@@ -198,7 +195,7 @@ namespace CollapseLauncher.GameSettings.Base
             return null;
         }
 
-        private void EnsureReadImpostorData(Stream stream, string valueName)
+        private static void EnsureReadImpostorData(Stream stream, string valueName)
         {
             int sizeOf = ReadValueKindAndSize(stream, out RegistryValueKind realValueType);
             object result = realValueType switch
@@ -227,7 +224,7 @@ namespace CollapseLauncher.GameSettings.Base
             RegistryRoot?.SetValue(valueName, result, realValueType);
         }
 
-        private void EnsureWriteImpostorData(Stream stream, RegistryValueKind realValueType, object? value)
+        private static void EnsureWriteImpostorData(Stream stream, RegistryValueKind realValueType, object? value)
         {
             Type valueType = value!.GetType();
             if (valueType == typeof(int) || valueType == typeof(float))
@@ -247,35 +244,38 @@ namespace CollapseLauncher.GameSettings.Base
                 WriteTypeString(stream, (string)value, realValueType);
                 return;
             }
-            if (valueType == typeof(byte[]))
+
+            if (valueType != typeof(byte[]))
             {
-                WriteTypeBinary(stream, (byte[])value, realValueType);
-                return;
+                throw new InvalidCastException("Cast of the object cannot be determined!");
             }
 
-            throw new InvalidCastException($"Cast of the object cannot be determined!");
+            WriteTypeBinary(stream, (byte[])value, realValueType);
         }
 
-        private unsafe object ReadTypeNumberUnsafe(Stream stream, int sizeOf)
+        public static unsafe object ReadTypeNumberUnsafe(Stream stream, int sizeOf)
         {
             Span<byte> buffer = stackalloc byte[sizeOf];
             stream.ReadExactly(buffer);
 
-            if (sizeOf == sizeof(int)) return MemoryMarshal.Read<int>(buffer);
-            if (sizeOf == sizeof(long)) return MemoryMarshal.Read<long>(buffer);
-
-            throw new InvalidCastException($"The type of the number type is unknown! Expecting size: {sizeOf}");
+            return sizeOf switch
+                   {
+                       sizeof(int) => MemoryMarshal.Read<int>(buffer),
+                       sizeof(long) => MemoryMarshal.Read<long>(buffer),
+                       _ => throw new
+                           InvalidCastException($"The type of the number type is unknown! Expecting size: {sizeOf}")
+                   };
         }
 
-        private unsafe void WriteTypeNumberUnsafe<T>(Stream stream, ref T value, int sizeOf, RegistryValueKind realValueType)
+        private static unsafe void WriteTypeNumberUnsafe<T>(Stream stream, ref T value, int sizeOf, RegistryValueKind realValueType)
             where T : struct
         {
-            ReadOnlySpan<byte> byteNumberAsSpan = new ReadOnlySpan<byte>((byte*)Unsafe.AsPointer(ref value), sizeOf);
+            ReadOnlySpan<byte> byteNumberAsSpan = new((byte*)Unsafe.AsPointer(ref value), sizeOf);
             WriteValueKindAndSize(stream, sizeOf, realValueType);
             WriteToStream(stream, byteNumberAsSpan);
         }
 
-        private void ExportFilesToStream(Stream writeStream, string parentPath, string[] relativePaths)
+        private static void ExportFilesToStream(Stream writeStream, string parentPath, string[] relativePaths)
         {
             using BinaryWriter writer = new BinaryWriter(writeStream, Encoding.UTF8, true);
             writer.Write7BitEncodedInt(relativePaths.Length);
@@ -298,7 +298,7 @@ namespace CollapseLauncher.GameSettings.Base
             Logger.LogWriteLine($"{relativePaths.Length} file(s) has been succesfully exported to V3 data!");
         }
 
-        private void ImportStreamToFiles(Stream readStream, string? gamePath)
+        private static void ImportStreamToFiles(Stream readStream, string? gamePath)
         {
             if (string.IsNullOrEmpty(gamePath)) return;
 
@@ -331,7 +331,7 @@ namespace CollapseLauncher.GameSettings.Base
             }
         }
 
-        private string ReadTypeString(Stream stream, int length)
+        private static string ReadTypeString(Stream stream, int length)
         {
             bool isUsePool = length <= 64 << 10;
             byte[] buffer = isUsePool ? ArrayPool<byte>.Shared.Rent(length) : new byte[length];
@@ -347,7 +347,7 @@ namespace CollapseLauncher.GameSettings.Base
             }
         }
 
-        private void WriteTypeString(Stream stream, ReadOnlySpan<char> stringSpan, RegistryValueKind realValueType)
+        private static void WriteTypeString(Stream stream, ReadOnlySpan<char> stringSpan, RegistryValueKind realValueType)
         {
             bool isUsePool = stringSpan.Length <= 64 << 10;
             byte[] buffer = isUsePool ? ArrayPool<byte>.Shared.Rent(stringSpan.Length) : new byte[stringSpan.Length];
@@ -363,20 +363,20 @@ namespace CollapseLauncher.GameSettings.Base
             }
         }
 
-        private byte[] WriteTypeBinary(Stream stream, int length)
+        private static byte[] WriteTypeBinary(Stream stream, int length)
         {
             byte[] buffer = new byte[length];
             stream.ReadExactly(buffer);
             return buffer;
         }
 
-        private void WriteTypeBinary(Stream stream, ReadOnlySpan<byte> buffer, RegistryValueKind realValueType)
+        private static void WriteTypeBinary(Stream stream, ReadOnlySpan<byte> buffer, RegistryValueKind realValueType)
         {
             WriteValueKindAndSize(stream, buffer.Length, realValueType);
             WriteToStream(stream, buffer);
         }
 
-        private void WriteValueKindAndSize(Stream stream, int sizeOf, RegistryValueKind kind)
+        private static void WriteValueKindAndSize(Stream stream, int sizeOf, RegistryValueKind kind)
         {
             Span<byte> lenBuffer = stackalloc byte[5];
             lenBuffer[0] = (byte)kind;
@@ -384,7 +384,7 @@ namespace CollapseLauncher.GameSettings.Base
             stream.Write(lenBuffer);
         }
 
-        private int ReadValueKindAndSize(Stream stream, out RegistryValueKind kind)
+        private static int ReadValueKindAndSize(Stream stream, out RegistryValueKind kind)
         {
             Span<byte> lenBuffer = stackalloc byte[5];
             stream.ReadExactly(lenBuffer);
@@ -393,9 +393,9 @@ namespace CollapseLauncher.GameSettings.Base
             return sizeOf;
         }
 
-        private void WriteToStream(Stream stream, ReadOnlySpan<byte> buffer) => stream.Write(buffer);
+        private static void WriteToStream(Stream stream, ReadOnlySpan<byte> buffer) => stream.Write(buffer);
 
-        private void EnsureFileSaveHasExtension(ref string path, string exte)
+        private static void EnsureFileSaveHasExtension(ref string path, string exte)
         {
             if (string.IsNullOrEmpty(path)) return;
             string ext = Path.GetExtension(path);
@@ -406,7 +406,7 @@ namespace CollapseLauncher.GameSettings.Base
             }
         }
 
-        private void WriteValueName(Stream stream, string name)
+        private static void WriteValueName(Stream stream, string name)
         {
             byte[] buffer = ArrayPool<byte>.Shared.Rent(4 << 10);
             try
@@ -459,31 +459,31 @@ namespace CollapseLauncher.GameSettings.Base
             return MemoryMarshal.Read<short>(buffer);
         }
 
-        private string ReadValueName(EndianBinaryReader reader) => reader.ReadString8BitLength();
+        private static string ReadValueName(EndianBinaryReader reader) => reader.ReadString8BitLength();
 
-        private void ReadDWord(EndianBinaryReader reader, string valueName)
+        private static void ReadDWord(EndianBinaryReader reader, string valueName)
         {
             int val = reader.ReadInt32();
             RegistryRoot?.SetValue(valueName, val, RegistryValueKind.DWord);
         }
 
-        private void ReadQWord(EndianBinaryReader reader, string valueName)
+        private static void ReadQWord(EndianBinaryReader reader, string valueName)
         {
             long val = reader.ReadInt64();
             RegistryRoot?.SetValue(valueName, val, RegistryValueKind.QWord);
         }
 
-        private void ReadString(EndianBinaryReader reader, string valueName)
+        private static void ReadString(EndianBinaryReader reader, string valueName)
         {
             string val = reader.ReadString8BitLength();
             RegistryRoot?.SetValue(valueName, val, RegistryValueKind.String);
         }
 
-        private void ReadBinary(EndianBinaryReader reader, string valueName)
+        protected virtual void ReadBinary(EndianBinaryReader reader, string valueName)
         {
-            int leng = reader.ReadInt32();
-            byte[] val = new byte[leng];
-            _ = reader.Read(val, 0, leng);
+            int len = reader.ReadInt32();
+            byte[] val = new byte[len];
+            _ = reader.Read(val, 0, len);
             RegistryRoot?.SetValue(valueName, val, RegistryValueKind.Binary);
         }
     }

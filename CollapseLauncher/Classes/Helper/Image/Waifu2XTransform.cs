@@ -5,15 +5,16 @@ using System;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+// ReSharper disable IdentifierTypo
+// ReSharper disable StringLiteralTypo
 
 namespace CollapseLauncher.Helper.Image
 {
-    public class Waifu2XTransform : IPixelTransform
+    public class Waifu2XTransform(Waifu2X context) : IPixelTransform
     {
-        private readonly Waifu2X _context;
-        private IPixelSource _source;
-        private byte[] _src;
-        private byte[] _buffer;
+        private          IPixelSource _source;
+        private          byte[]       _src;
+        private          byte[]       _buffer;
 
         private ReadOnlySpan<byte> Span => _buffer;
         public Guid Format => _source.Format;
@@ -33,11 +34,6 @@ namespace CollapseLauncher.Helper.Image
 
         private int Stride => Width * Channel;
 
-        public Waifu2XTransform(Waifu2X context)
-        {
-            _context = context;
-        }
-
         public void Init(IPixelSource source)
         {
             _source = source;
@@ -48,7 +44,7 @@ namespace CollapseLauncher.Helper.Image
 
             Logger.LogWriteLine($"Waifu2X processing begins. Source image resolution: {w}x{h}.");
             var timeBegin = DateTime.Now;
-            _context.Process(source.Width, source.Height, Channel, _src, _buffer);
+            context.Process(source.Width, source.Height, Channel, _src, _buffer);
             Logger.LogWriteLine($"Waifu2X processing ends. Source image resolution: {w}x{h}. Elapsed time: {(DateTime.Now - timeBegin).TotalMilliseconds} ms.");
         }
 

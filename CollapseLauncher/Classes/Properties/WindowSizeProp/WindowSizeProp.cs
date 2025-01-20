@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using static Hi3Helper.Shared.Region.LauncherConfig;
+// ReSharper disable IdentifierTypo
+// ReSharper disable InconsistentNaming
 
 namespace CollapseLauncher.WindowSize
 {
@@ -19,11 +21,11 @@ namespace CollapseLauncher.WindowSize
 #else
             =
 #endif
-            new Dictionary<string, WindowSizeProp>
-        {
+            new()
+            {
             {
                 "Normal",
-                new WindowSizeProp()
+                new WindowSizeProp
                 {
                     WindowBounds                  = new Size(1280, 720),
                     PostEventPanelScaleFactor     = 1.35f,
@@ -49,7 +51,7 @@ namespace CollapseLauncher.WindowSize
             },
             {
                 "Small",
-                new WindowSizeProp()
+                new WindowSizeProp
                 {
                     WindowBounds                  = new Size(1024, 576),
                     PostEventPanelScaleFactor     = 1.25f,
@@ -80,12 +82,7 @@ namespace CollapseLauncher.WindowSize
             get
             {
                 string val = GetAppConfigValue("WindowSizeProfile").ToString();
-                if (!WindowSizeProfiles.ContainsKey(val ?? "Normal"))
-                {
-                    return WindowSizeProfiles.Keys.FirstOrDefault();
-                }
-
-                return val;
+                return !WindowSizeProfiles.ContainsKey(val ?? "Normal") ? WindowSizeProfiles.Keys.FirstOrDefault() : val;
             }
             set
             {

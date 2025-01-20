@@ -13,6 +13,7 @@ using Hi3Helper;
 using Hi3Helper.SentryHelper;
 using Hi3Helper.Win32.Native.Enums;
 using Hi3Helper.Win32.Native.LibraryImport;
+using Hi3Helper.Win32.Native.Structs;
 using Microsoft.Win32;
 using System;
 using System.ComponentModel;
@@ -20,6 +21,7 @@ using System.IO;
 using System.Threading;
 using static Hi3Helper.Logger;
 // ReSharper disable PartialTypeWithSinglePart
+// ReSharper disable StringLiteralTypo
 
 namespace RegistryUtils
 {
@@ -72,20 +74,19 @@ namespace RegistryUtils
         {
             SentryHelper.ExceptionHandler(e, SentryHelper.ExceptionType.UnhandledOther);
             ErrorEventHandler handler = Error;
-            if (handler != null)
-                handler(this, new ErrorEventArgs(e));
+            handler?.Invoke(this, new ErrorEventArgs(e));
         }
 
         #endregion
 
         #region Private member variables
 
-        private HKEYCLASS _registryHive;
-        private string _registrySubName;
-        private object _threadLock = new object();
-        private Thread _thread;
-        private bool _disposed;
-        private ManualResetEvent _eventTerminate = new ManualResetEvent(false);
+        private          HKEYCLASS        _registryHive;
+        private          string           _registrySubName;
+        private readonly Lock             _threadLock = new();
+        private          Thread           _thread;
+        private          bool             _disposed;
+        private readonly ManualResetEvent _eventTerminate = new(false);
 
         private RegChangeNotifyFilter _regFilter = RegChangeNotifyFilter.Key | RegChangeNotifyFilter.Attribute |
                                                    RegChangeNotifyFilter.Value | RegChangeNotifyFilter.Security;
@@ -147,8 +148,9 @@ namespace RegistryUtils
             }
             _disposed = true;
 #if DEBUG
-            LogWriteLine($"RegistryMonitor Disposed!", LogType.Debug, true);
+            LogWriteLine("RegistryMonitor Disposed!", LogType.Debug, true);
 #endif
+            GC.SuppressFinalize(this);
         }
 
         /// <summary>
@@ -173,35 +175,16 @@ namespace RegistryUtils
 
         private void InitRegistryKey(RegistryHive hive, string name)
         {
-            switch (hive)
-            {
-                case RegistryHive.ClassesRoot:
-                    _registryHive = HKEYCLASS.HKEY_CLASSES_ROOT;
-                    break;
-
-                case RegistryHive.CurrentConfig:
-                    _registryHive = HKEYCLASS.HKEY_CURRENT_CONFIG;
-                    break;
-
-                case RegistryHive.CurrentUser:
-                    _registryHive = HKEYCLASS.HKEY_CURRENT_USER;
-                    break;
-
-                case RegistryHive.LocalMachine:
-                    _registryHive = HKEYCLASS.HKEY_LOCAL_MACHINE;
-                    break;
-
-                case RegistryHive.PerformanceData:
-                    _registryHive = HKEYCLASS.HKEY_PERFORMANCE_DATA;
-                    break;
-
-                case RegistryHive.Users:
-                    _registryHive = HKEYCLASS.HKEY_USERS;
-                    break;
-
-                default:
-                    throw new InvalidEnumArgumentException("hive", (int)hive, typeof(RegistryHive));
-            }
+            _registryHive = hive switch
+                            {
+                                RegistryHive.ClassesRoot => HKEYCLASS.HKEY_CLASSES_ROOT,
+                                RegistryHive.CurrentConfig => HKEYCLASS.HKEY_CURRENT_CONFIG,
+                                RegistryHive.CurrentUser => HKEYCLASS.HKEY_CURRENT_USER,
+                                RegistryHive.LocalMachine => HKEYCLASS.HKEY_LOCAL_MACHINE,
+                                RegistryHive.PerformanceData => HKEYCLASS.HKEY_PERFORMANCE_DATA,
+                                RegistryHive.Users => HKEYCLASS.HKEY_USERS,
+                                _ => throw new InvalidEnumArgumentException("hive", (int)hive, typeof(RegistryHive))
+                            };
             _registrySubName = name;
         }
 
@@ -263,13 +246,17 @@ namespace RegistryUtils
 
             lock (_threadLock)
             {
-                if (!IsMonitoring)
+                if (IsMonitoring)
                 {
-                    _eventTerminate.Reset();
-                    _thread = new Thread(MonitorThread);
-                    _thread.IsBackground = true;
-                    _thread.Start();
+                    return;
                 }
+
+                _eventTerminate.Reset();
+                _thread              = new Thread(MonitorThread)
+                {
+                    IsBackground = true
+                };
+                _thread.Start();
             }
         }
 
@@ -283,11 +270,13 @@ namespace RegistryUtils
             lock (_threadLock)
             {
                 Thread thread = _thread;
-                if (thread != null)
+                if (thread == null)
                 {
-                    _eventTerminate.Set();
-                    thread.Join();
+                    return;
                 }
+
+                _eventTerminate.Set();
+                thread.Join();
             }
         }
 
@@ -306,44 +295,44 @@ namespace RegistryUtils
 
         private void ThreadLoop()
         {
-            IntPtr registryKey;
             int result = PInvoke.RegOpenKeyEx(_registryHive, _registrySubName, 0,
-                (uint)ACCESS_MASK.STANDARD_RIGHTS_READ | (uint)RegKeyAccess.KEY_QUERY_VALUE | (uint)RegKeyAccess.KEY_NOTIFY,
-                                      out registryKey);
+                                              (uint)ACCESS_MASK.STANDARD_RIGHTS_READ | (uint)RegKeyAccess.KEY_QUERY_VALUE | (uint)RegKeyAccess.KEY_NOTIFY,
+                                              out var registryKey);
             if (result != 0)
                 throw new Win32Exception(result);
 
             WaitHandle[] waitHandles = null;
             try
             {
-                AutoResetEvent _eventNotify = new AutoResetEvent(false);
-                waitHandles = new WaitHandle[] { _eventNotify, _eventTerminate };
+                AutoResetEvent eventNotify = new AutoResetEvent(false);
+                waitHandles = [eventNotify, _eventTerminate];
                 while (!_eventTerminate.WaitOne(0, true))
                 {
                     if (_disposed) break;
 #pragma warning disable CS0618 // Type or member is obsolete
-                    result = PInvoke.RegNotifyChangeKeyValue(registryKey, true, _regFilter, _eventNotify.Handle, true);
+                    result = PInvoke.RegNotifyChangeKeyValue(registryKey, true, _regFilter, eventNotify.Handle, true);
 #pragma warning restore CS0618 // Type or member is obsolete
                     if (result != 0)
                         throw new Win32Exception(result);
 
-                    if (WaitHandle.WaitAny(waitHandles) == 0
-                     && _regFilter == RegChangeNotifyFilter.Value)
+                    if (WaitHandle.WaitAny(waitHandles) != 0
+                        || _regFilter != RegChangeNotifyFilter.Value)
                     {
-#if DEBUG
-                        LogWriteLine($"[RegistryMonitor] Found change(s) in registry!\r\n" +
-                            $"  Hive: {_registryHive}\r\n" +
-                            $"  subName: {_registrySubName}", LogType.Debug, true);
-#endif
-                        OnRegChanged();
+                        continue;
                     }
+                #if DEBUG
+                    LogWriteLine($"[RegistryMonitor] Found change(s) in registry!\r\n" +
+                                 $"  Hive: {_registryHive}\r\n" +
+                                 $"  subName: {_registrySubName}", LogType.Debug, true);
+                #endif
+                    OnRegChanged();
                 }
             }
             finally
             {
                 if (registryKey != IntPtr.Zero)
                 {
-                    PInvoke.RegCloseKey(registryKey);
+                    ((HResult)PInvoke.RegCloseKey(registryKey)).ThrowOnFailure();
                 }
 
                 for (int i = 0; i < waitHandles?.Length; i++) waitHandles[i]?.Dispose();

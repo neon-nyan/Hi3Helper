@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using static Hi3Helper.Locale;
 using static Hi3Helper.Logger;
 using static Hi3Helper.Shared.Region.LauncherConfig;
+// ReSharper disable StringLiteralTypo
 
 namespace CollapseLauncher.ShortcutUtils
 {
@@ -22,7 +23,7 @@ namespace CollapseLauncher.ShortcutUtils
                 GameNameType.Genshin => "icon-genshin.ico",
                 GameNameType.StarRail => "icon-starrail.ico",
                 GameNameType.Zenless => "icon-zenless.ico",
-                _ => "icon-honkai.ico",
+                _ => "icon-honkai.ico"
             };
         }
 
@@ -67,7 +68,7 @@ namespace CollapseLauncher.ShortcutUtils
                 LogWriteLine("[ShortcutCreator::AddToSteam] Cancelled manually.");
             });
 
-            var shortcuts = new List<SteamShortcut>();
+            List<SteamShortcut> shortcuts = [];
 
             foreach (var path in paths)
             {
@@ -97,7 +98,7 @@ namespace CollapseLauncher.ShortcutUtils
             if (reg == null)
                 return null;
 
-            var steamPath = (string)reg.GetValue("InstallPath", "C:\\Program Files (x86)\\Steam");
+            var steamPath = (string)reg.GetValue("InstallPath", @"C:\Program Files (x86)\Steam");
 
             var steamUserData = Path.Combine(steamPath, "userdata");
 

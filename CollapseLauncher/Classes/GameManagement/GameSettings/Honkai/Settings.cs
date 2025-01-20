@@ -10,7 +10,7 @@ namespace CollapseLauncher.GameSettings.Honkai
     internal class HonkaiSettings : SettingsBase
     {
         #region PresetProperties
-        public Preset<PersonalGraphicsSettingV2, HonkaiSettingsJSONContext> Preset_SettingsGraphics { get; set; }
+        public Preset<PersonalGraphicsSettingV2, HonkaiSettingsJsonContext> Preset_SettingsGraphics { get; set; }
         #endregion
 
         #region SettingProperties
@@ -38,7 +38,7 @@ namespace CollapseLauncher.GameSettings.Honkai
             base.InitializeSettings();
 
             // Load Preset
-            Preset_SettingsGraphics = Preset<PersonalGraphicsSettingV2, HonkaiSettingsJSONContext>.LoadPreset(GameNameType.Honkai, HonkaiSettingsJSONContext.Default.DictionaryStringPersonalGraphicsSettingV2);
+            Preset_SettingsGraphics = Preset<PersonalGraphicsSettingV2, HonkaiSettingsJsonContext>.LoadPreset(GameNameType.Honkai, HonkaiSettingsJsonContext.Default.DictionaryStringPersonalGraphicsSettingV2);
         }
 
         public override void ReloadSettings() => InitializeSettings();

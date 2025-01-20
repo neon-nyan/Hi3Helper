@@ -3,10 +3,16 @@ using Hi3Helper.EncTool.Parser.AssetMetadata;
 using Hi3Helper.Preset;
 using System.IO;
 using System.Text.Json.Serialization;
+// ReSharper disable InconsistentNaming
+// ReSharper disable CommentTypo
 
 namespace CollapseLauncher.Interfaces
 {
-    internal class CacheAsset : IAssetIndexSummary
+    [JsonSourceGenerationOptions(IncludeFields = false, GenerationMode = JsonSourceGenerationMode.Metadata, IgnoreReadOnlyFields = true)]
+    [JsonSerializable(typeof(CacheAsset))]
+    internal sealed partial class CacheAssetJsonContext : JsonSerializerContext;
+
+    internal sealed class CacheAsset : IAssetIndexSummary
     {
         // Concatenate N and CRC to get the filepath.
         public string ConcatN => IsUseLocalPath ? $"{N}" : $"{N}_{CRC}.unity3d";

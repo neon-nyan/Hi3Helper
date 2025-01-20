@@ -244,7 +244,7 @@ namespace Hi3Helper.Shared.Region
                     return field;
                 }
 
-                string        execPath       = AppCurrentProcess.MainModule?.FileName ?? "";
+                string execPath = AppCurrentProcess.MainModule?.FileName ?? "";
                 return field = execPath;
             }
         }

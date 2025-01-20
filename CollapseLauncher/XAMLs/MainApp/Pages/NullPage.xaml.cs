@@ -4,7 +4,7 @@
     {
         public NullPage()
         {
-            this.InitializeComponent();
+            InitializeComponent();
         }
     }
 }

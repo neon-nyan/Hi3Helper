@@ -4,7 +4,7 @@
     {
         public BlankPage()
         {
-            this.InitializeComponent();
+            InitializeComponent();
         }
     }
 }

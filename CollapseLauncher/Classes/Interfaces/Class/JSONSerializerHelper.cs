@@ -10,40 +10,40 @@ using System.Text.Json.Serialization.Metadata;
 #nullable enable
 namespace CollapseLauncher
 {
-    internal static partial class JSONSerializerHelper
+    internal static partial class JsonSerializerHelper
     {
-        private const short MAX_ALLOWED_RENT_BUFFER = (4 << 10) - 1;
-        private const byte MIN_ALLOWED_CHAR_LENGTH = 2;
+        private const short MaxAllowedRentBuffer = (4 << 10) - 1;
+        private const byte MinAllowedCharLength = 2;
 
-        private static readonly JavaScriptEncoder jsonEncoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
-        private static readonly JsonWriterOptions jsonWriterOptions = new JsonWriterOptions()
+        private static readonly JavaScriptEncoder JsonEncoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+        private static readonly JsonWriterOptions JsonWriterOptions = new()
         {
             Indented = false,
-            Encoder = jsonEncoder
+            Encoder = JsonEncoder
         };
-        private static readonly JsonWriterOptions jsonWriterOptionsIndented = new JsonWriterOptions()
+        private static readonly JsonWriterOptions JsonWriterOptionsIndented = new()
         {
             Indented = true,
-            Encoder = jsonEncoder
+            Encoder = JsonEncoder
         };
-        private static readonly JsonReaderOptions jsonReaderOptions = new JsonReaderOptions()
+        private static readonly JsonReaderOptions JsonReaderOptions = new()
         {
             AllowTrailingCommas = true,
             CommentHandling = JsonCommentHandling.Skip
         };
-        private static readonly JsonNodeOptions jsonNodeOptions = new JsonNodeOptions()
+        private static readonly JsonNodeOptions JsonNodeOptions = new()
         {
             PropertyNameCaseInsensitive = false // Restricted to use the exact property name case
         };
-        private static readonly JsonDocumentOptions jsonDocumentOptions = new JsonDocumentOptions()
+        private static readonly JsonDocumentOptions JsonDocumentOptions = new()
         {
             AllowTrailingCommas = true,
             CommentHandling = JsonCommentHandling.Skip
         };
 
-        private static readonly ArrayBufferWriter<byte> jsonBufferWriter = new ArrayBufferWriter<byte>(4 << 10);
-        private static readonly Utf8JsonWriter jsonWriter = new Utf8JsonWriter(jsonBufferWriter, jsonWriterOptions);
-        private static readonly Utf8JsonWriter jsonWriterIndented = new Utf8JsonWriter(jsonBufferWriter, jsonWriterOptionsIndented);
+        private static readonly ArrayBufferWriter<byte> JsonBufferWriter   = new(4 << 10);
+        private static readonly Utf8JsonWriter          JsonWriter         = new(JsonBufferWriter, JsonWriterOptions);
+        private static readonly Utf8JsonWriter          JsonWriterIndented = new(JsonBufferWriter, JsonWriterOptionsIndented);
 
         internal static T? Deserialize<T>(this string data, JsonTypeInfo<T?> typeInfo, T? defaultType = null)
             where T : class => InnerDeserialize(data, typeInfo, defaultType);
@@ -86,22 +86,22 @@ namespace CollapseLauncher
             // Check if the data length is 0, then return default value
             if (data.Length == 0) return defaultType ?? default;
 
-            // Try deserialize. If it returns a null, then return the default value
+            // Try to deserialize. If it returns a null, then return the default value
             return JsonSerializer.Deserialize(data, typeInfo) ?? defaultType ?? default;
         }
 
         private static T? InnerDeserialize<T>(ReadOnlySpan<char> data, JsonTypeInfo<T?> typeInfo, T? defaultType)
         {
             // Check if the data length is less than 2 bytes (assuming the buffer is "{}"), then return default value
-            if (data.Length <= MIN_ALLOWED_CHAR_LENGTH) return defaultType ?? default;
+            if (data.Length <= MinAllowedCharLength) return defaultType ?? default;
 
             // Try trimming the \0 char at the end of the data
             ReadOnlySpan<char> dataTrimmed = data.TrimEnd((char)0x00);
 
             // Get the temporary buffer
             int tempBufferLength = dataTrimmed.Length * 2;
-            bool IsUseRentBuffer = tempBufferLength <= MAX_ALLOWED_RENT_BUFFER;
-            byte[] tempBuffer = IsUseRentBuffer ? ArrayPool<byte>.Shared.Rent(tempBufferLength) : new byte[tempBufferLength];
+            bool isUseRentBuffer = tempBufferLength <= MaxAllowedRentBuffer;
+            byte[] tempBuffer = isUseRentBuffer ? ArrayPool<byte>.Shared.Rent(tempBufferLength) : new byte[tempBufferLength];
 
             try
             {
@@ -113,44 +113,43 @@ namespace CollapseLauncher
             finally
             {
                 // Once the process is completed, then return the rented buffer (if it's being used)
-                if (IsUseRentBuffer) ArrayPool<byte>.Shared.Return(tempBuffer);
+                if (isUseRentBuffer) ArrayPool<byte>.Shared.Return(tempBuffer);
             }
         }
 
         private static T? InnerDeserialize<T>(ReadOnlySpan<byte> data, JsonTypeInfo<T?> typeInfo, T? defaultType)
         {
             // Check if the data length is less than 2 bytes (assuming the buffer is "{}"), then return default value
-            if (data.Length <= MIN_ALLOWED_CHAR_LENGTH) return defaultType ?? default;
+            if (data.Length <= MinAllowedCharLength) return defaultType ?? default;
 
             // Try trimming the \0 char at the end of the data
             ReadOnlySpan<byte> dataTrimmed = data.TrimEnd((byte)0x00);
-            Utf8JsonReader jsonReader = new Utf8JsonReader(dataTrimmed, jsonReaderOptions);
+            Utf8JsonReader jsonReader = new Utf8JsonReader(dataTrimmed, JsonReaderOptions);
 
-            // Try deserialize. If it returns a null, then return the default value
+            // Try to deserialize. If it returns a null, then return the default value
             return JsonSerializer.Deserialize(ref jsonReader, typeInfo) ?? defaultType ?? default;
         }
 
         private static JsonNode? InnerDeserializeStreamAsJsonNode(Stream data)
         {
             // Check if the data length is 0, then return default value
-            if (data.Length == 0) return JsonNode.Parse("{}", jsonNodeOptions);
-
-            // Try deserialize to JSON Node
-            return JsonNode.Parse(data, jsonNodeOptions, jsonDocumentOptions);
+            return data.Length == 0 ? JsonNode.Parse("{}", JsonNodeOptions) :
+                // Try deserialize to JSON Node
+                JsonNode.Parse(data,                       JsonNodeOptions, JsonDocumentOptions);
         }
 
         private static JsonNode? InnerDeserializeAsJsonNode(ReadOnlySpan<char> data)
         {
             // Check if the data length is less than 2 bytes (assuming the buffer is "{}"), then return default value
-            if (data.Length <= MIN_ALLOWED_CHAR_LENGTH) return JsonNode.Parse("{}", jsonNodeOptions);
+            if (data.Length <= MinAllowedCharLength) return JsonNode.Parse("{}", JsonNodeOptions);
 
             // Try trimming the \0 char at the end of the data
             ReadOnlySpan<char> dataTrimmed = data.TrimEnd((char)0x00);
 
             // Get the temporary buffer
             int tempBufferLength = dataTrimmed.Length * 2;
-            bool IsUseRentBuffer = tempBufferLength <= MAX_ALLOWED_RENT_BUFFER;
-            byte[] tempBuffer = IsUseRentBuffer ? ArrayPool<byte>.Shared.Rent(tempBufferLength) : new byte[tempBufferLength];
+            bool isUseRentBuffer = tempBufferLength <= MaxAllowedRentBuffer;
+            byte[] tempBuffer = isUseRentBuffer ? ArrayPool<byte>.Shared.Rent(tempBufferLength) : new byte[tempBufferLength];
 
             try
             {
@@ -162,21 +161,21 @@ namespace CollapseLauncher
             finally
             {
                 // Once the process is completed, then return the rented buffer (if it's being used)
-                if (IsUseRentBuffer) ArrayPool<byte>.Shared.Return(tempBuffer);
+                if (isUseRentBuffer) ArrayPool<byte>.Shared.Return(tempBuffer);
             }
         }
 
         private static JsonNode? InnerDeserializeAsJsonNode(ReadOnlySpan<byte> data)
         {
             // Check if the data length is less than 2 bytes (assuming the buffer is "{}"), then return default value
-            if (data.Length <= MIN_ALLOWED_CHAR_LENGTH) return JsonNode.Parse("{}", jsonNodeOptions);
+            if (data.Length <= MinAllowedCharLength) return JsonNode.Parse("{}", JsonNodeOptions);
 
             // Try trimming the \0 char at the end of the data
             ReadOnlySpan<byte> dataTrimmed = data.TrimEnd((byte)0x00);
-            Utf8JsonReader jsonReader = new Utf8JsonReader(dataTrimmed, jsonReaderOptions);
+            Utf8JsonReader jsonReader = new Utf8JsonReader(dataTrimmed, JsonReaderOptions);
 
             // Try deserialize to JSON Node
-            return JsonNode.Parse(ref jsonReader, jsonNodeOptions);
+            return JsonNode.Parse(ref jsonReader, JsonNodeOptions);
         }
 
         internal static string Serialize<T>(this T? value, JsonTypeInfo<T?> typeInfo, bool isIncludeNullEndChar = true, bool isWriteIndented = false)
@@ -187,37 +186,37 @@ namespace CollapseLauncher
 
         private static string InnerSerialize<T>(this T? data, JsonTypeInfo<T?> typeInfo, bool isIncludeNullEndChar, bool isWriteIndented)
         {
-            const string _defaultValue = "{}";
+            const string defaultValue = "{}";
             // Check if the data is null, then return default value
-            if (data == null) return _defaultValue;
+            if (data == null) return defaultValue;
 
             // Lock the buffer
-            lock (jsonBufferWriter)
+            lock (JsonBufferWriter)
             {
                 // Clear the writer and its buffer
-                jsonBufferWriter.Clear();
+                JsonBufferWriter.Clear();
 
                 // SANITY CHECK: Check if the buffer is already zero-ed
-                if (jsonBufferWriter.WrittenCount != 0) throw new InvalidOperationException("Illegal Fault: The buffer hasn't been zeroed!");
+                if (JsonBufferWriter.WrittenCount != 0) throw new InvalidOperationException("Illegal Fault: The buffer hasn't been zeroed!");
 
                 // Reset the writer state
-                if (isWriteIndented) jsonWriterIndented.Reset();
-                else jsonWriter.Reset();
+                if (isWriteIndented) JsonWriterIndented.Reset();
+                else JsonWriter.Reset();
 
                 // Assign the writer
-                Utf8JsonWriter writer = isWriteIndented ? ref jsonWriterIndented : ref jsonWriter;
+                Utf8JsonWriter writer = isWriteIndented ? ref JsonWriterIndented : ref JsonWriter;
 
                 // Lock the writer
                 lock (writer)
                 {
-                    // Try serialize the type into JSON string
+                    // Try to serialize the type into JSON string
                     JsonSerializer.Serialize(writer, data, typeInfo);
 
                     // Flush the writer
                     writer.Flush();
 
                     // Write the buffer to string
-                    ReadOnlySpan<byte> buffer = jsonBufferWriter.WrittenSpan;
+                    ReadOnlySpan<byte> buffer = JsonBufferWriter.WrittenSpan;
                     string returnValue = Encoding.UTF8.GetString(buffer);
 
                     // If the serialization accepts \0 char at the end of the return, then return it with \0
@@ -229,37 +228,37 @@ namespace CollapseLauncher
 
         private static string InnerSerializeJsonNode<T>(this JsonNode? node, JsonTypeInfo<T?> typeInfo, bool isIncludeNullEndChar, bool isWriteIndented)
         {
-            const string _defaultValue = "{}";
+            const string defaultValue = "{}";
             // Check if the node is null, then return default value
-            if (node == null) return _defaultValue;
+            if (node == null) return defaultValue;
 
             // Lock the buffer
-            lock (jsonBufferWriter)
+            lock (JsonBufferWriter)
             {
                 // Clear the writer and its buffer
-                jsonBufferWriter.Clear();
+                JsonBufferWriter.Clear();
 
                 // SANITY CHECK: Check if the buffer is already zero-ed
-                if (jsonBufferWriter.WrittenCount != 0) throw new InvalidOperationException("Illegal Fault: The buffer hasn't been zeroed!");
+                if (JsonBufferWriter.WrittenCount != 0) throw new InvalidOperationException("Illegal Fault: The buffer hasn't been zeroed!");
 
                 // Reset the writer state
-                if (isWriteIndented) jsonWriterIndented.Reset();
-                else jsonWriter.Reset();
+                if (isWriteIndented) JsonWriterIndented.Reset();
+                else JsonWriter.Reset();
 
                 // Assign the writer
-                Utf8JsonWriter writer = isWriteIndented ? ref jsonWriterIndented : ref jsonWriter;
+                Utf8JsonWriter writer = isWriteIndented ? ref JsonWriterIndented : ref JsonWriter;
 
                 // Lock the writer
                 lock (writer)
                 {
-                    // Try serialize the JSON Node into JSON string
+                    // Try to serialize the JSON Node into JSON string
                     node.WriteTo(writer, typeInfo.Options);
 
                     // Flush the writer
                     writer.Flush();
 
                     // Write the buffer to string
-                    ReadOnlySpan<byte> buffer = jsonBufferWriter.WrittenSpan;
+                    ReadOnlySpan<byte> buffer = JsonBufferWriter.WrittenSpan;
                     string returnValue = Encoding.UTF8.GetString(buffer);
 
                     // If the serialization accepts \0 char at the end of the return, then return it with \0

@@ -5,10 +5,9 @@
 {
     public class GameDataVersion
     {
-        private byte[]? _data;
         public byte[]? Data
         {
-            get => _data;
+            get;
             init
             {
                 if (DataCooker.IsServeV3Data(value))
@@ -16,11 +15,13 @@
                     DataCooker.GetServeV3DataSize(value, out long compressedSize, out long decompressedSize);
                     byte[] dataOut = new byte[decompressedSize];
                     DataCooker.ServeV3Data(value, dataOut, (int)compressedSize, (int)decompressedSize, out _);
-                    _data = dataOut;
+                    field = dataOut;
                 }
-                _data = value;
+
+                field = value;
             }
         }
+
         public long Length { get; set; }
         public bool IsCompressed { get; set; }
 

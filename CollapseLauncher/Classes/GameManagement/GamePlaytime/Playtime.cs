@@ -21,14 +21,13 @@ namespace CollapseLauncher.GamePlaytime
         #region Properties
         public event EventHandler<CollapsePlaytime> PlaytimeUpdated;
 #nullable enable
-        public CollapsePlaytime CollapsePlaytime => _playtime;
+        public CollapsePlaytime CollapsePlaytime { get; private set; }
 
-        private static HashSet<int>      _activeSessions = []; 
-        private        RegistryKey?      _registryRoot;
-        private        CollapsePlaytime  _playtime;
-        private        IGameVersionCheck _gameVersionManager;
+        private static readonly HashSet<int>      ActiveSessions = []; 
+        private                 RegistryKey?      _registryRoot;
+        private readonly        IGameVersionCheck _gameVersionManager;
 
-        private CancellationTokenSourceWrapper _token = new();
+        private readonly CancellationTokenSourceWrapper _token = new();
         #endregion
 
         public Playtime(IGameVersionCheck gameVersionManager, IGameSettings gameSettings)
@@ -40,7 +39,7 @@ namespace CollapseLauncher.GamePlaytime
 
             _gameVersionManager = gameVersionManager;
 
-            _playtime = CollapsePlaytime.Load(_registryRoot,
+            CollapsePlaytime = CollapsePlaytime.Load(_registryRoot,
                                               _gameVersionManager.GamePreset.HashID,
                                               _gameVersionManager,
                                               gameSettings);
@@ -53,29 +52,29 @@ namespace CollapseLauncher.GamePlaytime
 
         public async Task CheckDb(bool redirectThrow = false)
         {
-            var needUpdate = await _playtime.DbSync(redirectThrow);
+            var needUpdate = await CollapsePlaytime.DbSync(redirectThrow);
             if (needUpdate is not { IsUpdated: true, PlaytimeData: not null }) return;
 
-            _playtime = needUpdate.PlaytimeData;
-            PlaytimeUpdated?.Invoke(this, _playtime);
+            CollapsePlaytime = needUpdate.PlaytimeData;
+            PlaytimeUpdated?.Invoke(this, CollapsePlaytime);
         }
 
         public void Update(TimeSpan timeSpan, bool forceUpdateDb = false)
         {
-            TimeSpan oldTimeSpan = _playtime.TotalPlaytime;
+            TimeSpan oldTimeSpan = CollapsePlaytime.TotalPlaytime;
 
-            _playtime.Update(timeSpan, true, true);
-            PlaytimeUpdated?.Invoke(this, _playtime);
+            CollapsePlaytime.Update(timeSpan, true, true);
+            PlaytimeUpdated?.Invoke(this, CollapsePlaytime);
 
             LogWriteLine($"Playtime counter changed to {TimeSpanToString(timeSpan)}. (Previous value: {TimeSpanToString(oldTimeSpan)})", writeToLog: true);
         }
 
         public void Reset()
         {
-            TimeSpan oldTimeSpan = _playtime.TotalPlaytime;
+            TimeSpan oldTimeSpan = CollapsePlaytime.TotalPlaytime;
 
-            _playtime.Reset();
-            PlaytimeUpdated?.Invoke(this, _playtime);
+            CollapsePlaytime.Reset();
+            PlaytimeUpdated?.Invoke(this, CollapsePlaytime);
 
             LogWriteLine($"Playtime counter was reset! (Previous value: {TimeSpanToString(oldTimeSpan)})", writeToLog: true);
         }
@@ -85,19 +84,17 @@ namespace CollapseLauncher.GamePlaytime
             int hashId = _gameVersionManager.GamePreset.HashID;
 
             // If a playtime HashSet has already tracked, then return (do not track the playtime more than once)
-            if (_activeSessions.Contains(hashId)) return;
-
             // Otherwise, add it to track list
-            _activeSessions.Add(hashId);
+            if (!ActiveSessions.Add(hashId)) return;
 
             begin ??= DateTime.Now;
 
-            TimeSpan initialTimeSpan = _playtime.TotalPlaytime;
+            TimeSpan initialTimeSpan = CollapsePlaytime.TotalPlaytime;
 
-            _playtime.LastPlayed  = begin;
-            _playtime.LastSession = TimeSpan.Zero;
-            _playtime.Save();
-            PlaytimeUpdated?.Invoke(this, _playtime);
+            CollapsePlaytime.LastPlayed  = begin;
+            CollapsePlaytime.LastSession = TimeSpan.Zero;
+            CollapsePlaytime.Save();
+            PlaytimeUpdated?.Invoke(this, CollapsePlaytime);
 
 #if DEBUG
             LogWriteLine($"{_gameVersionManager.GamePreset.ProfileName} - Started session at {begin.Value.ToLongTimeString()}.");
@@ -112,8 +109,8 @@ namespace CollapseLauncher.GamePlaytime
                     elapsedSeconds += 60;
                     DateTime now = DateTime.Now;
 
-                    _playtime.AddMinute();
-                    PlaytimeUpdated?.Invoke(this, _playtime);
+                    CollapsePlaytime.AddMinute();
+                    PlaytimeUpdated?.Invoke(this, CollapsePlaytime);
 #if DEBUG
                     LogWriteLine($"{_gameVersionManager.GamePreset.ProfileName} - {elapsedSeconds}s elapsed. ({now.ToLongTimeString()})");
 #endif
@@ -137,10 +134,10 @@ namespace CollapseLauncher.GamePlaytime
             LogWriteLine($"Added {totalElapsedSeconds}s [{totalTimeSpan.Hours}h {totalTimeSpan.Minutes}m {totalTimeSpan.Seconds}s] " +
                          $"to {_gameVersionManager.GamePreset.ProfileName} playtime.", LogType.Default, true);
             
-            _playtime.Update(initialTimeSpan.Add(totalTimeSpan), false, true);
-            PlaytimeUpdated?.Invoke(this, _playtime);
+            CollapsePlaytime.Update(initialTimeSpan.Add(totalTimeSpan), false, true);
+            PlaytimeUpdated?.Invoke(this, CollapsePlaytime);
 
-            _activeSessions.Remove(hashId);
+            ActiveSessions.Remove(hashId);
         }
 
         private static string TimeSpanToString(TimeSpan timeSpan) => $"{timeSpan.Days * 24 + timeSpan.Hours}h {timeSpan.Minutes}m";
@@ -148,8 +145,8 @@ namespace CollapseLauncher.GamePlaytime
         public void Dispose()
         {
             _token.Cancel();
-            _playtime.Save(true);
-            _playtime.LastDbUpdate = DateTime.MinValue;
+            CollapsePlaytime.Save(true);
+            CollapsePlaytime.LastDbUpdate = DateTime.MinValue;
             _registryRoot           = null;
         }
     }

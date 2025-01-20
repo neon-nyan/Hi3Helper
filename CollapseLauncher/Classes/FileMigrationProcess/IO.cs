@@ -41,16 +41,16 @@ namespace CollapseLauncher
 
                         // Seek to the first data
                         inputStream.Position = 0;
-                        await inputStream.ReadExactlyAsync(firstCompareInputBytes);
+                        await inputStream.ReadExactlyAsync(firstCompareInputBytes, token);
                         outputStream.Position = 0;
-                        await outputStream.ReadExactlyAsync(firstCompareOutputBytes);
+                        await outputStream.ReadExactlyAsync(firstCompareOutputBytes, token);
 
                         // Seek to the last data
                         long lastPos = outputStream.Length - bufferSize;
                         inputStream.Position = lastPos;
-                        await inputStream.ReadExactlyAsync(lastCompareInputBytes);
+                        await inputStream.ReadExactlyAsync(lastCompareInputBytes, token);
                         outputStream.Position = lastPos;
-                        await outputStream.ReadExactlyAsync(lastCompareOutputBytes);
+                        await outputStream.ReadExactlyAsync(lastCompareOutputBytes, token);
 
                         bool isMatch = firstCompareInputBytes.Span.SequenceEqual(firstCompareOutputBytes.Span)
                                        && lastCompareInputBytes.Span.SequenceEqual(lastCompareOutputBytes.Span);
@@ -77,34 +77,33 @@ namespace CollapseLauncher
         private async Task MoveWriteFileInner(FileMigrationProcessUIRef uiRef, FileStream inputStream, FileStream outputStream, byte[] buffer, CancellationToken token)
         {
             int read;
-            while ((read = await inputStream!.ReadAsync(buffer!, 0, buffer!.Length, token)) > 0)
+            while ((read = await inputStream.ReadAsync(buffer, token)) > 0)
             {
-                outputStream!.Write(buffer, 0, read);
+                await outputStream.WriteAsync(buffer.AsMemory(0, read), token);
                 UpdateSizeProcessed(uiRef, read);
             }
         }
 
-        private async ValueTask<bool> IsOutputPathSpaceSufficient(string _inputPath, string _outputPath)
+        private async ValueTask<bool> IsOutputPathSpaceSufficient(string inputPath, string outputPath)
         {
-            if (_inputPath == null || _outputPath == null)
-            {
-                throw new ArgumentNullException();
-            }
-            DriveInfo inputDriveInfo = new DriveInfo(Path.GetPathRoot(_inputPath)!);
-            DriveInfo outputDriveInfo = new DriveInfo(Path.GetPathRoot(_outputPath)!);
+            ArgumentException.ThrowIfNullOrEmpty(inputPath,  nameof(inputPath));
+            ArgumentException.ThrowIfNullOrEmpty(outputPath, nameof(outputPath));
 
-            this.TotalFileSize = await Task.Run(() =>
+            DriveInfo inputDriveInfo = new DriveInfo(Path.GetPathRoot(inputPath)!);
+            DriveInfo outputDriveInfo = new DriveInfo(Path.GetPathRoot(outputPath)!);
+
+            _totalFileSize = await Task.Run(() =>
             {
-                if (this.isFileTransfer)
+                if (IsFileTransfer)
                 {
-                    FileInfo fileInfo = new FileInfo(_inputPath);
+                    FileInfo fileInfo = new FileInfo(inputPath);
                     return fileInfo.Length;
                 }
 
-                DirectoryInfo directoryInfo = new DirectoryInfo(_inputPath);
+                DirectoryInfo directoryInfo = new DirectoryInfo(inputPath);
                 long returnSize = directoryInfo.EnumerateFiles("*", SearchOption.AllDirectories).Sum(x =>
                 {
-                    this.TotalFileCount++;
+                    _totalFileCount++;
                     return x.Length;
                 });
                 return returnSize;
@@ -114,27 +113,29 @@ namespace CollapseLauncher
             if (IsSameOutputDrive)
                 return true;
 
-            bool isSpaceSufficient = outputDriveInfo.TotalFreeSpace > TotalFileSize;
-            if (!isSpaceSufficient)
+            bool isSpaceSufficient = outputDriveInfo.TotalFreeSpace > _totalFileSize;
+            if (isSpaceSufficient)
             {
-                string errStr = $"Free Space on {outputDriveInfo.Name} is not sufficient! (Free space: {outputDriveInfo.TotalFreeSpace}, Req. Space: {this.TotalFileSize}, Drive: {outputDriveInfo.Name})";
-                Logger.LogWriteLine(errStr, LogType.Error, true);
-                await SimpleDialogs.SpawnDialog(
-                        string.Format(Locale.Lang!._Dialogs!.OperationErrorDiskSpaceInsufficientTitle!, outputDriveInfo.Name),
-                        string.Format(Locale.Lang._Dialogs.OperationErrorDiskSpaceInsufficientMsg!,
-                                      ConverterTool.SummarizeSizeSimple(outputDriveInfo.TotalFreeSpace),
-                                      ConverterTool.SummarizeSizeSimple(this.TotalFileSize),
-                                      outputDriveInfo.Name),
-                        parentUI,
-                        null,
-                        Locale.Lang._Misc!.Okay,
-                        null,
-                        ContentDialogButton.Primary,
-                        ContentDialogTheme.Error
-                );
+                return true;
             }
 
-            return isSpaceSufficient;
+            string errStr = $"Free Space on {outputDriveInfo.Name} is not sufficient! (Free space: {outputDriveInfo.TotalFreeSpace}, Req. Space: {_totalFileSize}, Drive: {outputDriveInfo.Name})";
+            Logger.LogWriteLine(errStr, LogType.Error, true);
+            await SimpleDialogs.SpawnDialog(
+                                            string.Format(Locale.Lang!._Dialogs!.OperationErrorDiskSpaceInsufficientTitle!, outputDriveInfo.Name),
+                                            string.Format(Locale.Lang._Dialogs.OperationErrorDiskSpaceInsufficientMsg!,
+                                                          ConverterTool.SummarizeSizeSimple(outputDriveInfo.TotalFreeSpace),
+                                                          ConverterTool.SummarizeSizeSimple(_totalFileSize),
+                                                          outputDriveInfo.Name),
+                                            ParentUI,
+                                            null,
+                                            Locale.Lang._Misc!.Okay,
+                                            null,
+                                            ContentDialogButton.Primary,
+                                            ContentDialogTheme.Error
+                                           );
+
+            return false;
         }
     }
 }

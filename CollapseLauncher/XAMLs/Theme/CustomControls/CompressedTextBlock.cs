@@ -26,13 +26,13 @@ namespace CollapseLauncher.CustomControls
 
         class CompressedContext
         {
-            public bool BeginOffset;
-            public List<CompressedText> Texts = [];
+            public          bool                 BeginOffset;
+            public readonly List<CompressedText> Texts = [];
         }
 
-        private CompressedContext Context = new();
-        private TextBlock MeasureTextBlock = new();
-        private TextBlock ContentTextBlock = new();
+        private readonly CompressedContext Context          = new();
+        private readonly TextBlock         MeasureTextBlock = new();
+        private readonly TextBlock         ContentTextBlock = new();
         #endregion
 
         #region Properties

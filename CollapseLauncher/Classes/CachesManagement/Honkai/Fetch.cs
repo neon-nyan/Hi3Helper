@@ -19,6 +19,8 @@ using static Hi3Helper.Data.ConverterTool;
 using static Hi3Helper.Locale;
 using static Hi3Helper.Logger;
 // ReSharper disable SwitchStatementHandlesSomeKnownEnumValuesWithDefault
+// ReSharper disable CommentTypo
+// ReSharper disable StringLiteralTypo
 
 namespace CollapseLauncher
 {
@@ -31,8 +33,8 @@ namespace CollapseLauncher
 
             // Initialize new proxy-aware HttpClient
             using HttpClient httpClientNew = new HttpClientBuilder()
-                .UseLauncherConfig(_downloadThreadCount + _downloadThreadCountReserved)
-                .SetUserAgent(_userAgent)
+                .UseLauncherConfig(DownloadThreadCount + DownloadThreadCountReserved)
+                .SetUserAgent(UserAgent)
                 .SetAllowedDecompression(DecompressionMethods.None)
                 .Create();
 
@@ -47,7 +49,7 @@ namespace CollapseLauncher
                 Enum.GetValues<CacheAssetType>(),
                 new ParallelOptions
                 {
-                    MaxDegreeOfParallelism = _threadCount,
+                    MaxDegreeOfParallelism = ThreadCount,
                     CancellationToken      = token
                 },
                 async (type, ctx) =>
@@ -68,8 +70,8 @@ namespace CollapseLauncher
                                 LogWriteLine($"    Cache Size = {SummarizeSizeSimple(count.Item2)}", LogType.NoTag,   true);
 
                                 // Increment the Total Size and Count
-                                Interlocked.Add(ref _progressAllCountTotal, count.Item1);
-                                Interlocked.Add(ref _progressAllSizeTotal,  count.Item2);
+                                Interlocked.Add(ref ProgressAllCountTotal, count.Item1);
+                                Interlocked.Add(ref ProgressAllSizeTotal,  count.Item2);
                             }
                             break;
                         default:
@@ -86,23 +88,23 @@ namespace CollapseLauncher
             KianaDispatch dispatch = null;
             Exception lastException = null;
 
-            foreach (string baseURL in _gameVersionManager!.GamePreset!.GameDispatchArrayURL!)
+            foreach (string baseURL in GameVersionManager!.GamePreset!.GameDispatchArrayURL!)
             {
                 try
                 {
                     // Init the key and decrypt it if existed.
-                    if (string.IsNullOrEmpty(_gameVersionManager.GamePreset.DispatcherKey))
+                    if (string.IsNullOrEmpty(GameVersionManager.GamePreset.DispatcherKey))
                     {
                         throw new NullReferenceException("Dispatcher key is null or empty!");
                     }
 
-                    string key = _gameVersionManager.GamePreset.DispatcherKey;
+                    string key = GameVersionManager.GamePreset.DispatcherKey;
 
                     // Try assign dispatcher
                     dispatch = await KianaDispatch.GetDispatch(downloadClient, baseURL,
-                                                               _gameVersionManager.GamePreset.GameDispatchURLTemplate,
-                                                               _gameVersionManager.GamePreset.GameDispatchChannelName,
-                                                               key, _gameVersion.VersionArray, token);
+                                                               GameVersionManager.GamePreset.GameDispatchURLTemplate,
+                                                               GameVersionManager.GamePreset.GameDispatchChannelName,
+                                                               key, GameVersion.VersionArray, token);
                     lastException = null;
                     break;
                 }
@@ -116,9 +118,9 @@ namespace CollapseLauncher
             if (lastException != null) throw lastException;
 
             // Get gatewayURl and fetch the gateway
-            _gameGateway =
-                await KianaDispatch.GetGameserver(downloadClient, dispatch!, _gameVersionManager.GamePreset.GameGatewayDefault!, token);
-            _gameRepoURL = BuildAssetBundleURL(_gameGateway);
+            GameGateway =
+                await KianaDispatch.GetGameserver(downloadClient, dispatch!, GameVersionManager.GamePreset.GameGatewayDefault!, token);
+            GameRepoURL = BuildAssetBundleURL(GameGateway);
         }
 
         private static string BuildAssetBundleURL(KianaDispatch gateway) => CombineURLFromString(gateway!.AssetBundleUrls![0], "/{0}/editor_compressed/");
@@ -126,13 +128,13 @@ namespace CollapseLauncher
         private async Task<(int, long)> FetchByType(CacheAssetType type, DownloadClient downloadClient, List<CacheAsset> assetIndex, CancellationToken token)
         {
             // Set total activity string as "Fetching Caches Type: <type>"
-            _status.ActivityStatus = string.Format(Lang!._CachesPage!.CachesStatusFetchingType!, type);
-            _status.IsProgressAllIndetermined = true;
-            _status.IsIncludePerFileIndicator = false;
+            Status.ActivityStatus = string.Format(Lang!._CachesPage!.CachesStatusFetchingType!, type);
+            Status.IsProgressAllIndetermined = true;
+            Status.IsIncludePerFileIndicator = false;
             UpdateStatus();
 
             // Get the asset index properties
-            string baseURL = string.Format(_gameRepoURL!, type.ToString().ToLowerInvariant());
+            string baseURL = string.Format(GameRepoURL!, type.ToString().ToLowerInvariant());
             string assetIndexURL = string.Format(CombineURLFromString(baseURL, "{0}Version.unity3d")!,
                                                  type == CacheAssetType.Data ? "Data" : "Resource");
 
@@ -186,7 +188,7 @@ namespace CollapseLauncher
                 // If isFirst flag set to true, then get the _gameSalt.
                 if (isFirst)
                 {
-                    _gameSalt = GetAssetIndexSalt(line);
+                    GameSalt = GetAssetIndexSalt(line);
                     isFirst = false;
                     continue;
                 }
@@ -194,7 +196,7 @@ namespace CollapseLauncher
                 // Get the lucky number if it does so 👀
                 if (isNeedReadLuckyNumber && int.TryParse(line, null, out int luckyNumber))
                 {
-                    _luckyNumber = luckyNumber;
+                    LuckyNumber = luckyNumber;
                     isNeedReadLuckyNumber = false;
                     continue;
                 }
@@ -211,7 +213,7 @@ namespace CollapseLauncher
                 try
                 {
                     // Deserialize the line and set the type
-                    content = line.Deserialize(InternalAppJSONContext.Default.CacheAsset);
+                    content = line.Deserialize(CacheAssetJsonContext.Default.CacheAsset);
                 }
                 catch (Exception ex)
                 {
@@ -225,15 +227,17 @@ namespace CollapseLauncher
                 if (content == null) continue;
 
                 // Check if the asset is regional and contains only selected language.
-                if (IsValidRegionFile(content.N, _gameLang))
+                if (!IsValidRegionFile(content.N, GameLang))
                 {
-                    // Set base URL and Path and add it to asset index
-                    content.BaseURL = baseUrl;
-                    content.DataType = type;
-                    content.BasePath = GetAssetBasePathByType(type);
-
-                    yield return content;
+                    continue;
                 }
+
+                // Set base URL and Path and add it to asset index
+                content.BaseURL  = baseUrl;
+                content.DataType = type;
+                content.BasePath = GetAssetBasePathByType(type);
+
+                yield return content;
             }
         }
 
@@ -260,8 +264,8 @@ namespace CollapseLauncher
 
             // Initialize local HTTP client
             using HttpClient client = new HttpClientBuilder()
-                .UseLauncherConfig(_downloadThreadCount + _downloadThreadCountReserved)
-                .SetUserAgent(_userAgent)
+                .UseLauncherConfig(DownloadThreadCount + DownloadThreadCountReserved)
+                .SetUserAgent(UserAgent)
                 .SetAllowedDecompression(DecompressionMethods.None)
                 .Create();
 
@@ -273,7 +277,7 @@ namespace CollapseLauncher
                 new ParallelOptions
                 {
                     CancellationToken = token,
-                    MaxDegreeOfParallelism = _threadCount
+                    MaxDegreeOfParallelism = ThreadCount
                 },
                 async (content, cancellationToken) =>
                 {
@@ -281,9 +285,9 @@ namespace CollapseLauncher
                     if (content.DLM == 2)
                     {
                         // Update the status
-                        _status.ActivityStatus = string.Format(Lang._CachesPage.Status2, type, content.N);
-                        _status.IsProgressAllIndetermined = true;
-                        _status.IsProgressPerFileIndetermined = true;
+                        Status.ActivityStatus = string.Format(Lang._CachesPage.Status2, type, content.N);
+                        Status.IsProgressAllIndetermined = true;
+                        Status.IsProgressPerFileIndetermined = true;
                         UpdateStatus();
 
                         // Check for the URL availability and is not available, then skip.
@@ -316,10 +320,10 @@ namespace CollapseLauncher
             if (DataCooker.IsServeV3Data(LauncherMetadataHelper.CurrentMasterKey?.Key))
             {
                 DataCooker.GetServeV3DataSize(LauncherMetadataHelper.CurrentMasterKey?.Key, out long keyCompSize,
-                                              out long keyDecompSize);
+                                              out long keyDecompressedSize);
                 key = new byte[keyCompSize];
                 DataCooker.ServeV3Data(LauncherMetadataHelper.CurrentMasterKey?.Key, key, (int)keyCompSize,
-                                       (int)keyDecompSize, out _);
+                                       (int)keyDecompressedSize, out _);
             }
             else
             {
@@ -330,28 +334,28 @@ namespace CollapseLauncher
             return saltTool.GetSalt();
         }
 
-        private string GetAssetBasePathByType(CacheAssetType type) => Path.Combine(_gamePath!, type == CacheAssetType.Data ? "Data" : "Resources");
+        private string GetAssetBasePathByType(CacheAssetType type) => Path.Combine(GamePath!, type == CacheAssetType.Data ? "Data" : "Resources");
 
         private bool IsValidRegionFile(string input, string lang)
         {
             // If the path contains regional string, then move to the next check
-            if (input!.Contains(_cacheRegionalCheckName!))
+            if (input!.Contains(CacheRegionalCheckName!))
             {
                 // Check if the regional string has specified language string
-                return input.Contains($"{_cacheRegionalCheckName}_{lang}");
+                return input.Contains($"{CacheRegionalCheckName}_{lang}");
             }
 
             // If none, then pass it as true (non-regional string)
             return true;
         }
 
-        public KianaDispatch GetCurrentGateway() => _gameGateway;
+        public KianaDispatch GetCurrentGateway() => GameGateway;
 
         public async Task<(List<CacheAsset>, string, string, int)> GetCacheAssetList(
             DownloadClient downloadClient, CacheAssetType type, CancellationToken token)
         {
             // Initialize asset index for the return
-            List<CacheAsset> returnAsset = new();
+            List<CacheAsset> returnAsset = [];
 
             // Build _gameRepoURL from loading Dispatcher and Gateway
             await BuildGameRepoURL(downloadClient, token);
@@ -360,8 +364,8 @@ namespace CollapseLauncher
             _ = await FetchByType(type, downloadClient, returnAsset, token);
 
             // Return the list and base asset bundle repo URL
-            return (returnAsset, _gameGateway!.ExternalAssetUrls!.FirstOrDefault(), BuildAssetBundleURL(_gameGateway),
-                    _luckyNumber);
+            return (returnAsset, GameGateway!.ExternalAssetUrls!.FirstOrDefault(), BuildAssetBundleURL(GameGateway),
+                    LuckyNumber);
         }
     }
 }

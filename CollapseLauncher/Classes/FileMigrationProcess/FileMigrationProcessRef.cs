@@ -6,11 +6,11 @@ namespace CollapseLauncher
 {
     internal struct FileMigrationProcessUIRef
     {
-        internal ContentDialogCollapse mainDialogWindow;
-        internal TextBlock pathActivitySubtitle;
-        internal Run speedIndicatorSubtitle;
-        internal Run fileCountIndicatorSubtitle;
-        internal Run fileSizeIndicatorSubtitle;
-        internal ProgressBar progressBarIndicator;
+        internal ContentDialogCollapse MainDialogWindow;
+        internal TextBlock PathActivitySubtitle;
+        internal Run SpeedIndicatorSubtitle;
+        internal Run FileCountIndicatorSubtitle;
+        internal Run FileSizeIndicatorSubtitle;
+        internal ProgressBar ProgressBarIndicator;
     }
 }

@@ -10,7 +10,7 @@ namespace CollapseLauncher.Helper.JsonConverter
         public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             if (reader.TokenType != JsonTokenType.String)
-                throw new JsonException($"Current type token is not a string!");
+                throw new JsonException("Current type token is not a string!");
 
             if (reader.ValueSpan.Length == 0) return null;
 

@@ -20,8 +20,8 @@ namespace CollapseLauncher.GameSettings
     {
 #nullable enable
         #region Fields
-        private string CurrentPresetName = PresetConst.DefaultPresetName;
-        private Dictionary<string, T1>? _Presets;
+        private          string                  CurrentPresetName = PresetConst.DefaultPresetName;
+        private readonly Dictionary<string, T1>? _Presets;
         #endregion
 
         #region Properties
@@ -53,11 +53,9 @@ namespace CollapseLauncher.GameSettings
         #region Methods
         public Preset(string presetJSONPath, JsonTypeInfo<Dictionary<string, T1>?> jsonType)
         {
-            using (FileStream fs = new FileStream(presetJSONPath, FileMode.Open, FileAccess.Read))
-            {
-                Presets = fs.Deserialize(jsonType);
-                PresetKeys = GetPresetKeys();
-            }
+            using FileStream fs = new FileStream(presetJSONPath, FileMode.Open, FileAccess.Read);
+            Presets    = fs.Deserialize(jsonType);
+            PresetKeys = GetPresetKeys();
         }
 
         /// <summary>
@@ -68,7 +66,7 @@ namespace CollapseLauncher.GameSettings
         /// <returns>The instance of preset</returns>
         public static Preset<T1, TObjectType> LoadPreset(GameNameType gameType, JsonTypeInfo<Dictionary<string, T1>?> jsonType)
         {
-            string presetPath = Path.Combine(AppExecutableDir, $"Assets\\Presets\\{gameType}\\", $"{typeof(T1).Name}.json");
+            string presetPath = Path.Combine(AppExecutableDir, $@"Assets\Presets\{gameType}\", $"{typeof(T1).Name}.json");
             return new Preset<T1, TObjectType>(presetPath, jsonType);
         }
 
@@ -98,7 +96,7 @@ namespace CollapseLauncher.GameSettings
         {
             if (Presets == null)
             {
-                throw new NullReferenceException($"Preset is null!");
+                throw new NullReferenceException("Preset is null!");
             }
 
             return Presets.Keys.ToList();

@@ -92,7 +92,7 @@ namespace Hi3Helper
 
         public LocalizationParams LoadLang(Stream langStream)
         {
-            LocalizationParams _langData = JsonSerializer.Deserialize(langStream!, CoreLibraryFieldsJSONContext.Default.LocalizationParams);
+            LocalizationParams _langData = JsonSerializer.Deserialize(langStream!, CoreLibraryFieldsJsonContext.Default.LocalizationParams);
             this.LangAuthor = _langData!.Author;
             this.LangID = _langData.LanguageID.ToLower();
             this.LangName = _langData.LanguageName;
@@ -103,7 +103,7 @@ namespace Hi3Helper
 
         public LocalizationParamsBase LoadLangBase(Stream langStream)
         {
-            LocalizationParamsBase _langData = JsonSerializer.Deserialize(langStream!, CoreLibraryFieldsJSONContext.Default.LocalizationParamsBase);
+            LocalizationParamsBase _langData = JsonSerializer.Deserialize(langStream!, CoreLibraryFieldsJsonContext.Default.LocalizationParamsBase);
             this.LangAuthor = _langData!.Author;
             this.LangID = _langData.LanguageID.ToLower();
             this.LangName = _langData.LanguageName;

@@ -8,6 +8,9 @@ using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Runtime.CompilerServices;
+// ReSharper disable InconsistentNaming
+// ReSharper disable CommentTypo
+// ReSharper disable IdentifierTypo
 
 namespace CollapseLauncher.Pages
 {
@@ -20,7 +23,7 @@ namespace CollapseLauncher.Pages
         private void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             // Raise the PropertyChanged event, passing the name of the property whose value has changed.
-            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
         #endregion
 
@@ -80,9 +83,9 @@ namespace CollapseLauncher.Pages
                     GameCustomResolutionWidth.IsEnabled = true;
                     GameCustomResolutionHeight.IsEnabled = true;
 
-                    string[] _size = ResolutionSelected.Split('x');
-                    GameCustomResolutionWidth.Value = int.Parse(_size[0]);
-                    GameCustomResolutionHeight.Value = int.Parse(_size[1]);
+                    string[] sizes = ResolutionSelected.Split('x');
+                    GameCustomResolutionWidth.Value = int.Parse(sizes[0]);
+                    GameCustomResolutionHeight.Value = int.Parse(sizes[1]);
 
                     return;
                 }
@@ -105,11 +108,7 @@ namespace CollapseLauncher.Pages
         {
             get
             {
-                if (!IsFullscreenEnabled)
-                {
-                    return false;
-                }
-                return Settings.SettingsCollapseScreen.UseExclusiveFullscreen;
+                return IsFullscreenEnabled && Settings.SettingsCollapseScreen.UseExclusiveFullscreen;
             }
             set
             {
@@ -176,12 +175,13 @@ namespace CollapseLauncher.Pages
             get
             {
                 string res = Settings.SettingsScreen.sizeResString;
-                if (string.IsNullOrEmpty(res))
+                if (!string.IsNullOrEmpty(res))
                 {
-                    Size size = ScreenProp.CurrentResolution;
-                    return $"{size.Width}x{size.Height}";
+                    return res;
                 }
-                return res;
+
+                Size size = ScreenProp.CurrentResolution;
+                return $"{size.Width}x{size.Height}";
             }
             set => Settings.SettingsScreen.sizeResString = value;
         }
@@ -194,11 +194,13 @@ namespace CollapseLauncher.Pages
             get
             {
                 int value = Model.FPSIndexDict[NormalizeFPSNumber(Settings.GraphicsSettings.FPS)];
-                if (value == 2)
+                if (value != 2)
                 {
-                    VSyncToggle.IsChecked = false;
-                    VSyncToggle.IsEnabled = false;
+                    return value;
                 }
+
+                VSyncToggle.IsChecked = false;
+                VSyncToggle.IsEnabled = false;
 
                 return value;
             }
@@ -216,7 +218,7 @@ namespace CollapseLauncher.Pages
         }
 
         // Set it to 60 (default) if the value isn't within Model.FPSIndexDict
-        private int NormalizeFPSNumber(int input) => !Model.FPSIndexDict.ContainsKey(input) ? Model.FPSIndex[Model.FPSDefaultIndex] : input;
+        private static int NormalizeFPSNumber(int input) => !Model.FPSIndexDict.ContainsKey(input) ? Model.FPSIndex[Model.FPSDefaultIndex] : input;
 
         //VSync
         public bool EnableVSync
@@ -302,11 +304,16 @@ namespace CollapseLauncher.Pages
             get
             {
                 var v = Settings.GraphicsSettings.EnableSelfShadow;
-                if (v == 1) return true;
-                if (v == 2) return false;
-                Logger.LogWriteLine($"Self Shadow value is unknown! Val: {v}", LogType.Error, true);
-                return false;
-
+                switch (v)
+                {
+                    case 1:
+                        return true;
+                    case 2:
+                        return false;
+                    default:
+                        Logger.LogWriteLine($"Self Shadow value is unknown! Val: {v}", LogType.Error, true);
+                        return false;
+                }
             }
             set => Settings.GraphicsSettings.EnableSelfShadow = value ? 1 : 2;
         }
@@ -375,17 +382,15 @@ namespace CollapseLauncher.Pages
         {
             get
             {
-                bool value                                  = Settings.SettingsCollapseMisc.UseAdvancedGameSettings;
-                if (value){AdvancedSettingsPanel.Visibility = Visibility.Visible;}
-                else AdvancedSettingsPanel.Visibility       = Visibility.Collapsed;
+                bool value = Settings.SettingsCollapseMisc.UseAdvancedGameSettings;
+                AdvancedSettingsPanel.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
                 return value;
             }
             set
-            { 
+            {
                 Settings.SettingsCollapseMisc.UseAdvancedGameSettings = value;
-                if (value) AdvancedSettingsPanel.Visibility = Visibility.Visible;
-                else AdvancedSettingsPanel.Visibility       = Visibility.Collapsed;
-            } 
+                AdvancedSettingsPanel.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
 
         public bool IsUsePreLaunchCommand
@@ -446,20 +451,15 @@ namespace CollapseLauncher.Pages
         
         public bool IsUsePostExitCommand
         {
-            get 
+            get
             {
                 bool value = Settings.SettingsCollapseMisc.UseGamePostExitCommand;
-
-                if (value) PostExitCommandTextBox.IsEnabled = true;
-                else PostExitCommandTextBox.IsEnabled       = false;
-
+                PostExitCommandTextBox.IsEnabled = value;
                 return value;
             }
             set
             {
-                if (value) PostExitCommandTextBox.IsEnabled = true;
-                else PostExitCommandTextBox.IsEnabled       = false;
-
+                PostExitCommandTextBox.IsEnabled                     = value;
                 Settings.SettingsCollapseMisc.UseGamePostExitCommand = value;
             }
         }
@@ -469,8 +469,10 @@ namespace CollapseLauncher.Pages
             get => Settings.SettingsCollapseMisc.GamePostExitCommand;
             set => Settings.SettingsCollapseMisc.GamePostExitCommand = value;
         }
-        
+
+    #pragma warning disable CA1822
         private void GameLaunchDelay_OnValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    #pragma warning restore CA1822
         {
             // clamp for negative value when clearing the number box
             if ((int)sender.Value < 0)

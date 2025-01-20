@@ -21,16 +21,16 @@ namespace CollapseLauncher.InstallManager.StarRail
     {
         #region Override Properties
 
-        protected override int _gameVoiceLanguageID => _gameVersionManager.GamePreset.GetVoiceLanguageID();
-        protected override bool _canDeltaPatch => _gameVersionManager.IsGameHasDeltaPatch();
-        protected override DeltaPatchProperty _gameDeltaPatchProperty => _gameVersionManager.GetDeltaPatchInfo();
+        protected override int _gameVoiceLanguageID => GameVersionManager.GamePreset.GetVoiceLanguageID();
+        protected override bool _canDeltaPatch => GameVersionManager.IsGameHasDeltaPatch();
+        protected override DeltaPatchProperty _gameDeltaPatchProperty => GameVersionManager.GetDeltaPatchInfo();
 
         #endregion
 
         #region Properties
 
-        private string _execName => Path.GetFileNameWithoutExtension(_gameVersionManager.GamePreset.GameExecutableName);
-        protected override string _gameDataPersistentPath => Path.Combine(_gamePath, $"{_execName}_Data", "Persistent");
+        private string _execName => Path.GetFileNameWithoutExtension(GameVersionManager.GamePreset.GameExecutableName);
+        protected override string _gameDataPersistentPath => Path.Combine(GamePath, $"{_execName}_Data", "Persistent");
 
         protected override string _gameAudioLangListPath
         {
@@ -88,8 +88,8 @@ namespace CollapseLauncher.InstallManager.StarRail
 
 #nullable enable
         protected override IRepair GetGameRepairInstance(string? versionString) =>
-            new StarRailRepair(_parentUI,
-                    _gameVersionManager, true,
+            new StarRailRepair(ParentUI,
+                    GameVersionManager, true,
                     versionString);
 #nullable restore
 
@@ -110,12 +110,12 @@ namespace CollapseLauncher.InstallManager.StarRail
 
             // Then start on processing hdifffiles list and deletefiles list
             await ApplyHdiffListPatch();
-            await ApplyDeleteFileActionAsync(_token.Token);
+            await ApplyDeleteFileActionAsync(Token.Token);
 
             // Update the audio lang list if not in isOnlyInstallPackage mode
             if (!isOnlyInstallPackage)
             {
-                WriteAudioLangList(_assetIndex);
+                WriteAudioLangList(AssetIndex);
             }
         }
 

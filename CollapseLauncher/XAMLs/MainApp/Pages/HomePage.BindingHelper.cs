@@ -1,12 +1,12 @@
-﻿#nullable enable
-    using CollapseLauncher.Extension;
-    using CollapseLauncher.Helper.LauncherApiLoader.Sophon;
-    using CommunityToolkit.WinUI;
-    using ImageEx;
-    using Microsoft.UI.Xaml;
-    using Microsoft.UI.Xaml.Controls;
+﻿using CollapseLauncher.Extension;
+using CollapseLauncher.Helper.LauncherApiLoader.Sophon;
+using CommunityToolkit.WinUI;
+using ImageEx;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 
-    namespace CollapseLauncher.Pages
+#nullable enable
+namespace CollapseLauncher.Pages
 {
     file static class HomePageExtension
     {

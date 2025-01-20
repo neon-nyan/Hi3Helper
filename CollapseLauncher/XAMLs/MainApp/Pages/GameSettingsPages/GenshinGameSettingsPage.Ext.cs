@@ -9,6 +9,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Drawing;
 using System.Runtime.CompilerServices;
 using static Hi3Helper.Shared.Region.LauncherConfig;
+// ReSharper disable IdentifierTypo
+// ReSharper disable InconsistentNaming
+// ReSharper disable CommentTypo
+// ReSharper disable StringLiteralTypo
 
 namespace CollapseLauncher.Pages
 {
@@ -21,7 +25,7 @@ namespace CollapseLauncher.Pages
         private void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             // Raise the PropertyChanged event, passing the name of the property whose value has changed.
-            this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
         #endregion
 
@@ -116,9 +120,9 @@ namespace CollapseLauncher.Pages
                     GameCustomResolutionWidth.IsEnabled = true;
                     GameCustomResolutionHeight.IsEnabled = true;
 
-                    string[] _size = ResolutionSelected.Split('x');
-                    GameCustomResolutionWidth.Value = int.Parse(_size[0]);
-                    GameCustomResolutionHeight.Value = int.Parse(_size[1]);
+                    string[] sizes = ResolutionSelected.Split('x');
+                    GameCustomResolutionWidth.Value = int.Parse(sizes[0]);
+                    GameCustomResolutionHeight.Value = int.Parse(sizes[1]);
 
                     return;
                 }
@@ -141,11 +145,7 @@ namespace CollapseLauncher.Pages
         {
             get
             {
-                if (!IsFullscreenEnabled)
-                {
-                    return false;
-                }
-                return Settings.SettingsCollapseScreen.UseExclusiveFullscreen;
+                return IsFullscreenEnabled && Settings.SettingsCollapseScreen.UseExclusiveFullscreen;
             }
             set
             {
@@ -210,12 +210,13 @@ namespace CollapseLauncher.Pages
             get
             {
                 string res = Settings.SettingsScreen.sizeResString;
-                if (string.IsNullOrEmpty(res))
+                if (!string.IsNullOrEmpty(res))
                 {
-                    Size size = ScreenProp.CurrentResolution;
-                    return $"{size.Width}x{size.Height}";
+                    return res;
                 }
-                return res;
+
+                Size size = ScreenProp.CurrentResolution;
+                return $"{size.Width}x{size.Height}";
             }
             set => Settings.SettingsScreen.sizeResString = value;
         }
@@ -236,25 +237,25 @@ namespace CollapseLauncher.Pages
         public bool VerticalSync
         {
             get => Convert.ToBoolean((int)Settings.SettingsGeneralData.globalPerfData.VerticalSync);
-            set => Settings.SettingsGeneralData.globalPerfData.VerticalSync = (VerticalSyncOption)(Convert.ToInt32(value));
+            set => Settings.SettingsGeneralData.globalPerfData.VerticalSync = (VerticalSyncOption)Convert.ToInt32(value);
         }
 
         public bool VolumetricFog
         {
             get => Convert.ToBoolean((int)Settings.SettingsGeneralData.globalPerfData.VolumetricFog);
-            set => Settings.SettingsGeneralData.globalPerfData.VolumetricFog = (VolumetricFogOption)(Convert.ToInt32(value));
+            set => Settings.SettingsGeneralData.globalPerfData.VolumetricFog = (VolumetricFogOption)Convert.ToInt32(value);
         }
 
         public bool Reflections
         {
             get => Convert.ToBoolean((int)Settings.SettingsGeneralData.globalPerfData.Reflections);
-            set => Settings.SettingsGeneralData.globalPerfData.Reflections = (ReflectionsOption)(Convert.ToInt32(value));
+            set => Settings.SettingsGeneralData.globalPerfData.Reflections = (ReflectionsOption)Convert.ToInt32(value);
         }
 
         public bool Bloom
         {
             get => Convert.ToBoolean((int)Settings.SettingsGeneralData.globalPerfData.Bloom);
-            set => Settings.SettingsGeneralData.globalPerfData.Bloom = (BloomOption)(Convert.ToInt32(value));
+            set => Settings.SettingsGeneralData.globalPerfData.Bloom = (BloomOption)Convert.ToInt32(value);
         }
 
         public int FPS
@@ -328,62 +329,62 @@ namespace CollapseLauncher.Pages
                     VolumetricFogToggle.IsEnabled = true;
                 }
 
-                Settings.SettingsGeneralData.globalPerfData.ShadowQuality = (ShadowQualityOption)(value);
+                Settings.SettingsGeneralData.globalPerfData.ShadowQuality = (ShadowQualityOption)value;
             }
         }
 
         public int VisualEffects
         {
             get => (int)Settings.SettingsGeneralData.globalPerfData.VisualEffects;
-            set => Settings.SettingsGeneralData.globalPerfData.VisualEffects = (VisualEffectsOption)(value);
+            set => Settings.SettingsGeneralData.globalPerfData.VisualEffects = (VisualEffectsOption)value;
         }
 
         public int SFXQuality
         {
             get => (int)Settings.SettingsGeneralData.globalPerfData.SFXQuality;
-            set => Settings.SettingsGeneralData.globalPerfData.SFXQuality = (SFXQualityOption)(value);
+            set => Settings.SettingsGeneralData.globalPerfData.SFXQuality = (SFXQualityOption)value;
         }
 
         public int EnvironmentDetail
         {
             get => (int)Settings.SettingsGeneralData.globalPerfData.EnvironmentDetail;
-            set => Settings.SettingsGeneralData.globalPerfData.EnvironmentDetail = (EnvironmentDetailOption)(value);
+            set => Settings.SettingsGeneralData.globalPerfData.EnvironmentDetail = (EnvironmentDetailOption)value;
         }
 
         public int MotionBlur
         {
             get => (int)Settings.SettingsGeneralData.globalPerfData.MotionBlur;
-            set => Settings.SettingsGeneralData.globalPerfData.MotionBlur = (MotionBlurOption)(value);
+            set => Settings.SettingsGeneralData.globalPerfData.MotionBlur = (MotionBlurOption)value;
         }
 
         public int CrowdDensity
         {
             get => (int)Settings.SettingsGeneralData.globalPerfData.CrowdDensity;
-            set => Settings.SettingsGeneralData.globalPerfData.CrowdDensity = (CrowdDensityOption)(value);
+            set => Settings.SettingsGeneralData.globalPerfData.CrowdDensity = (CrowdDensityOption)value;
         }
 
         public int SubsurfaceScattering
         {
             get => (int)Settings.SettingsGeneralData.globalPerfData.SubsurfaceScattering;
-            set => Settings.SettingsGeneralData.globalPerfData.SubsurfaceScattering = (SubsurfaceScatteringOption)(value);
+            set => Settings.SettingsGeneralData.globalPerfData.SubsurfaceScattering = (SubsurfaceScatteringOption)value;
         }
 
         public int CoOpTeammateEffects
         {
             get => (int)Settings.SettingsGeneralData.globalPerfData.CoOpTeammateEffects;
-            set => Settings.SettingsGeneralData.globalPerfData.CoOpTeammateEffects = (CoOpTeammateEffectsOption)(value);
+            set => Settings.SettingsGeneralData.globalPerfData.CoOpTeammateEffects = (CoOpTeammateEffectsOption)value;
         }
 
         public int AnisotropicFiltering
         {
             get => (int)Settings.SettingsGeneralData.globalPerfData.AnisotropicFiltering;
-            set => Settings.SettingsGeneralData.globalPerfData.AnisotropicFiltering = (AnisotropicFilteringOption)(value);
+            set => Settings.SettingsGeneralData.globalPerfData.AnisotropicFiltering = (AnisotropicFilteringOption)value;
         }
 
         public int Antialiasing
         {
             get => (int)Settings.SettingsGeneralData.globalPerfData.Antialiasing;
-            set => Settings.SettingsGeneralData.globalPerfData.Antialiasing = (AntialiasingOption)(value);
+            set => Settings.SettingsGeneralData.globalPerfData.Antialiasing = (AntialiasingOption)value;
         }
 
         public bool TeamPageBackground
@@ -395,13 +396,13 @@ namespace CollapseLauncher.Pages
         public int GlobalIllumination
         {
             get => (int)Settings.SettingsGeneralData.globalPerfData.GlobalIllumination;
-            set => Settings.SettingsGeneralData.globalPerfData.GlobalIllumination = (GlobalIlluminationOption)(value);
+            set => Settings.SettingsGeneralData.globalPerfData.GlobalIllumination = (GlobalIlluminationOption)value;
         }
 
         public bool DynamicCharacterResolution
         {
             get => Convert.ToBoolean((int)Settings.SettingsGeneralData.globalPerfData.DynamicCharacterResolution);
-            set => Settings.SettingsGeneralData.globalPerfData.DynamicCharacterResolution = (DynamicCharacterResolutionOption)(Convert.ToInt32(value));
+            set => Settings.SettingsGeneralData.globalPerfData.DynamicCharacterResolution = (DynamicCharacterResolutionOption)Convert.ToInt32(value);
         }
         #endregion
 
@@ -513,16 +514,14 @@ namespace CollapseLauncher.Pages
         {
             get
             {
-                bool value                                  = Settings.SettingsCollapseMisc.UseAdvancedGameSettings;
-                if (value){AdvancedSettingsPanel.Visibility = Visibility.Visible;}
-                else AdvancedSettingsPanel.Visibility       = Visibility.Collapsed;
+                bool value = Settings.SettingsCollapseMisc.UseAdvancedGameSettings;
+                AdvancedSettingsPanel.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
                 return value;
             }
             set
-            { 
+            {
                 Settings.SettingsCollapseMisc.UseAdvancedGameSettings = value;
-                if (value) AdvancedSettingsPanel.Visibility = Visibility.Visible;
-                else AdvancedSettingsPanel.Visibility       = Visibility.Collapsed;
+                AdvancedSettingsPanel.Visibility                      = value ? Visibility.Visible : Visibility.Collapsed;
             } 
         }
 
@@ -587,17 +586,13 @@ namespace CollapseLauncher.Pages
             get 
             {
                 bool value = Settings.SettingsCollapseMisc.UseGamePostExitCommand;
-
-                if (value) PostExitCommandTextBox.IsEnabled = true;
-                else PostExitCommandTextBox.IsEnabled       = false;
+                PostExitCommandTextBox.IsEnabled = value;
 
                 return value;
             }
             set
             {
-                if (value) PostExitCommandTextBox.IsEnabled = true;
-                else PostExitCommandTextBox.IsEnabled       = false;
-
+                PostExitCommandTextBox.IsEnabled = value;
                 Settings.SettingsCollapseMisc.UseGamePostExitCommand = value;
             }
         }
@@ -608,7 +603,9 @@ namespace CollapseLauncher.Pages
             set => Settings.SettingsCollapseMisc.GamePostExitCommand = value;
         }
         
+    #pragma warning disable CA1822
         private void GameLaunchDelay_OnValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    #pragma warning restore CA1822
         {
             // clamp for negative value when clearing the number box
             if ((int)sender.Value < 0)

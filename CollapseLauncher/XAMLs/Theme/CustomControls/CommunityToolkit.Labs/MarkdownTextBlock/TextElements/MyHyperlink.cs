@@ -14,7 +14,7 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.TextElements;
 
 internal class MyHyperlink : IAddChild
 {
-    private Hyperlink _hyperlink;
+    private readonly Hyperlink _hyperlink;
 
     public TextElement TextElement
     {
@@ -24,18 +24,18 @@ internal class MyHyperlink : IAddChild
     public MyHyperlink(LinkInline linkInline, string? baseUrl)
     {
         var url = linkInline.GetDynamicUrl != null ? linkInline.GetDynamicUrl() : linkInline.Url;
-        _hyperlink = new Hyperlink()
+        _hyperlink = new Hyperlink
         {
-            NavigateUri = Extensions.GetUri(url, baseUrl),
+            NavigateUri = Extensions.GetUri(url, baseUrl)
         };
     }
 
     public MyHyperlink(HtmlNode htmlNode, string? baseUrl)
     {
         var url = htmlNode.GetAttributeValue("href", "#");
-        _hyperlink = new Hyperlink()
+        _hyperlink = new Hyperlink
         {
-            NavigateUri = Extensions.GetUri(url, baseUrl),
+            NavigateUri = Extensions.GetUri(url, baseUrl)
         };
     }
 

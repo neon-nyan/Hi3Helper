@@ -12,7 +12,7 @@ namespace CollapseLauncher.Interfaces
         event EventHandler FlushingTrigger;
 
         bool IsRunning { get; }
-        UIElement _parentUI { get; }
+        UIElement ParentUI { get; }
         void CancelRoutine();
         void Dispatch(DispatcherQueueHandler handler, DispatcherQueuePriority priority = DispatcherQueuePriority.Normal);
         Task DispatchAsync(Action handler, DispatcherQueuePriority priority = DispatcherQueuePriority.Normal);

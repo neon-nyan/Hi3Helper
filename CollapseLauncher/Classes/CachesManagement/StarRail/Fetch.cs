@@ -14,6 +14,7 @@ using static CollapseLauncher.GameSettings.Base.SettingsBase;
 using static Hi3Helper.Data.ConverterTool;
 using static Hi3Helper.Locale;
 using static Hi3Helper.Logger;
+// ReSharper disable SwitchStatementMissingSomeEnumCasesNoDefault
 
 namespace CollapseLauncher
 {
@@ -22,12 +23,12 @@ namespace CollapseLauncher
         private async Task<List<SRAsset>> Fetch(CancellationToken token)
         {
             // Initialize asset index for the return
-            List<SRAsset> returnAsset = new List<SRAsset>();
+            List<SRAsset> returnAsset = [];
 
             // Initialize new proxy-aware HttpClient
             using HttpClient client = new HttpClientBuilder()
-                .UseLauncherConfig(_downloadThreadCount + _downloadThreadCountReserved)
-                .SetUserAgent(_userAgent)
+                .UseLauncherConfig(DownloadThreadCount + DownloadThreadCountReserved)
+                .SetUserAgent(UserAgent)
                 .SetAllowedDecompression(DecompressionMethods.None)
                 .Create();
 
@@ -36,12 +37,12 @@ namespace CollapseLauncher
 
             // Initialize metadata
             // Set total activity string as "Fetching Caches Type: Dispatcher"
-            _status.ActivityStatus = string.Format(Lang!._CachesPage!.CachesStatusFetchingType!, CacheAssetType.Dispatcher);
-            _status.IsProgressAllIndetermined = true;
-            _status.IsIncludePerFileIndicator = false;
+            Status.ActivityStatus = string.Format(Lang!._CachesPage!.CachesStatusFetchingType!, CacheAssetType.Dispatcher);
+            Status.IsProgressAllIndetermined = true;
+            Status.IsIncludePerFileIndicator = false;
             UpdateStatus();
 
-            if (!await _innerGameVersionManager!.StarRailMetadataTool.Initialize(token, downloadClient, _httpClient_FetchAssetProgress, GetExistingGameRegionID(), Path.Combine(_gamePath!, $"{Path.GetFileNameWithoutExtension(_gameVersionManager!.GamePreset!.GameExecutableName)}_Data\\Persistent")))
+            if (!await InnerGameVersionManager!.StarRailMetadataTool.Initialize(token, downloadClient, _httpClient_FetchAssetProgress, GetExistingGameRegionID(), Path.Combine(GamePath!, $"{Path.GetFileNameWithoutExtension(GameVersionManager!.GamePreset!.GameExecutableName)}_Data\\Persistent")))
                 throw new InvalidDataException("The dispatcher response is invalid! Please open an issue to our GitHub page to report this issue.");
 
             // Iterate type and do fetch
@@ -67,8 +68,8 @@ namespace CollapseLauncher
                 LogWriteLine($"    Cache Size = {SummarizeSizeSimple(count.Item2)}", LogType.NoTag, true);
 
                 // Increment the Total Size and Count
-                Interlocked.Add(ref _progressAllCountTotal, count.Item1);
-                Interlocked.Add(ref _progressAllSizeTotal,  count.Item2);
+                Interlocked.Add(ref ProgressAllCountTotal, count.Item1);
+                Interlocked.Add(ref ProgressAllSizeTotal,  count.Item2);
             }).ConfigureAwait(false);
 
             // Return asset index
@@ -78,9 +79,9 @@ namespace CollapseLauncher
         private async Task<(int, long)> FetchByType(DownloadClient downloadClient, DownloadProgressDelegate downloadProgress, SRAssetType type, List<SRAsset> assetIndex, CancellationToken token)
         {
             // Set total activity string as "Fetching Caches Type: <type>"
-            _status.ActivityStatus = string.Format(Lang!._CachesPage!.CachesStatusFetchingType!, type);
-            _status.IsProgressAllIndetermined = true;
-            _status.IsIncludePerFileIndicator = false;
+            Status.ActivityStatus = string.Format(Lang!._CachesPage!.CachesStatusFetchingType!, type);
+            Status.IsProgressAllIndetermined = true;
+            Status.IsIncludePerFileIndicator = false;
             UpdateStatus();
 
             // Start reading the metadata and build the asset index of each type
@@ -88,18 +89,18 @@ namespace CollapseLauncher
             switch (type)
             {
                 case SRAssetType.IFix:
-                    await _innerGameVersionManager!.StarRailMetadataTool!.ReadIFixMetadataInformation(downloadClient, downloadProgress, token);
-                    assetProperty = _innerGameVersionManager!.StarRailMetadataTool!.MetadataIFix!.GetAssets();
+                    await InnerGameVersionManager!.StarRailMetadataTool!.ReadIFixMetadataInformation(downloadClient, downloadProgress, token);
+                    assetProperty = InnerGameVersionManager!.StarRailMetadataTool!.MetadataIFix!.GetAssets();
                     assetIndex!.AddRange(assetProperty!.AssetList!);
                     return (assetProperty.AssetList.Count, assetProperty.AssetTotalSize);
                 case SRAssetType.DesignData:
-                    await _innerGameVersionManager!.StarRailMetadataTool!.ReadDesignMetadataInformation(downloadClient, downloadProgress, token);
-                    assetProperty = _innerGameVersionManager.StarRailMetadataTool.MetadataDesign!.GetAssets();
+                    await InnerGameVersionManager!.StarRailMetadataTool!.ReadDesignMetadataInformation(downloadClient, downloadProgress, token);
+                    assetProperty = InnerGameVersionManager.StarRailMetadataTool.MetadataDesign!.GetAssets();
                     assetIndex!.AddRange(assetProperty!.AssetList!);
                     return (assetProperty.AssetList.Count, assetProperty.AssetTotalSize);
                 case SRAssetType.Lua:
-                    await _innerGameVersionManager!.StarRailMetadataTool!.ReadLuaMetadataInformation(downloadClient, downloadProgress, token);
-                    assetProperty = _innerGameVersionManager.StarRailMetadataTool.MetadataLua!.GetAssets();
+                    await InnerGameVersionManager!.StarRailMetadataTool!.ReadLuaMetadataInformation(downloadClient, downloadProgress, token);
+                    assetProperty = InnerGameVersionManager.StarRailMetadataTool.MetadataLua!.GetAssets();
                     assetIndex!.AddRange(assetProperty!.AssetList!);
                     return (assetProperty.AssetList.Count, assetProperty.AssetTotalSize);
             }
@@ -114,7 +115,7 @@ namespace CollapseLauncher
             object? value = RegistryRoot?.GetValue("App_LastServerName_h2577443795", null);
             if (value == null)
             {
-                return _gameVersionManager!.GamePreset!.GameDispatchDefaultName ?? throw new KeyNotFoundException("Default dispatcher name in metadata is not exist!");
+                return GameVersionManager!.GamePreset!.GameDispatchDefaultName ?? throw new KeyNotFoundException("Default dispatcher name in metadata is not exist!");
             }
 #nullable disable
 
@@ -126,13 +127,13 @@ namespace CollapseLauncher
             }
         }
 
-        private CacheAssetType ConvertCacheAssetTypeEnum(SRAssetType assetType) => assetType switch
-        {
-            SRAssetType.IFix => CacheAssetType.IFix,
-            SRAssetType.DesignData => CacheAssetType.DesignData,
-            SRAssetType.Lua => CacheAssetType.Lua,
-            _ => CacheAssetType.General
-        };
+        private static CacheAssetType ConvertCacheAssetTypeEnum(SRAssetType assetType) => assetType switch
+                                                                                          {
+                                                                                              SRAssetType.IFix => CacheAssetType.IFix,
+                                                                                              SRAssetType.DesignData => CacheAssetType.DesignData,
+                                                                                              SRAssetType.Lua => CacheAssetType.Lua,
+                                                                                              _ => CacheAssetType.General
+                                                                                          };
         #endregion
     }
 }

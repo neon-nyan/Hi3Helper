@@ -20,14 +20,14 @@ namespace CollapseLauncher.GameSettings.Honkai
     internal class PersonalAudioSetting : IGameSettingsValue<PersonalAudioSetting>
     {
         #region Fields
-        private const string _ValueName = "GENERAL_DATA_V2_PersonalAudioSetting_h3869048096";
-        private PersonalAudioSettingVolume _VolumeValue;
-        private int _MasterVolume = 100;
-        private int _BGMVolume = 100;
-        private int _SoundEffectVolume = 100;
-        private int _VoiceVolume = 100;
-        private int _ElfVolume = 100;
-        private int _CGVolumeV2 = 100;
+        private const    string                     _ValueName = "GENERAL_DATA_V2_PersonalAudioSetting_h3869048096";
+        private readonly PersonalAudioSettingVolume _VolumeValue;
+        private          int                        _MasterVolume      = 100;
+        private          int                        _BGMVolume         = 100;
+        private          int                        _SoundEffectVolume = 100;
+        private          int                        _VoiceVolume       = 100;
+        private          int                        _ElfVolume         = 100;
+        private          int                        _CGVolumeV2        = 100;
 
         public PersonalAudioSetting()
         {
@@ -152,12 +152,12 @@ namespace CollapseLauncher.GameSettings.Honkai
             get => _userCVLanguage switch
             {
                 "Japanese" => 1,
-                _ => 0,
+                _ => 0
             };
             set => _userCVLanguage = value switch
             {
                 1 => "Japanese",
-                _ => "Chinese(PRC)",
+                _ => "Chinese(PRC)"
             };
         }
 
@@ -192,7 +192,7 @@ namespace CollapseLauncher.GameSettings.Honkai
 #if DEBUG
                     LogWriteLine($"Loaded HI3 Settings: {_ValueName}\r\n{Encoding.UTF8.GetString(byteStr.TrimEnd((byte)0))}", LogType.Debug, true);
 #endif
-                    return byteStr.Deserialize(HonkaiSettingsJSONContext.Default.PersonalAudioSetting) ?? new PersonalAudioSetting();
+                    return byteStr.Deserialize(HonkaiSettingsJsonContext.Default.PersonalAudioSetting) ?? new PersonalAudioSetting();
                 }
             }
             catch (Exception ex)
@@ -216,7 +216,7 @@ namespace CollapseLauncher.GameSettings.Honkai
             {
                 if (RegistryRoot == null) throw new NullReferenceException($"Cannot save {_ValueName} since RegistryKey is unexpectedly not initialized!");
 
-                string data = this.Serialize(HonkaiSettingsJSONContext.Default.PersonalAudioSetting);
+                string data = this.Serialize(HonkaiSettingsJsonContext.Default.PersonalAudioSetting);
                 byte[] dataByte = Encoding.UTF8.GetBytes(data);
 
                 RegistryRoot.SetValue(_ValueName, dataByte, RegistryValueKind.Binary);

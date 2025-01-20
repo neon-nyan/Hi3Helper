@@ -13,30 +13,31 @@ namespace CollapseLauncher
     internal partial class HonkaiCache : ProgressBase<CacheAsset>, ICache, ICacheBase<HonkaiCache>
     {
         #region Properties
-        private string _cacheRegionalCheckName = "sprite";
-        private string _gameLang { get; set; }
-        private byte[] _gameSalt { get; set; }
-        private KianaDispatch _gameGateway { get; set; }
-        private List<CacheAsset> _updateAssetIndex { get; set; }
-        private int _luckyNumber { get; set; }
+
+        private const string           CacheRegionalCheckName = "sprite";
+        private       string           GameLang         { get; }
+        private       byte[]           GameSalt         { get; set; }
+        private       KianaDispatch    GameGateway      { get; set; }
+        private       List<CacheAsset> UpdateAssetIndex { get; set; }
+        private       int              LuckyNumber      { get; set; }
         #endregion
 
-        public HonkaiCache(UIElement parentUI, IGameVersionCheck GameVersionManager)
+        public HonkaiCache(UIElement parentUI, IGameVersionCheck gameVersionManager)
             : base(
                   parentUI,
-                  GameVersionManager!,
-                  GameVersionManager!.GameDirAppDataPath,
+                  gameVersionManager!,
+                  gameVersionManager!.GameDirAppDataPath,
                   null,
-                  GameVersionManager.GetGameVersionAPI()?.VersionString)
+                  gameVersionManager.GetGameVersionApi()?.VersionString)
         {
-            _gameLang = _gameVersionManager!.GamePreset!.GetGameLanguage() ?? "en";
+            GameLang = GameVersionManager!.GamePreset!.GetGameLanguage() ?? "en";
         }
 
         ~HonkaiCache() => Dispose();
 
         public async Task<bool> StartCheckRoutine(bool useFastCheck)
         {
-            _useFastMethod = useFastCheck;
+            UseFastMethod = useFastCheck;
             return await TryRunExamineThrow(CheckRoutine());
         }
 
@@ -46,29 +47,29 @@ namespace CollapseLauncher
             ResetStatusAndProgress();
 
             // Initialize _updateAssetIndex
-            _updateAssetIndex = new List<CacheAsset>();
+            UpdateAssetIndex = [];
 
             // Reset status and progress
             // ResetStatusAndProgress();
-            _token = new CancellationTokenSourceWrapper();
+            Token = new CancellationTokenSourceWrapper();
 
             // Step 1: Fetch asset indexes
-            _assetIndex = await Fetch(_token!.Token);
+            AssetIndex = await Fetch(Token!.Token);
 
             // Step 2: Start assets checking
-            _updateAssetIndex = await Check(_assetIndex, _token!.Token);
+            UpdateAssetIndex = await Check(AssetIndex, Token!.Token);
 
             // Step 3: Summarize and returns true if the assetIndex count != 0 indicates caches needs to be update.
             //         either way, returns false.
             return SummarizeStatusAndProgress(
-                _updateAssetIndex,
-                string.Format(Lang!._CachesPage!.CachesStatusNeedUpdate!, _progressAllCountFound, ConverterTool.SummarizeSizeSimple(_progressAllSizeFound)),
+                UpdateAssetIndex,
+                string.Format(Lang!._CachesPage!.CachesStatusNeedUpdate!, ProgressAllCountFound, ConverterTool.SummarizeSizeSimple(ProgressAllSizeFound)),
                 Lang._CachesPage.CachesStatusUpToDate);
         }
 
         public async Task StartUpdateRoutine(bool showInteractivePrompt = false)
         {
-            if (_updateAssetIndex!.Count == 0) throw new InvalidOperationException("There's no cache file need to be update! You can't do the update process!");
+            if (UpdateAssetIndex!.Count == 0) throw new InvalidOperationException("There's no cache file need to be update! You can't do the update process!");
 
             _ = await TryRunExamineThrow(UpdateRoutine());
         }
@@ -76,7 +77,7 @@ namespace CollapseLauncher
         private async Task<bool> UpdateRoutine()
         {
             // Assign update task
-            Task<bool> updateTask = Update(_updateAssetIndex, _assetIndex, _token!.Token);
+            Task<bool> updateTask = Update(UpdateAssetIndex, AssetIndex, Token!.Token);
 
             // Run update process
             bool updateTaskSuccess = await TryRunExamineThrow(updateTask);
@@ -85,15 +86,15 @@ namespace CollapseLauncher
             ResetStatusAndProgress();
 
             // Set as completed
-            _status.IsCompleted = true;
-            _status.IsCanceled = false;
-            _status.ActivityStatus = Lang!._CachesPage!.CachesStatusUpToDate;
+            Status.IsCompleted = true;
+            Status.IsCanceled = false;
+            Status.ActivityStatus = Lang!._CachesPage!.CachesStatusUpToDate;
 
             // Update status and progress
             UpdateAll();
 
             // Clean up _updateAssetIndex
-            _updateAssetIndex!.Clear();
+            UpdateAssetIndex!.Clear();
 
             return updateTaskSuccess;
         }
@@ -102,12 +103,13 @@ namespace CollapseLauncher
 
         public void CancelRoutine()
         {
-            _token!.Cancel();
+            Token!.Cancel();
         }
 
         public void Dispose()
         {
             CancelRoutine();
+            GC.SuppressFinalize(this);
         }
     }
 }

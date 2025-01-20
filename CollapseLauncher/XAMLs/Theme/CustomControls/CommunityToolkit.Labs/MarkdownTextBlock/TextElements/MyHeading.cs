@@ -12,8 +12,8 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.TextElements;
 
 internal class MyHeading : IAddChild
 {
-    private Paragraph _paragraph;
-    private HtmlNode? _htmlNode;
+    private readonly Paragraph _paragraph;
+    private readonly HtmlNode? _htmlNode;
 
     public bool IsHtml => _htmlNode != null;
 
@@ -35,7 +35,7 @@ internal class MyHeading : IAddChild
             3 => _config.Themes.H3FontSize,
             4 => _config.Themes.H4FontSize,
             5 => _config.Themes.H5FontSize,
-            _ => _config.Themes.H6FontSize,
+            _ => _config.Themes.H6FontSize
         };
         _paragraph.Foreground = _config.Themes.HeadingForeground;
         _paragraph.FontWeight = level switch
@@ -45,7 +45,7 @@ internal class MyHeading : IAddChild
             3 => _config.Themes.H3FontWeight,
             4 => _config.Themes.H4FontWeight,
             5 => _config.Themes.H5FontWeight,
-            _ => _config.Themes.H6FontWeight,
+            _ => _config.Themes.H6FontWeight
         };
         _paragraph.Margin = new Thickness(0, 8, 0, level switch
         {
@@ -69,7 +69,7 @@ internal class MyHeading : IAddChild
             "right" => TextAlignment.Right,
             "center" => TextAlignment.Center,
             "justify" => TextAlignment.Justify,
-            _ => TextAlignment.Left,
+            _ => TextAlignment.Left
         };
 
         var level = int.Parse(htmlNode.Name.Substring(1));
@@ -80,7 +80,7 @@ internal class MyHeading : IAddChild
             3 => _config.Themes.H3FontSize,
             4 => _config.Themes.H4FontSize,
             5 => _config.Themes.H5FontSize,
-            _ => _config.Themes.H6FontSize,
+            _ => _config.Themes.H6FontSize
         };
         _paragraph.Foreground = _config.Themes.HeadingForeground;
         _paragraph.FontWeight = level switch
@@ -90,7 +90,7 @@ internal class MyHeading : IAddChild
             3 => _config.Themes.H3FontWeight,
             4 => _config.Themes.H4FontWeight,
             5 => _config.Themes.H5FontWeight,
-            _ => _config.Themes.H6FontWeight,
+            _ => _config.Themes.H6FontWeight
         };
     }
 

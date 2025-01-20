@@ -20,7 +20,7 @@ using System.Threading.Tasks;
 namespace CollapseLauncher
 {
     [JsonSerializable(typeof(ZenlessResManifestAsset))]
-    [JsonSourceGenerationOptions(AllowOutOfOrderMetadataProperties = true, AllowTrailingCommas = true)]
+    [JsonSourceGenerationOptions(AllowOutOfOrderMetadataProperties = true, AllowTrailingCommas = true, GenerationMode = JsonSourceGenerationMode.Metadata, IncludeFields = false, IgnoreReadOnlyFields = true)]
     internal partial class ZenlessManifestContext : JsonSerializerContext { }
 
     internal static class ZenlessRepairExtensions
@@ -220,7 +220,7 @@ namespace CollapseLauncher
             string? currentLine;
             while (!string.IsNullOrEmpty(currentLine = await reader.ReadLineAsync(token)))
             {
-                PkgVersionProperties? property = currentLine.Deserialize(CoreLibraryJSONContext.Default.PkgVersionProperties);
+                PkgVersionProperties? property = currentLine.Deserialize(CoreLibraryJsonContext.Default.PkgVersionProperties);
                 if (property == null)
                     continue;
 

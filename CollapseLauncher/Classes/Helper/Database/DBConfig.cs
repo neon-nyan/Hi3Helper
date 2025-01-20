@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 
 namespace CollapseLauncher.Helper.Database
 {
@@ -11,12 +12,12 @@ namespace CollapseLauncher.Helper.Database
     {
         #region Properties
 
-        private static readonly string _configFolder = LauncherConfig.AppDataFolder;
+        private static readonly string ConfigFolder = LauncherConfig.AppDataFolder;
 
-        private const string _configFileName = "dbConfig.ini";
+        private const string ConfigFileName = "dbConfig.ini";
         private const string DbSectionName   = "database";
 
-        private static readonly string _configPath = Path.Combine(_configFolder, _configFileName);
+        private static readonly string ConfigPath = Path.Combine(ConfigFolder, ConfigFileName);
 
         // ReSharper disable once FieldCanBeMadeReadOnly.Local
         private static IniFile _config = new();
@@ -34,33 +35,30 @@ namespace CollapseLauncher.Helper.Database
 
         private static void EnsureConfigExist()
         {
-            if (File.Exists(_configPath)) return;
+            if (File.Exists(ConfigPath)) return;
 
-            var f = File.Create(_configPath);
+            var f = File.Create(ConfigPath);
             f.Close();
         }
 
         private static void DefaultChecker()
         {
-            foreach (KeyValuePair<string, IniValue> Entry in DbSettingsTemplate)
+            foreach (KeyValuePair<string, IniValue> entry in DbSettingsTemplate.Where(bool (entry) => !_config[DbSectionName].ContainsKey(entry.Key)
+                                                                                                      || string.IsNullOrEmpty(_config[DbSectionName][entry.Key])))
             {
-                if (!_config[DbSectionName].ContainsKey(Entry.Key) ||
-                    string.IsNullOrEmpty(_config[DbSectionName][Entry.Key]))
-                {
-                    SetValue(Entry.Key, Entry.Value);
-                }
+                SetValue(entry.Key, entry.Value);
             }
         }
 
         private static void Load()
         {
-            if (File.Exists(_configPath))
+            if (File.Exists(ConfigPath))
             {
-                _config.Load(_configPath);
+                _config.Load(ConfigPath);
             }
         }
 
-        private static void Save() => _config.Save(_configPath);
+        private static void Save() => _config.Save(ConfigPath);
         
         public static IniValue GetConfig(string key) => _config[DbSectionName][key];
 

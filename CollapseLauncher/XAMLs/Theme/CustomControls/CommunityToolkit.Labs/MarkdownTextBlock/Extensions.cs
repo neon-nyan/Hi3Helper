@@ -589,49 +589,19 @@ public static class Extensions
 
     public static HtmlElementType TagToType(this string tag)
     {
-        switch (tag.ToLower())
-        {
-            case "address":
-            case "article":
-            case "aside":
-            case "details":
-            case "blockquote":
-            case "canvas":
-            case "dd":
-            case "div":
-            case "dl":
-            case "dt":
-            case "fieldset":
-            case "figcaption":
-            case "figure":
-            case "footer":
-            case "form":
-            case "h1":
-            case "h2":
-            case "h3":
-            case "h4":
-            case "h5":
-            case "h6":
-            case "header":
-            case "hr":
-            case "li":
-            case "main":
-            case "nav":
-            case "noscript":
-            case "ol":
-            case "p":
-            case "pre":
-            case "section":
-            case "table":
-            case "tfoot":
-            case "ul": return HtmlElementType.Block;
-            default: return HtmlElementType.Inline;
-        }
+        return tag.ToLower() switch
+               {
+                   "address" or "article" or "aside" or "details" or "blockquote" or "canvas" or "dd" or "div" or "dl"
+                    or "dt" or "fieldset" or "figcaption" or "figure" or "footer" or "form" or "h1" or "h2" or "h3"
+                    or "h4" or "h5" or "h6" or "header" or "hr" or "li" or "main" or "nav" or "noscript" or "ol" or "p"
+                    or "pre" or "section" or "table" or "tfoot" or "ul" => HtmlElementType.Block,
+                   _ => HtmlElementType.Inline
+               };
     }
 
     public static bool IsHeading(this string tag)
     {
-        var headings = new List<string>() { "h1", "h2", "h3", "h4", "h5", "h6" };
+        List<string> headings = ["h1", "h2", "h3", "h4", "h5", "h6"];
         return headings.Contains(tag.ToLower());
     }
 
@@ -652,7 +622,7 @@ public static class Extensions
         double.TryParse(widthAttribute?.Value, NumberStyles.Number, CultureInfo.InvariantCulture, out double width);
 
         // Return the height and width as a tuple
-        return new(width, height);
+        return new Size(width, height);
     }
 
     public static Size GetMarkdownImageSize(LinkInline link)
@@ -675,7 +645,7 @@ public static class Extensions
             var dimensions = parts[1].Split('x');
             if (dimensions.Length == 2 && int.TryParse(dimensions[0], out int width) && int.TryParse(dimensions[1], out int height))
             {
-                return new(width, height);
+                return new Size(width, height);
             }
         }
 
@@ -693,7 +663,7 @@ public static class Extensions
         //}
 
         // Return default values if no width and height are found
-        return new(0, 0);
+        return new Size(0, 0);
     }
 
     public static SolidColorBrush GetAccentColorBrush()

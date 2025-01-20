@@ -1,6 +1,6 @@
 ﻿namespace CollapseLauncher.Interfaces
 {
-    internal interface ICacheBase<T>
+    internal interface ICacheBase<out T>
     {
         T AsBaseType();
     }

@@ -12,7 +12,7 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.TextElements;
 
 internal class MyThematicBreak : IAddChild
 {
-    private Paragraph _paragraph;
+    private readonly Paragraph _paragraph;
 
     public TextElement TextElement
     {
@@ -24,13 +24,15 @@ internal class MyThematicBreak : IAddChild
         _paragraph = new Paragraph();
 
         var inlineUIContainer = new InlineUIContainer();
-        var border = new Border();
-        border.Width = 500;
-        border.BorderThickness = new Thickness(1);
-        border.Margin = new Thickness(0, 4, 0, 4);
-        border.BorderBrush = new SolidColorBrush(Colors.Gray);
-        border.Height = 1;
-        border.HorizontalAlignment = HorizontalAlignment.Stretch;
+        var border            = new Border
+        {
+            Width               = 500,
+            BorderThickness     = new Thickness(1),
+            Margin              = new Thickness(0, 4, 0, 4),
+            BorderBrush         = new SolidColorBrush(Colors.Gray),
+            Height              = 1,
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
         inlineUIContainer.Child = border;
         _paragraph.Inlines.Add(inlineUIContainer);
     }

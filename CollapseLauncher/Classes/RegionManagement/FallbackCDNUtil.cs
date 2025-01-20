@@ -24,6 +24,8 @@ using Squirrel.Sources;
 #else
 using System.Text;
 using Velopack.Sources;
+// ReSharper disable InconsistentNaming
+#pragma warning disable CA1068
 #endif
 
 namespace CollapseLauncher
@@ -101,22 +103,22 @@ namespace CollapseLauncher
             return Encoding.UTF8.GetString(buffer);
         }
 
-        private string[]? CdnBaseUrls;
+        private string[]? _cdnBaseUrls;
         private string GetRelativePathOnly(string url)
         {
             // Populate the CDN Base URLs if the field is null
-            CdnBaseUrls ??= CDNList.Select(x => x.URLPrefix).ToArray();
+            _cdnBaseUrls ??= CDNList.Select(x => x.URLPrefix).ToArray();
 
             // Get URL span and iterate through the CDN Base URLs
             ReadOnlySpan<char> urlSpan = url.AsSpan();
-            for (int i = 0; i < CdnBaseUrls.Length; i++)
+            for (int i = _cdnBaseUrls.Length - 1; i >= 0; i--)
             {
                 // Get the index of the base URL. If not found (-1), then continue
-                int indexOf = urlSpan.IndexOf(CdnBaseUrls[i], StringComparison.OrdinalIgnoreCase);
+                int indexOf = urlSpan.IndexOf(_cdnBaseUrls[i], StringComparison.OrdinalIgnoreCase);
                 if (indexOf < 0) continue;
 
                 // Otherwise, slice the urlSpan based on the index and return the sliced relative URL.
-                return urlSpan.Slice(indexOf + CdnBaseUrls[i].Length).ToString();
+                return urlSpan[(indexOf + _cdnBaseUrls[i].Length)..].ToString();
             }
 
             // If it's not a CDN-based url, return it anyway.
@@ -145,7 +147,7 @@ namespace CollapseLauncher
 
         private CDNUtilHTTPStatus(bool isInitializationError) => IsInitializationError = isInitializationError;
 
-        internal static CDNUtilHTTPStatus CreateInitializationError() => new CDNUtilHTTPStatus(true);
+        internal static CDNUtilHTTPStatus CreateInitializationError() => new(true);
     }
 
     internal readonly struct UrlStatus
@@ -188,7 +190,7 @@ namespace CollapseLauncher
                 .SetAllowedDecompression(DecompressionMethods.None)
                 .Create();
 
-            LogWriteLine($"[FallbackCDNUtil::ReinitializeHttpClient()] HttpClient under FallbackCDNUtil has been successfully initialized", LogType.Default, true);
+            LogWriteLine("[FallbackCDNUtil::ReinitializeHttpClient()] HttpClient under FallbackCDNUtil has been successfully initialized", LogType.Default, true);
         }
 
         public static event EventHandler<DownloadEvent> DownloadProgress;
@@ -210,13 +212,15 @@ namespace CollapseLauncher
             {
                 isSuccess = await TryGetCDNContent(fallbackCDN, downloadClient, outputPath, relativeURL, parallelThread, token);
 
-                // If successful, then return
-                if (isSuccess)
+                if (!isSuccess)
                 {
-                    var i = CDNList.IndexOf(fallbackCDN);
-                    SetAndSaveConfigValue("CurrentCDN", i);
-                    return;
+                    continue;
                 }
+
+                // If successful, then return
+                var i = CDNList.IndexOf(fallbackCDN);
+                SetAndSaveConfigValue("CurrentCDN", i);
+                return;
             }
 
             // If all of them failed, then throw an exception
@@ -248,13 +252,15 @@ namespace CollapseLauncher
             {
                 isSuccess = await TryGetCDNContent(fallbackCDN, downloadClient, outputStream, relativeURL, token);
 
-                // If successful, then return
-                if (isSuccess)
+                if (!isSuccess)
                 {
-                    var i = CDNList.IndexOf(fallbackCDN);
-                    SetAndSaveConfigValue("CurrentCDN", i);
-                    return;
+                    continue;
                 }
+
+                // If successful, then return
+                var i = CDNList.IndexOf(fallbackCDN);
+                SetAndSaveConfigValue("CurrentCDN", i);
+                return;
             }
 
             // If all of them failed, then throw an exception
@@ -296,8 +302,8 @@ namespace CollapseLauncher
         private static void PerformStreamCheckAndSeek(Stream outputStream)
         {
             // Throw if output stream can't write and seek
-            if (!outputStream.CanWrite) throw new ArgumentException($"outputStream must be writable!", "outputStream");
-            if (!outputStream.CanSeek) throw new ArgumentException($"outputStream must be seekable!", "outputStream");
+            if (!outputStream.CanWrite) throw new ArgumentException("outputStream must be writable!", "outputStream");
+            if (!outputStream.CanSeek) throw new ArgumentException("outputStream must be seekable!", "outputStream");
 
             // Reset the outputStream position
             outputStream.Position = 0;
@@ -431,15 +437,16 @@ namespace CollapseLauncher
             // Try check the status of the URL
             (HttpStatusCode, bool) returnCode = await downloadClient.GetURLStatus(absoluteURL, token);
 
-            // If it's not a successful code, then return false
-            if (!returnCode.Item2)
+            if (returnCode.Item2)
             {
-                LogWriteLine($"CDN content from: {cdnProp.Name} (prefix: {cdnProp.URLPrefix}) (relPath: {relativeURL}) has returned error code: {returnCode.Item1} ({(int)returnCode.Item1})", LogType.Error, true);
-                return (false, absoluteURL);
+                return (true, absoluteURL);
             }
 
+            // If it's not a successful code, then return false
+            LogWriteLine($"CDN content from: {cdnProp.Name} (prefix: {cdnProp.URLPrefix}) (relPath: {relativeURL}) has returned error code: {returnCode.Item1} ({(int)returnCode.Item1})", LogType.Error, true);
+            return (false, absoluteURL);
+
             // Otherwise, return true
-            return (true, absoluteURL);
         }
 
         private static async ValueTask<CDNUtilHTTPStatus> TryGetURLStatus(CDNURLProperty cdnProp, string relativeURL, CancellationToken token, bool isUncompressRequest)
@@ -475,11 +482,13 @@ namespace CollapseLauncher
             var cdnIndex = GetAppConfigValue("CurrentCDN").ToInt();
 
             // Fallback to the first CDN if index < 0 or > length of the list
-            if (cdnIndex < 0 || cdnIndex > CDNList.Count - 1)
+            if (cdnIndex >= 0 && cdnIndex <= CDNList.Count - 1)
             {
-                cdnIndex = 0;
-                SetAndSaveConfigValue("CurrentCDN", 0);
+                return CDNList[cdnIndex];
             }
+
+            cdnIndex = 0;
+            SetAndSaveConfigValue("CurrentCDN", 0);
 
             // Return the CDN property as per index
             return CDNList[cdnIndex];
@@ -488,7 +497,7 @@ namespace CollapseLauncher
         #nullable enable
         public static async Task<HttpResponseMessage> GetURLHttpResponse(string Url,
                                                                           CancellationToken token,
-                                                                          bool isForceUncompressRequest = false,
+                                                                          bool isForceUncompressedRequest = false,
                                                                           int maxRetries = 3,
                                                                           int delayMilliseconds = 1000)
         {
@@ -499,7 +508,7 @@ namespace CollapseLauncher
                 try
                 {
                     HttpResponseMessage hR;
-                    if (isForceUncompressRequest)
+                    if (isForceUncompressedRequest)
                     {
                         hR = await _clientNoCompression.GetURLHttpResponse(Url, HttpMethod.Get, token);
                     }
@@ -541,7 +550,7 @@ namespace CollapseLauncher
                 {
                     return await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token);
                 }
-                catch (Exception ex) when (!(ex is OperationCanceledException))
+                catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     LogWriteLine("Failed to get URL response from: " + url + "\r\n" + ex, LogType.Error, true);
                     if (attempt >= maxRetries - 1)
@@ -609,7 +618,7 @@ namespace CollapseLauncher
                         stopwatch.Restart();
                         // Get the URL Status then return boolean and URLStatus
                         CDNUtilHTTPStatus urlStatus = await TryGetURLStatus(CDNList[i], fileAsPingTarget, tokenSource.Token, true);
-                        latencyAvgArr[j] = !(isSuccess = urlStatus.IsSuccessStatusCode && !urlStatus.IsInitializationError) ? long.MaxValue : stopwatch.ElapsedMilliseconds;
+                        latencyAvgArr[j] = !(isSuccess = urlStatus is { IsSuccessStatusCode: true, IsInitializationError: false }) ? long.MaxValue : stopwatch.ElapsedMilliseconds;
                     }
 
                     // Get the average latency of the CDN.
@@ -630,7 +639,7 @@ namespace CollapseLauncher
             if (indexOf < 0)
                 return URL;
 
-            string relativeURL = URL.Substring(indexOf);
+            string relativeURL = URL[indexOf..];
 
             CDNURLProperty preferredCDN = GetPreferredCDN();
             string cdnParentURL = preferredCDN.URLPrefix;

@@ -11,6 +11,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using static Hi3Helper.Logger;
+// ReSharper disable IdentifierTypo
+// ReSharper disable AsyncVoidMethod
 
 namespace CollapseLauncher
 {
@@ -20,7 +22,7 @@ namespace CollapseLauncher
         {
             try
             {
-                this.InitializeComponent();
+                InitializeComponent();
                 WindowUtility.SetWindowBackdrop(WindowBackdropKind.Mica);
                 OverlayFrame.Navigate(typeof(Pages.NullPage));
                 InitializeRegionComboBox();
@@ -80,12 +82,14 @@ namespace CollapseLauncher
             if (OverlayFrame?.CanGoBack ?? false)
                 OverlayFrame?.GoBack();
 
-            if (!(OverlayFrame?.CanGoBack ?? false) && sender is Button btn)
+            if ((OverlayFrame?.CanGoBack ?? false) || sender is not Button btn)
             {
-                btn.Visibility = Visibility.Collapsed;
-                OverlayFrameBg.Visibility = Visibility.Collapsed;
-                FrontGrid.Visibility = Visibility.Visible;
+                return;
             }
+
+            btn.Visibility            = Visibility.Collapsed;
+            OverlayFrameBg.Visibility = Visibility.Collapsed;
+            FrontGrid.Visibility      = Visibility.Visible;
         }
 
         private void SetGameCategoryChange(object sender, SelectionChangedEventArgs e)

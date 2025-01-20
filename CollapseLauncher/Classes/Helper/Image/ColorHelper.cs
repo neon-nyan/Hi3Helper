@@ -10,18 +10,18 @@ using WColor = Windows.UI.Color;
 namespace CollapseLauncher.Helper.Image
 {
     [StructLayout(LayoutKind.Sequential)]
-    internal struct HLSColor
+    internal struct HlsColor
     {
         internal int hue;
         internal int saturation;
         internal int luminosity;
 
-        public static HLSColor CreateFromWindowsColor(WColor color)
+        public static HlsColor CreateFromWindowsColor(WColor color)
         {
-            return new HLSColor(Color.FromArgb(color.A, color.R, color.G, color.B));
+            return new HlsColor(Color.FromArgb(color.A, color.R, color.G, color.B));
         }
 
-        public HLSColor(Color color)
+        public HlsColor(Color color)
         {
             int r = color.R;
             int g = color.G;
@@ -75,17 +75,17 @@ namespace CollapseLauncher.Helper.Image
             }
         }
 
-        public Color Lighter(float percLighter)
+        public Color Lighter(float percentLighter)
         {
-            int lumi = this.luminosity;
+            int luminosityLocal = luminosity;
             int num5 = NewLuma(500, true);
-            return ColorFromHLS(hue, lumi + (int)((num5 - lumi) * percLighter), saturation);
+            return ColorFromHls(hue, luminosityLocal + (int)((num5 - luminosityLocal) * percentLighter), saturation);
         }
 
-        public Color Darker(float percDarker)
+        public Color Darker(float percentDarker)
         {
             int num5 = NewLuma(-333, true);
-            return ColorFromHLS(hue, num5 - (int)(num5 * percDarker), saturation);
+            return ColorFromHls(hue, num5 - (int)(num5 * percentDarker), saturation);
         }
 
         private int NewLuma(int n, bool scale)
@@ -93,24 +93,24 @@ namespace CollapseLauncher.Helper.Image
             return NewLuma(luminosity, n, scale);
         }
 
-        private int NewLuma(int lumi, int n, bool scale)
+        private static int NewLuma(int luminanceLocal, int n, bool scale)
         {
             if (n == 0)
             {
-                return lumi;
+                return luminanceLocal;
             }
 
             if (scale)
             {
                 if (n > 0)
                 {
-                    return (int)((lumi * (0x3e8 - n) + 0xf1L * n) / 0x3e8L);
+                    return (int)((luminanceLocal * (0x3e8 - n) + 0xf1L * n) / 0x3e8L);
                 }
 
-                return lumi * (n + 0x3e8) / 0x3e8;
+                return luminanceLocal * (n + 0x3e8) / 0x3e8;
             }
 
-            int num = lumi;
+            int num = luminanceLocal;
             num += (int)(n * 240L / 0x3e8L);
             if (num < 0)
             {
@@ -125,7 +125,7 @@ namespace CollapseLauncher.Helper.Image
             return num;
         }
 
-        internal Color ColorFromHLS(int thisHue, int thisLuminosity, int thisSaturation)
+        internal static Color ColorFromHls(int thisHue, int thisLuminosity, int thisSaturation)
         {
             byte num;
             byte num2;
@@ -150,15 +150,15 @@ namespace CollapseLauncher.Helper.Image
                 }
 
                 int num4 = 2 * thisLuminosity - num5;
-                num = (byte)((HueToRGB(num4, num5, thisHue + 80) * 0xff + 120) / 240);
-                num2 = (byte)((HueToRGB(num4, num5, thisHue) * 0xff + 120) / 240);
-                num3 = (byte)((HueToRGB(num4, num5, thisHue - 80) * 0xff + 120) / 240);
+                num = (byte)((HueToRgb(num4, num5, thisHue + 80) * 0xff + 120) / 240);
+                num2 = (byte)((HueToRgb(num4, num5, thisHue) * 0xff + 120) / 240);
+                num3 = (byte)((HueToRgb(num4, num5, thisHue - 80) * 0xff + 120) / 240);
             }
 
             return Color.FromArgb(num, num2, num3);
         }
 
-        private int HueToRGB(int n1, int n2, int thisHue)
+        private static int HueToRgb(int n1, int n2, int thisHue)
         {
             if (thisHue < 0)
             {
@@ -184,20 +184,20 @@ namespace CollapseLauncher.Helper.Image
     {
         internal static WColor GetDarkColor(this WColor baseColor)
         {
-            HLSColor color = HLSColor.CreateFromWindowsColor(baseColor);
+            HlsColor color = HlsColor.CreateFromWindowsColor(baseColor);
             return color.Darker(0.3f).ToWColor();
         }
 
         internal static WColor GetLightColor(this WColor baseColor)
         {
-            HLSColor color = HLSColor.CreateFromWindowsColor(baseColor);
+            HlsColor color = HlsColor.CreateFromWindowsColor(baseColor);
             return color.Lighter(1f).ToWColor();
         }
 
         internal static WColor SetSaturation(this WColor baseColor, double saturation)
         {
-            HLSColor color = HLSColor.CreateFromWindowsColor(baseColor);
-            Color colorFromHls = color.ColorFromHLS(color.hue, color.luminosity,
+            HlsColor color = HlsColor.CreateFromWindowsColor(baseColor);
+            Color colorFromHls = HlsColor.ColorFromHls(color.hue, color.luminosity,
                 (int)Math.Round(color.saturation * saturation, 2));
             return WColor.FromArgb(colorFromHls.A, colorFromHls.R, colorFromHls.G, colorFromHls.B);
         }

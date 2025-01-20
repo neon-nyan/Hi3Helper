@@ -13,11 +13,11 @@ namespace CommunityToolkit.Labs.WinUI.Labs.MarkdownTextBlock.TextElements;
 
 internal class MyHyperlinkButton : IAddChild
 {
-    private HyperlinkButton? _hyperLinkButton;
-    private InlineUIContainer _inlineUIContainer = new InlineUIContainer();
-    private MyFlowDocument? _flowDoc;
-    private LinkInline? _linkInline;
-    private HtmlNode? _htmlNode;
+    private          HyperlinkButton?  _hyperLinkButton;
+    private readonly InlineUIContainer _inlineUIContainer = new();
+    private          MyFlowDocument?   _flowDoc;
+    private readonly LinkInline?       _linkInline;
+    private readonly HtmlNode?         _htmlNode;
 
     public bool IsHtml => _htmlNode != null;
 
@@ -42,12 +42,12 @@ internal class MyHyperlinkButton : IAddChild
 
     private void Init(string? url, string? baseUrl)
     {
-        _hyperLinkButton = new HyperlinkButton()
+        _hyperLinkButton = new HyperlinkButton
         {
             NavigateUri = Extensions.GetUri(url, baseUrl),
+            Padding     = new Thickness(0),
+            Margin      = new Thickness(0)
         };
-        _hyperLinkButton.Padding = new Thickness(0);
-        _hyperLinkButton.Margin = new Thickness(0);
         if (IsHtml && _htmlNode != null)
         {
             _flowDoc = new MyFlowDocument();

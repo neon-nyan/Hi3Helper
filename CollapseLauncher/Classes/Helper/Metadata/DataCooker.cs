@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 
+// ReSharper disable IdentifierTypo
 using ZstdDecompressStream = ZstdNet.DecompressionStream;
 
 namespace CollapseLauncher.Helper.Metadata
@@ -83,9 +84,9 @@ namespace CollapseLauncher.Helper.Metadata
                                          int                decompressedSize, out int    dataWritten)
         {
             GetServeV3Attribute(data, out CompressionType compressionType, out bool isUseEncryption);
-            const int READ_OFFSET = sizeof(long) * 4;
+            const int readOffset = sizeof(long) * 4;
 
-            ReadOnlySpan<byte> dataRawBuffer     = data[READ_OFFSET..];
+            ReadOnlySpan<byte> dataRawBuffer     = data[readOffset..];
             byte[]             decryptedDataSpan = null;
             int                encBitLength      = LauncherMetadataHelper.CurrentMasterKey?.BitSize ?? 0;
 
@@ -148,7 +149,7 @@ namespace CollapseLauncher.Helper.Metadata
                     case CompressionType.None:
                         if (!isUseEncryption)
                         {
-                            data.Slice(READ_OFFSET, decompressedSize).CopyTo(outData);
+                            data.Slice(readOffset, decompressedSize).CopyTo(outData);
                         }
 
                         dataWritten = decompressedSize;

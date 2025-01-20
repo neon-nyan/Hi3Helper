@@ -10,6 +10,8 @@ using static CollapseLauncher.Helper.Image.Waifu2X;
 // ReSharper disable IdentifierTypo
 // ReSharper disable InconsistentNaming
 // ReSharper disable PartialTypeWithSinglePart
+// ReSharper disable StringLiteralTypo
+// ReSharper disable SwitchStatementHandlesSomeKnownEnumValuesWithDefault
 
 namespace CollapseLauncher.Helper.Image
 {
@@ -119,7 +121,7 @@ namespace CollapseLauncher.Helper.Image
         {
             Noise,
             Scale,
-            TileSize,
+            TileSize
         }
 
         public enum Waifu2XStatus
@@ -133,16 +135,16 @@ namespace CollapseLauncher.Helper.Image
             Error,
             NotAvailable = Error,
             TestNotPassed,
-            NotInitialized,
+            NotInitialized
         }
         #endregion
 
         #region Properties
         private IntPtr _context;
-        private Waifu2XStatus _status;
+
         #endregion
 
-        public Waifu2XStatus Status => _status;
+        public Waifu2XStatus Status { get; private set; }
 
         #region Main Methods
         public Waifu2X()
@@ -150,21 +152,21 @@ namespace CollapseLauncher.Helper.Image
             try
             {
                 var gpuId = -1; // Do not touch Vulkan before VulkanTest.
-                _status = VulkanTest();
-                if (_status == Waifu2XStatus.Ok)
+                Status = VulkanTest();
+                if (Status == Waifu2XStatus.Ok)
                     gpuId = Ncnn.DefaultGpuIndex;
                 _context = Waifu2XPInvoke.waifu2x_create(gpuId, false, 0);
                 Logger.LogWriteLine($"Waifu2X initialized successfully with device: {Ncnn.GetGpuName(gpuId)}", LogType.Default, true);
             }
             catch ( DllNotFoundException ex )
             {
-                _status = Waifu2XStatus.NotAvailable;
+                Status = Waifu2XStatus.NotAvailable;
                 Logger.LogWriteLine("Dll file \"waifu2x-ncnn-vulkan.dll\" can not be found. Waifu2X feature will be disabled.", LogType.Error, true);
                 SentryHelper.ExceptionHandler(ex, SentryHelper.ExceptionType.UnhandledOther);
             }
             catch ( Exception ex )
             {
-                _status = Waifu2XStatus.Error;
+                Status = Waifu2XStatus.Error;
                 Logger.LogWriteLine($"There was an error when loading Waifu2X!\r\n{ex}", LogType.Error, true);
                 SentryHelper.ExceptionHandler(ex, SentryHelper.ExceptionType.UnhandledOther);
             }
@@ -172,13 +174,15 @@ namespace CollapseLauncher.Helper.Image
 
         public void Dispose()
         {
-            if (_context != 0)
+            if (_context == 0)
             {
-                Waifu2XPInvoke.waifu2x_destroy(_context);
-                _context = 0;
-                _status = Waifu2XStatus.NotInitialized;
-                Logger.LogWriteLine("Waifu2X is destroyed!");
+                return;
             }
+
+            Waifu2XPInvoke.waifu2x_destroy(_context);
+            _context = 0;
+            Status   = Waifu2XStatus.NotInitialized;
+            Logger.LogWriteLine("Waifu2X is destroyed!");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -203,7 +207,7 @@ namespace CollapseLauncher.Helper.Image
             }
             catch (IOException ex)
             {
-                _status = Waifu2XStatus.TestNotPassed;
+                Status = Waifu2XStatus.TestNotPassed;
                 Logger.LogWriteLine("Waifu2X model file can not be found. Waifu2X feature will be disabled.", LogType.Error, true);
                 SentryHelper.ExceptionHandler(ex, SentryHelper.ExceptionType.UnhandledOther);
                 return false;
@@ -291,27 +295,29 @@ namespace CollapseLauncher.Helper.Image
 
         private bool ProcessTest()
         {
-            if (Status < Waifu2XStatus.Error)
+            if (Status >= Waifu2XStatus.Error)
             {
-                _status = Waifu2XPInvoke.waifu2x_self_test(_context);
-                switch (_status)
-                {
-                    case Waifu2XStatus.TestNotPassed:
-                        Logger.LogWriteLine("Waifu2X self-test failed, got an empty output image.", LogType.Error, true);
-                        break;
-                    case Waifu2XStatus.NotAvailable:
-                        Logger.LogWriteLine("An error occurred while processing the image.", LogType.Error, true);
-                        break;
-                    case Waifu2XStatus.Ok:
-                        Logger.LogWriteLine("Waifu2X self-test passed, you can use Waifu2X function normally.", LogType.Default, true);
-                        break;
-                    default:
-                        Logger.LogWriteLine("Waifu2X: Unknown return value from waifu2x_self_test.", LogType.Error, true);
-                        _status = Waifu2XStatus.NotAvailable;
-                        break;
-                }
+                return Status == Waifu2XStatus.Ok;
             }
-            return _status == Waifu2XStatus.Ok;
+
+            Status = Waifu2XPInvoke.waifu2x_self_test(_context);
+            switch (Status)
+            {
+                case Waifu2XStatus.TestNotPassed:
+                    Logger.LogWriteLine("Waifu2X self-test failed, got an empty output image.", LogType.Error, true);
+                    break;
+                case Waifu2XStatus.NotAvailable:
+                    Logger.LogWriteLine("An error occurred while processing the image.", LogType.Error, true);
+                    break;
+                case Waifu2XStatus.Ok:
+                    Logger.LogWriteLine("Waifu2X self-test passed, you can use Waifu2X function normally.", LogType.Default, true);
+                    break;
+                default:
+                    Logger.LogWriteLine("Waifu2X: Unknown return value from waifu2x_self_test.", LogType.Error, true);
+                    Status = Waifu2XStatus.NotAvailable;
+                    break;
+            }
+            return Status == Waifu2XStatus.Ok;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

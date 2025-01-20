@@ -47,7 +47,7 @@ namespace CollapseLauncher.GameSettings.Genshin
 #if DEBUG
                     LogWriteLine($"Loaded Genshin Settings: {_ValueName} : {value}", LogType.Debug, true);
 #endif 
-                    return new VisibleBackground() { borderless = borderless };
+                    return new VisibleBackground { borderless = borderless };
                 }
             }
             catch (Exception ex)

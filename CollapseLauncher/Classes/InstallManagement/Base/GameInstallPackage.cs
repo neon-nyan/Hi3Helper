@@ -70,7 +70,7 @@ namespace CollapseLauncher.InstallManager
 
             if (packageProperty.version != null || overrideVersion != null)
             {
-                Version = new GameVersion(overrideVersion == null ? packageProperty.version : overrideVersion);
+                Version = new GameVersion(overrideVersion ?? packageProperty.version);
             }
 
             if (!string.IsNullOrEmpty(packageProperty.md5))
@@ -82,16 +82,18 @@ namespace CollapseLauncher.InstallManager
                 LanguageID = packageProperty.language;
             }
 
-            if (packageProperty.segments != null && packageProperty.segments.Count > 0)
+            if (packageProperty.segments is not { Count: > 0 })
             {
-                Name = Path.GetFileName(packageProperty.segments.FirstOrDefault()?.path);
-                PathOutput = Path.Combine(pathOutput, Name ?? "");
-                Segments = new List<GameInstallPackage>();
+                return;
+            }
 
-                foreach (RegionResourceVersion segment in packageProperty.segments)
-                {
-                    Segments.Add(new GameInstallPackage(segment, pathOutput));
-                }
+            Name       = Path.GetFileName(packageProperty.segments.FirstOrDefault()?.path);
+            PathOutput = Path.Combine(pathOutput, Name ?? "");
+            Segments   = [];
+
+            foreach (RegionResourceVersion segment in packageProperty.segments)
+            {
+                Segments.Add(new GameInstallPackage(segment, pathOutput));
             }
         }
 
@@ -107,15 +109,15 @@ namespace CollapseLauncher.InstallManager
             return Enumerable.Range(0, count).All(chunkID =>
             {
                 // Get the hash number
-                long ID = Http.GetHashNumber(count, chunkID);
+                long id = Http.GetHashNumber(count, chunkID);
                 // Append the hash number to the path
-                string pathLegacy = $"{PathOutput}.{ID}";
-                string path = PathOutput + string.Format(".{0:000}", chunkID + 1);
+                string pathLegacy = $"{PathOutput}.{id}";
+                string path       = PathOutput + $".{chunkID + 1:000}";
                 // Get the file info
-                FileInfo _fileInfoLegacy = new FileInfo(pathLegacy);
-                FileInfo _fileInfo = new FileInfo(path);
+                FileInfo fileInfoLegacy = new FileInfo(pathLegacy);
+                FileInfo fileInfoLocal = new FileInfo(path);
                 // Check if the file exist
-                return _fileInfoLegacy.Exists || _fileInfo.Exists;
+                return fileInfoLegacy.Exists || fileInfoLocal.Exists;
             });
         }
 
@@ -164,35 +166,32 @@ namespace CollapseLauncher.InstallManager
             for (int i = 0; i < streamList.Length; i++)
             {
                 // Get the hash ID
-                long ID = Http.GetHashNumber(count, i);
+                long id = Http.GetHashNumber(count, i);
                 // Append hash ID to the path
-                string path = PathOutput + string.Format(".{0:000}", i + 1);
-                string pathLegacy = $"{PathOutput}.{ID}";
+                string path       = PathOutput + $".{i + 1:000}";
+                string pathLegacy = $"{PathOutput}.{id}";
                 // Get the file info and check if the file exist
                 FileInfo fileInfo = new FileInfo(path);
                 FileInfo fileInfoLegacy = new FileInfo(pathLegacy);
-                if (fileInfo.Exists || fileInfoLegacy.Exists)
+                if (!fileInfo.Exists && !fileInfoLegacy.Exists)
                 {
-                    // Allocate to the array and open the stream
-                    FileStreamOptions opt = new FileStreamOptions
-                    {
-                        Access = FileAccess.Read,
-                        BufferSize = 4 << 10,
-                        Mode = FileMode.Open,
-                        Options = FileOptions.None,
-                        Share = FileShare.Read
-                    };
-                    if (fileInfo.Exists)
-                        streamList[i] = fileInfo.Open(opt);
-                    else if (fileInfoLegacy.Exists)
-                        streamList[i] = fileInfoLegacy.Open(opt);
-
-                    // Then go back to the loop routine
-                    continue;
+                    // If not found, then throw
+                    throw new FileNotFoundException($"File chunk doesn't exist in this path! -> {path}");
                 }
 
-                // If not found, then throw
-                throw new FileNotFoundException($"File chunk doesn't exist in this path! -> {path}");
+                // Allocate to the array and open the stream
+                FileStreamOptions opt = new FileStreamOptions
+                {
+                    Access     = FileAccess.Read,
+                    BufferSize = 4 << 10,
+                    Mode       = FileMode.Open,
+                    Options    = FileOptions.None,
+                    Share      = FileShare.Read
+                };
+                if (fileInfo.Exists)
+                    streamList[i] = fileInfo.Open(opt);
+                else if (fileInfoLegacy.Exists)
+                    streamList[i] = fileInfoLegacy.Open(opt);
             }
 
             // Assign the array and initiate it as a combined stream
@@ -207,24 +206,32 @@ namespace CollapseLauncher.InstallManager
             for (int i = 0; i < count; i++)
             {
                 // Get the hash ID
-                long ID = Http.GetHashNumber(count, i);
+                long id = Http.GetHashNumber(count, i);
                 // Append hash ID to the path
-                string path = PathOutput + string.Format(".{0:000}", i + 1);
-                string pathLegacy = $"{PathOutput}.{ID}";
+                string path       = PathOutput + $".{i + 1:000}";
+                string pathLegacy = $"{PathOutput}.{id}";
                 // Get the file info and check if the file exist
                 FileInfo fileInfo = new FileInfo(path);
                 FileInfo fileInfoLegacy = new FileInfo(pathLegacy);
-                if (fileInfo.Exists || fileInfoLegacy.Exists)
+                switch (fileInfo.Exists)
                 {
+                    case false when !fileInfoLegacy.Exists:
+                        continue;
                     // Add length to the existing one
-                    if (fileInfo.Exists)
+                    case true:
                         length += fileInfo.Length;
-                    else if (fileInfoLegacy.Exists)
-                        length += fileInfoLegacy.Length;
-                    // Then go back to the loop routine
-                    // ReSharper disable once RedundantJumpStatement
-                    continue;
+                        break;
+                    default:
+                    {
+                        if (fileInfoLegacy.Exists)
+                            length += fileInfoLegacy.Length;
+                        break;
+                    }
                 }
+
+                // Then go back to the loop routine
+                // ReSharper disable once RedundantJumpStatement
+                continue;
             }
 
             // Return the length
@@ -244,10 +251,10 @@ namespace CollapseLauncher.InstallManager
 
                 for (int i = 0; i < count; i++)
                 {
-                    long ID = Http.GetHashNumber(count, i);
-                    string path = PathOutput + string.Format(".{0:000}", i + 1);
-                    string pathLegacy = $"{PathOutput}.{ID}";
-                    bool isUseLegacy = File.Exists(pathLegacy);
+                    long   id          = Http.GetHashNumber(count, i);
+                    string path        = PathOutput + $".{i + 1:000}";
+                    string pathLegacy  = $"{PathOutput}.{id}";
+                    bool   isUseLegacy = File.Exists(pathLegacy);
 
                     lastFile = isUseLegacy ? pathLegacy : path;
                     fileInfo = new FileInfo(path);

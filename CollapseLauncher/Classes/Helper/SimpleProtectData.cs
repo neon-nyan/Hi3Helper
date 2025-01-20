@@ -88,7 +88,7 @@ namespace CollapseLauncher.Helper
             catch (Exception ex)
             {
                 SentryHelper.ExceptionHandler(ex, SentryHelper.ExceptionType.UnhandledOther);
-                Logger.LogWriteLine($"Failed while unprotecting string! {ex}", LogType.Error);
+                Logger.LogWriteLine($"Failed while trying to unprotect string! {ex}", LogType.Error);
                 return null;
             }
             finally

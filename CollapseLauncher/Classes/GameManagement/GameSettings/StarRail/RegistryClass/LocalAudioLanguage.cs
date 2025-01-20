@@ -43,14 +43,14 @@ namespace CollapseLauncher.GameSettings.StarRail
                 "cn" => 2,
                 "tw" => 2, // Force Traditional Chinese value to use Simplified Chinese
                 "jp" => 1,
-                _ => 0,
+                _ => 0
             };
             set => LocalAudioLang = value switch
             {
                 3 => "kr",
                 2 => "cn",
                 1 => "jp",
-                _ => "en",
+                _ => "en"
             };
         }
         #endregion

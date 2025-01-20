@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 #nullable enable
 namespace CollapseLauncher.InstallManagement.Base
 {
+    [JsonSourceGenerationOptions(IncludeFields = false, GenerationMode = JsonSourceGenerationMode.Metadata, IgnoreReadOnlyFields = true)]
     [JsonSerializable(typeof(HDiffMapEntry))]
     [JsonSerializable(typeof(HDiffMap))]
     internal partial class HDiffMapEntryJsonContext : JsonSerializerContext;

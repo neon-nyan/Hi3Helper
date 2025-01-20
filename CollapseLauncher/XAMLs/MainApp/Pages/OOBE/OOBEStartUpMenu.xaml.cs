@@ -41,6 +41,9 @@ using static Hi3Helper.Shared.Region.LauncherConfig;
 // ReSharper disable CollectionNeverQueried.Local
 // ReSharper disable InconsistentNaming
 // ReSharper disable AsyncVoidMethod
+// ReSharper disable IdentifierTypo
+// ReSharper disable StringLiteralTypo
+// ReSharper disable SwitchStatementMissingSomeEnumCasesNoDefault
 
 namespace CollapseLauncher.Pages.OOBE
 {
@@ -53,7 +56,7 @@ namespace CollapseLauncher.Pages.OOBE
         public OOBEStartUpMenu()
         {
             ThisCurrent = this;
-            this.InitializeComponent();
+            InitializeComponent();
             WindowUtility.EnableWindowNonClientArea();
             SaveInitialLogoAndTitleTextPos();
 
@@ -251,7 +254,7 @@ namespace CollapseLauncher.Pages.OOBE
         private async void GetRecommendedCDN()
         {
             // Initialize the token source
-            _checkRecommendedCDNToken = new();
+            _checkRecommendedCDNToken = new CancellationTokenSourceWrapper();
 
             // Set the selected CDN to -1
             SelectCDN.SelectedIndex   = -1;
@@ -335,7 +338,7 @@ namespace CollapseLauncher.Pages.OOBE
         private          Vector3?   LastTitleTextInitialScale;
         private readonly double     InitialTitleTextSize;
         private readonly double     InitialFirstMainGridRowSize;
-        private readonly double     SmallWindowFactor = 0.67d;
+        private const    double     SmallWindowFactor = 0.67d;
         private          int        LastTitleTextInitialColumnSpan;
 
         private bool IsSmallSize;
@@ -380,7 +383,7 @@ namespace CollapseLauncher.Pages.OOBE
             }
         }
 
-        private void ChangeSettingsCardIconFont(object containerObject, FontFamily iconFont)
+        private static void ChangeSettingsCardIconFont(object containerObject, FontFamily iconFont)
         {
             if (containerObject.GetType() == typeof(SettingsCard))
             {
@@ -463,20 +466,18 @@ namespace CollapseLauncher.Pages.OOBE
             return (int)CurrentAppTheme;
         }
 
-        private int _SelectedTheme = GetInitialTheme();
-
         private int SelectedTheme
         {
-            get => _SelectedTheme;
+            get;
             set
             {
                 if (value < 0) return;
 
-                _SelectedTheme = value;
+                field = value;
                 ThemeChanger.ChangeTheme((ElementTheme)value);
                 SetAppConfigValue("ThemeMode", ((AppThemeMode)value).ToString());
             }
-        }
+        } = GetInitialTheme();
 
         private async void CustomBackgroundCheckedOpen(object sender, RoutedEventArgs e)
         {
@@ -561,9 +562,9 @@ namespace CollapseLauncher.Pages.OOBE
         private async Task ReplaceBackgroundImage(FileStream sourceStream, float fromOpacity = 0.25f,
                                                   float      toOpacity = 0.25f)
         {
-            float toScale      = 1.2f;
-            float toTranslateX = -((float)ContainerBackgroundImage.ActualWidth * (toScale - 1f) / 2);
-            float toTranslateY = -((float)ContainerBackgroundImage.ActualHeight * (toScale - 1f) / 2);
+            const float toScale      = 1.2f;
+            float       toTranslateX = -((float)ContainerBackgroundImage.ActualWidth * (toScale - 1f) / 2);
+            float       toTranslateY = -((float)ContainerBackgroundImage.ActualHeight * (toScale - 1f) / 2);
 
             TimeSpan transitionDuration = TimeSpan.FromSeconds(0.5);
             await ContainerBackgroundImage.StartAnimation(transitionDuration,
@@ -779,7 +780,7 @@ namespace CollapseLauncher.Pages.OOBE
         };
 
         private readonly ObservableCollection<string> LangList =
-            new(LanguageNames.Select(x => $"{x.Value.LangName} ({x.Key} by {x.Value.LangAuthor})"));
+            [.. LanguageNames.Select(x => $"{x.Value.LangName} ({x.Key} by {x.Value.LangAuthor})")];
 
         private int SelectedLangIndex
         {

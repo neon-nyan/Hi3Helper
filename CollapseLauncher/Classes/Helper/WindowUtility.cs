@@ -31,6 +31,7 @@ using WinRT.Interop;
 using Size = System.Drawing.Size;
 using WindowId = Microsoft.UI.WindowId;
 
+#pragma warning disable CA2012
 namespace CollapseLauncher.Helper
 {
     internal enum WindowBackdropKind
@@ -45,8 +46,8 @@ namespace CollapseLauncher.Helper
     {
         private static event EventHandler<RectInt32[]>? DragAreaChangeEvent;
 
-        private static nint OldMainWndProcPtr;
-        private static nint OldDesktopSiteBridgeWndProcPtr;
+        private static nint _oldMainWndProcPtr;
+        private static nint _oldDesktopSiteBridgeWndProcPtr;
 
         private delegate IntPtr WndProcDelegate(IntPtr hwnd, uint msg, UIntPtr wParam, IntPtr lParam);
 
@@ -62,12 +63,7 @@ namespace CollapseLauncher.Helper
         {
             get
             {
-                if (!CurrentWindowId.HasValue)
-                {
-                    return null;
-                }
-
-                return DisplayArea.GetFromWindowId(CurrentWindowId.Value, DisplayAreaFallback.Primary);
+                return !CurrentWindowId.HasValue ? null : DisplayArea.GetFromWindowId(CurrentWindowId.Value, DisplayAreaFallback.Primary);
             }
         }
 
@@ -110,12 +106,7 @@ namespace CollapseLauncher.Helper
             get
             {
                 DisplayInformation? displayInfo = CurrentWindowDisplayInformation;
-                if (displayInfo == null)
-                {
-                    return null;
-                }
-
-                return displayInfo.GetAdvancedColorInfo();
+                return displayInfo == null ? null : displayInfo.GetAdvancedColorInfo();
             }
         }
 
@@ -166,11 +157,11 @@ namespace CollapseLauncher.Helper
         {
             get
             {
-                const uint DefaultDpiValue = 96;
+                const uint defaultDpiValue = 96;
                 nint monitorPtr = CurrentWindowMonitorPtr;
                 if (monitorPtr == nint.Zero)
                 {
-                    return DefaultDpiValue;
+                    return defaultDpiValue;
                 }
 
                 if (PInvoke.GetDpiForMonitor(monitorPtr, Monitor_DPI_Type.MDT_Default, out uint dpi,
@@ -180,7 +171,7 @@ namespace CollapseLauncher.Helper
                 }
 
                 Logger.LogWriteLine($"[WindowUtility::CurrentWindowMonitorDpi] Could not get DPI for the current monitor at 0x{monitorPtr:x8}");
-                return DefaultDpiValue;
+                return defaultDpiValue;
 
             }
         }
@@ -221,7 +212,7 @@ namespace CollapseLauncher.Helper
                 }
                 else
                 {
-                    CurrentAppWindow.MoveAndResize(new RectInt32()
+                    CurrentAppWindow.MoveAndResize(new RectInt32
                     {
                         Width = (int)value.Width,
                         Height = (int)value.Height,
@@ -323,44 +314,46 @@ namespace CollapseLauncher.Helper
             get
             {
                 // If toast notification service field is null, then initialize
-                if (field == null)
+                if (field != null)
                 {
-                    try
+                    return field;
+                }
+
+                try
+                {
+                    // Get Icon location paths
+                    (string iconLocationStartMenu, _)
+                        = TaskSchedulerHelper.GetIconLocationPaths(
+                                                                   out string? appAumIdNameAlternative,
+                                                                   out _,
+                                                                   out string? executablePath,
+                                                                   out _);
+
+                    // Register notification service
+                    field = new NotificationService(ILoggerHelper.GetILogger("ToastCOM"));
+
+                    // Get AumId to use
+                    string? currentAumId = CurrentAumid ??= appAumIdNameAlternative;
+
+                    // Get string for AumId registration
+                    if (!string.IsNullOrEmpty(currentAumId))
                     {
-                        // Get Icon location paths
-                        (string iconLocationStartMenu, _)
-                            = TaskSchedulerHelper.GetIconLocationPaths(
-                                                                       out string? appAumIdNameAlternative,
-                                                                       out _,
-                                                                       out string? executablePath,
-                                                                       out _);
+                        // Initialize Toast Notification service
+                        CurrentAumidInGuid = field.Initialize(
+                                                              currentAumId,
+                                                              executablePath ?? "",
+                                                              iconLocationStartMenu,
+                                                              asElevatedUser: true
+                                                             );
 
-                        // Register notification service
-                        field = new NotificationService(ILoggerHelper.GetILogger("ToastCOM"));
-
-                        // Get AumId to use
-                        string? currentAumId = CurrentAumid ??= appAumIdNameAlternative;
-
-                        // Get string for AumId registration
-                        if (!string.IsNullOrEmpty(currentAumId))
-                        {
-                            // Initialize Toast Notification service
-                            CurrentAumidInGuid = field.Initialize(
-                                                                  currentAumId,
-                                                                  executablePath ?? "",
-                                                                  iconLocationStartMenu,
-                                                                  asElevatedUser: true
-                                                                 );
-
-                            // Subscribe ToastCallback
-                            field.ToastCallback += Service_ToastNotificationCallback;
-                        }
+                        // Subscribe ToastCallback
+                        field.ToastCallback += Service_ToastNotificationCallback;
                     }
-                    catch (Exception ex)
-                    {
-                        Logger.LogWriteLine($"Notification service initialization has failed, ignoring!\r\n{ex}", LogType.Error, true);
-                        return null;
-                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogWriteLine($"Notification service initialization has failed, ignoring!\r\n{ex}", LogType.Error, true);
+                    return null;
                 }
 
                 return field;
@@ -385,7 +378,7 @@ namespace CollapseLauncher.Helper
             CurrentOverlappedPresenter = CurrentAppWindow.Presenter as OverlappedPresenter;
 
             // Install WndProc callback
-            OldMainWndProcPtr = InstallWndProcCallback(CurrentWindowPtr, MainWndProc);
+            _oldMainWndProcPtr = InstallWndProcCallback(CurrentWindowPtr, MainWndProc);
 
             // Install Drag Area Change monitor
             InstallDragAreaChangeMonitor();
@@ -445,11 +438,15 @@ namespace CollapseLauncher.Helper
             {
                 case WM_ACTIVATE:
                     {
-                        if (wParam == 1 && lParam == 0)
-                            MainPage.CurrentBackgroundHandler?.WindowFocused();
-
-                        if (wParam == 0 && lParam == 0)
-                            MainPage.CurrentBackgroundHandler?.WindowUnfocused();
+                        switch (wParam)
+                        {
+                            case 1 when lParam == 0:
+                                MainPage.CurrentBackgroundHandler?.WindowFocused();
+                                break;
+                            case 0 when lParam == 0:
+                                MainPage.CurrentBackgroundHandler?.WindowUnfocused();
+                                break;
+                        }
 
                         break;
                     }
@@ -536,7 +533,7 @@ namespace CollapseLauncher.Helper
                         const int HTTOPRIGHT = 14;
                         const int HTCLOSE = 20;
 
-                        var result = PInvoke.CallWindowProc(OldMainWndProcPtr, hwnd, msg, wParam, lParam);
+                        var result = PInvoke.CallWindowProc(_oldMainWndProcPtr, hwnd, msg, wParam, lParam);
                         return result switch
                         {
                             // Hide all system buttons
@@ -573,7 +570,7 @@ namespace CollapseLauncher.Helper
                     }
             }
 
-            return PInvoke.CallWindowProc(OldMainWndProcPtr, hwnd, msg, wParam, lParam);
+            return PInvoke.CallWindowProc(_oldMainWndProcPtr, hwnd, msg, wParam, lParam);
         }
 
         #endregion
@@ -666,15 +663,15 @@ namespace CollapseLauncher.Helper
                 };
                 PInvoke.DwmExtendFrameIntoClientArea(CurrentWindowPtr, ref margin);
 
-                var flags = SetWindowPosFlags.SWP_NOSIZE
-                            | SetWindowPosFlags.SWP_NOMOVE
-                            | SetWindowPosFlags.SWP_NOZORDER
-                            | SetWindowPosFlags.SWP_FRAMECHANGED;
+                const SetWindowPosFlags flags = SetWindowPosFlags.SWP_NOSIZE
+                                                | SetWindowPosFlags.SWP_NOMOVE
+                                                | SetWindowPosFlags.SWP_NOZORDER
+                                                | SetWindowPosFlags.SWP_FRAMECHANGED;
                 PInvoke.SetWindowPos(CurrentWindowPtr, 0, 0, 0, 0, 0, flags);
             }
 
             var desktopSiteBridgeHwnd = PInvoke.FindWindowEx(CurrentWindowPtr, 0, "Microsoft.UI.Content.DesktopChildSiteBridge", "");
-            OldDesktopSiteBridgeWndProcPtr = InstallWndProcCallback(desktopSiteBridgeHwnd, DesktopSiteBridgeWndProc);
+            _oldDesktopSiteBridgeWndProcPtr = InstallWndProcCallback(desktopSiteBridgeHwnd, DesktopSiteBridgeWndProc);
         }
 
         private static IntPtr DesktopSiteBridgeWndProc(IntPtr hwnd, uint msg, UIntPtr wParam, IntPtr lParam)
@@ -687,7 +684,7 @@ namespace CollapseLauncher.Helper
                     {
                         // Fix the weird 1px offset
                         var windowPos = Marshal.PtrToStructure<WINDOWPOS>(lParam);
-                        if (windowPos.x == 0 && windowPos.y == 1 &&
+                        if (windowPos is { x: 0, y: 1 } &&
                             windowPos.cx == (int)(WindowSize.WindowSize.CurrentWindowSize.WindowBounds.Width * CurrentWindowMonitorScaleFactor) &&
                             windowPos.cy == (int)(WindowSize.WindowSize.CurrentWindowSize.WindowBounds.Height * CurrentWindowMonitorScaleFactor) - 1)
                         {
@@ -700,7 +697,7 @@ namespace CollapseLauncher.Helper
                     }
             }
 
-            return PInvoke.CallWindowProc(OldDesktopSiteBridgeWndProcPtr, hwnd, msg, wParam, lParam);
+            return PInvoke.CallWindowProc(_oldDesktopSiteBridgeWndProcPtr, hwnd, msg, wParam, lParam);
         }
 
         internal static void SetWindowSize(int width, int height)
@@ -755,11 +752,11 @@ namespace CollapseLauncher.Helper
 
             double scaleFactor = CurrentWindowMonitorScaleFactor;
             var incps = InputNonClientPointerSource.GetForWindowId(CurrentWindowId.Value);
-            var safeArea = new RectInt32[]
-            {
-                    new(CurrentAppWindow.Size.Width - (int)((144 + 12) * scaleFactor), 0, (int)((144 + 12) * scaleFactor),
-                        (int)(48 * scaleFactor))
-            };
+            RectInt32[] safeArea =
+            [
+                new(CurrentAppWindow.Size.Width - (int)((144 + 12) * scaleFactor), 0, (int)((144 + 12) * scaleFactor),
+                    (int)(48 * scaleFactor))
+            ];
             incps.SetRegionRects(NonClientRegionKind.Passthrough, safeArea);
         }
 
@@ -770,9 +767,9 @@ namespace CollapseLauncher.Helper
                 return;
             }
 
-            double scaleFactor = CurrentWindowMonitorScaleFactor;
-            var incps = InputNonClientPointerSource.GetForWindowId(CurrentWindowId.Value);
-            var safeArea = new RectInt32[] { new(0, 0, CurrentAppWindow.Size.Width, (int)(48 * scaleFactor)) };
+            double       scaleFactor = CurrentWindowMonitorScaleFactor;
+            var          incps = InputNonClientPointerSource.GetForWindowId(CurrentWindowId.Value);
+            RectInt32[] safeArea = [new(0, 0, CurrentAppWindow.Size.Width, (int)(48 * scaleFactor))];
             incps.SetRegionRects(NonClientRegionKind.Passthrough, safeArea);
         }
 

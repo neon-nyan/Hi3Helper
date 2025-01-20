@@ -8,6 +8,8 @@
     using static Hi3Helper.Locale;
     using static Hi3Helper.Shared.Region.LauncherConfig;
 // ReSharper disable PartialTypeWithSinglePart
+// ReSharper disable StringLiteralTypo
+// ReSharper disable SwitchStatementHandlesSomeKnownEnumValuesWithDefault
 
     namespace CollapseLauncher.DiscordPresence
     {
@@ -61,14 +63,16 @@
 
             public DiscordPresenceManager(bool initialStart = true)
             {
-                if (initialStart)
+                if (!initialStart)
                 {
-                    // Prepare idle cached setting
-                    Logger.LogWriteLine($"Doing initial start for Discord RPC!\r\n\tIdle status : {IdleEnabled}",
-                                        LogType.Scheme);
-
-                    SetupPresence();
+                    return;
                 }
+
+                // Prepare idle cached setting
+                Logger.LogWriteLine($"Doing initial start for Discord RPC!\r\n\tIdle status : {IdleEnabled}",
+                                    LogType.Scheme);
+
+                SetupPresence();
             }
 
             // Deconstruct and dispose unmanaged resources
@@ -189,66 +193,68 @@
 
             public void SetActivity(ActivityType activity, DateTime? activityOffset = null)
             {
-                if (GetAppConfigValue("EnableDiscordRPC").ToBool())
+                if (!GetAppConfigValue("EnableDiscordRPC").ToBool())
                 {
-                    //_lastAttemptedActivityType = activity;
-                    _activityType              = activity;
-
-                    switch (activity)
-                    {
-                        case ActivityType.Play:
-                        {
-                            bool isGameStatusEnabled = GetAppConfigValue("EnableDiscordGameStatus").ToBool();
-                            BuildActivityGameStatus(isGameStatusEnabled ? Lang._Misc.DiscordRP_InGame : Lang._Misc.DiscordRP_Play,
-                                                    isGameStatusEnabled, activityOffset);
-                            break;
-                        }
-                        case ActivityType.Update:
-                        {
-                            bool isGameStatusEnabled = GetAppConfigValue("EnableDiscordGameStatus").ToBool();
-                            BuildActivityGameStatus(Lang._Misc.DiscordRP_Update, isGameStatusEnabled);
-                            break;
-                        }
-                        case ActivityType.Repair:
-                            BuildActivityAppStatus(Lang._Misc.DiscordRP_Repair);
-                            break;
-                        case ActivityType.Cache:
-                            BuildActivityAppStatus(Lang._Misc.DiscordRP_Cache);
-                            break;
-                        case ActivityType.GameSettings:
-                            BuildActivityAppStatus(Lang._Misc.DiscordRP_GameSettings);
-                            break;
-                        case ActivityType.AppSettings:
-                            BuildActivityAppStatus(Lang._Misc.DiscordRP_AppSettings);
-                            break;
-                        case ActivityType.Idle:
-                            _lastPlayTime = null;
-                            if (_cachedIsIdleEnabled)
-                            {
-                                BuildActivityAppStatus(Lang._Misc.DiscordRP_Idle);
-                            }
-                            else
-                            {
-                                _presence = null; // Clear presence
-                            }
-
-                            break;
-                        default:
-                            _presence = new RichPresence
-                            {
-                                Details = Lang._Misc.DiscordRP_Default,
-                                Assets = new Assets
-                                {
-                                    LargeImageKey = "launcher-logo-new",
-                                    LargeImageText =
-                                        $"Collapse Launcher v{LauncherUpdateHelper.LauncherCurrentVersionString} {(IsPreview ? "Preview" : "Stable")}"
-                                }
-                            };
-                            break;
-                    }
-
-                    UpdateActivity();
+                    return;
                 }
+
+                //_lastAttemptedActivityType = activity;
+                _activityType              = activity;
+
+                switch (activity)
+                {
+                    case ActivityType.Play:
+                    {
+                        bool isGameStatusEnabled = GetAppConfigValue("EnableDiscordGameStatus").ToBool();
+                        BuildActivityGameStatus(isGameStatusEnabled ? Lang._Misc.DiscordRP_InGame : Lang._Misc.DiscordRP_Play,
+                                                isGameStatusEnabled, activityOffset);
+                        break;
+                    }
+                    case ActivityType.Update:
+                    {
+                        bool isGameStatusEnabled = GetAppConfigValue("EnableDiscordGameStatus").ToBool();
+                        BuildActivityGameStatus(Lang._Misc.DiscordRP_Update, isGameStatusEnabled);
+                        break;
+                    }
+                    case ActivityType.Repair:
+                        BuildActivityAppStatus(Lang._Misc.DiscordRP_Repair);
+                        break;
+                    case ActivityType.Cache:
+                        BuildActivityAppStatus(Lang._Misc.DiscordRP_Cache);
+                        break;
+                    case ActivityType.GameSettings:
+                        BuildActivityAppStatus(Lang._Misc.DiscordRP_GameSettings);
+                        break;
+                    case ActivityType.AppSettings:
+                        BuildActivityAppStatus(Lang._Misc.DiscordRP_AppSettings);
+                        break;
+                    case ActivityType.Idle:
+                        _lastPlayTime = null;
+                        if (_cachedIsIdleEnabled)
+                        {
+                            BuildActivityAppStatus(Lang._Misc.DiscordRP_Idle);
+                        }
+                        else
+                        {
+                            _presence = null; // Clear presence
+                        }
+
+                        break;
+                    default:
+                        _presence = new RichPresence
+                        {
+                            Details = Lang._Misc.DiscordRP_Default,
+                            Assets = new Assets
+                            {
+                                LargeImageKey = "launcher-logo-new",
+                                LargeImageText =
+                                    $"Collapse Launcher v{LauncherUpdateHelper.LauncherCurrentVersionString} {(IsPreview ? "Preview" : "Stable")}"
+                            }
+                        };
+                        break;
+                }
+
+                UpdateActivity();
             }
 
             private void BuildActivityGameStatus(string activityName, bool isGameStatusEnabled, DateTime? activityOffset = null)

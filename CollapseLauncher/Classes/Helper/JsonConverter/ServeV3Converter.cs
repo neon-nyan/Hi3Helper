@@ -20,7 +20,7 @@ namespace CollapseLauncher.Helper.JsonConverter
                 string baseType,
                 JsonSerializerOptions options)
         {
-            throw new JsonException($"Serializing is not supported!");
+            throw new JsonException("Serializing is not supported!");
         }
     }
 
@@ -43,7 +43,7 @@ namespace CollapseLauncher.Helper.JsonConverter
 
             // If the token is a string, initialize the list
             if (reader.TokenType == JsonTokenType.String)
-                returnValue = new List<string>();
+                returnValue = [];
 
             // Loop and read the value if the token is currently a string
             while (reader.TokenType == JsonTokenType.String)

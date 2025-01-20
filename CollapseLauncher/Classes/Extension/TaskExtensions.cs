@@ -77,32 +77,10 @@ namespace CollapseLauncher.Extension
             if (lastException is not null
                 && !fromToken.IsCancellationRequested)
                 throw lastException is TaskCanceledException ? 
-                    new TimeoutException($"The operation has timed out with inner exception!", lastException) :
+                    new TimeoutException("The operation has timed out with inner exception!", lastException) :
                     lastException;
 
-            throw new TimeoutException($"The operation has timed out!");
-        }
-
-        internal static async
-            Task<T?>
-            TimeoutAfter<T>(this Task<T?> task, CancellationToken token = default, int timeout = DefaultTimeoutSec)
-        {
-            Task<T?> completedTask = await Task.WhenAny(task, ThrowExceptionAfterTimeout<T>(timeout, task, token));
-            return await completedTask;
-        }
-
-        private static async Task<T?> ThrowExceptionAfterTimeout<T>(int? timeout, Task mainTask, CancellationToken token = default)
-        {
-            if (token.IsCancellationRequested)
-                throw new OperationCanceledException();
-
-            await Task.Delay(TimeSpan.FromSeconds(timeout ?? DefaultTimeoutSec), token);
-            if (!(mainTask.IsCompleted ||
-                mainTask.IsCompletedSuccessfully ||
-                mainTask.IsCanceled || mainTask.IsFaulted || mainTask.Exception != null))
-                throw new TimeoutException($"The operation for task has timed out!");
-
-            return default;
+            throw new TimeoutException("The operation has timed out!");
         }
     }
 }

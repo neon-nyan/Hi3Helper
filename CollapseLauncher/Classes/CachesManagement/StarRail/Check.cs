@@ -23,28 +23,28 @@ namespace CollapseLauncher
             List<SRAsset> returnAsset = [];
 
             // Set Indetermined status as false
-            _status.IsProgressAllIndetermined = false;
+            Status.IsProgressAllIndetermined = false;
 
             // Show the asset entry panel
-            _status.IsAssetEntryPanelShow = true;
+            Status.IsAssetEntryPanelShow = true;
 
             // Get persistent and streaming paths
-            string execName = Path.GetFileNameWithoutExtension(_innerGameVersionManager!.GamePreset!.GameExecutableName);
-            string baseDesignDataPathPersistent = Path.Combine(_gamePath!, @$"{execName}_Data\Persistent\DesignData\Windows");
-            string baseDesignDataPathStreaming = Path.Combine(_gamePath!, @$"{execName}_Data\StreamingAssets\DesignData\Windows");
+            string execName = Path.GetFileNameWithoutExtension(InnerGameVersionManager!.GamePreset!.GameExecutableName);
+            string baseDesignDataPathPersistent = Path.Combine(GamePath!, @$"{execName}_Data\Persistent\DesignData\Windows");
+            string baseDesignDataPathStreaming = Path.Combine(GamePath!, @$"{execName}_Data\StreamingAssets\DesignData\Windows");
 
-            string baseLuaPathPersistent = Path.Combine(_gamePath!, @$"{execName}_Data\Persistent\Lua\Windows");
-            string baseLuaPathStreaming = Path.Combine(_gamePath!, @$"{execName}_Data\StreamingAssets\Lua\Windows");
+            string baseLuaPathPersistent = Path.Combine(GamePath!, @$"{execName}_Data\Persistent\Lua\Windows");
+            string baseLuaPathStreaming = Path.Combine(GamePath!, @$"{execName}_Data\StreamingAssets\Lua\Windows");
 
-            string baseIFixPathPersistent = Path.Combine(_gamePath!, @$"{execName}_Data\Persistent\IFix\Windows");
-            string baseIFixPathStreaming = Path.Combine(_gamePath!, @$"{execName}_Data\StreamingAssets\IFix\Windows");
+            string baseIFixPathPersistent = Path.Combine(GamePath!, @$"{execName}_Data\Persistent\IFix\Windows");
+            string baseIFixPathStreaming = Path.Combine(GamePath!, @$"{execName}_Data\StreamingAssets\IFix\Windows");
 
             try
             {
                 // Do check in parallelization.
                 await Parallel.ForEachAsync(assetIndex!, new ParallelOptions
                 {
-                    MaxDegreeOfParallelism = _threadCount,
+                    MaxDegreeOfParallelism = ThreadCount,
                     CancellationToken = token
                 }, async (asset, threadToken) =>
                 {
@@ -76,9 +76,9 @@ namespace CollapseLauncher
             // Increment the count and update the status
             lock (this)
             {
-                _progressAllCountCurrent++;
-                _status.ActivityStatus = string.Format(Lang!._CachesPage!.CachesStatusChecking!, asset!.AssetType, asset.LocalName);
-                _status.ActivityAll = string.Format(Lang!._CachesPage!.CachesTotalStatusChecking!, _progressAllCountCurrent, _progressAllCountTotal);
+                ProgressAllCountCurrent++;
+                Status.ActivityStatus = string.Format(Lang!._CachesPage!.CachesStatusChecking!, asset!.AssetType, asset.LocalName);
+                Status.ActivityAll = string.Format(Lang!._CachesPage!.CachesTotalStatusChecking!, ProgressAllCountCurrent, ProgressAllCountTotal);
             }
 
             // Get persistent and streaming paths
@@ -97,7 +97,7 @@ namespace CollapseLauncher
             }
 
             // Skip CRC check if fast method is used
-            if (_useFastMethod)
+            if (UseFastMethod)
             {
                 return;
             }
@@ -121,9 +121,9 @@ namespace CollapseLauncher
             lock (this)
             {
                 // Set Indetermined status as false
-                _status.IsProgressAllIndetermined = false;
-                _progressAllCountFound++;
-                _progressAllSizeFound += asset!.Size;
+                Status.IsProgressAllIndetermined = false;
+                ProgressAllCountFound++;
+                ProgressAllSizeFound += asset!.Size;
             }
 
             // Add file into asset index

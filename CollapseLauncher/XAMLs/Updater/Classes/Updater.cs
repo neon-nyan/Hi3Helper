@@ -3,21 +3,12 @@ using CollapseLauncher.Helper.Update;
 using Hi3Helper;
 using Hi3Helper.Http;
 using Hi3Helper.Http.Legacy;
-#if !USEVELOPACK
-using Squirrel;
-using Squirrel.Sources;
-#else
+using Hi3Helper.SentryHelper;
+using Hi3Helper.Shared.Region;
 using Microsoft.Extensions.Logging;
-using Velopack;
-using Velopack.Locators;
-using Velopack.Sources;
-#endif
 using System;
 using System.Diagnostics;
 using System.IO;
-#if !USEVELOPACK
-using System.Linq;
-#endif
 using System.Net;
 using System.Net.Http;
 using System.Threading;
@@ -25,9 +16,17 @@ using System.Threading.Tasks;
 using static Hi3Helper.Data.ConverterTool;
 using static Hi3Helper.Locale;
 using static Hi3Helper.Shared.Region.LauncherConfig;
-using Hi3Helper.Data;
-using Hi3Helper.SentryHelper;
-using Hi3Helper.Shared.Region;
+
+#if !USEVELOPACK
+using Squirrel;
+using Squirrel.Sources;
+using System.Linq;
+#else
+using Velopack;
+using Velopack.Locators;
+using Velopack.Sources;
+#endif
+
 // ReSharper disable PartialTypeWithSinglePart
 
 namespace CollapseLauncher;
@@ -35,14 +34,14 @@ namespace CollapseLauncher;
 public partial class Updater : IDisposable
 {
     // ReSharper disable PrivateFieldCanBeConvertedToLocalVariable
-    private string          ChannelURL;
-    private string          ChannelName;
-    private Stopwatch       UpdateStopwatch;
-    private UpdateManager   UpdateManager;
-    private IFileDownloader UpdateDownloader;
+    private readonly string          ChannelURL;
+    private readonly string          ChannelName;
+    private          Stopwatch       UpdateStopwatch;
+    private readonly UpdateManager   UpdateManager;
+    private readonly IFileDownloader UpdateDownloader;
 #if USEVELOPACK
-    private ILogger         UpdateManagerLogger;
-    private VelopackAsset   VelopackVersionToUpdate;
+    private readonly ILogger       UpdateManagerLogger;
+    private          VelopackAsset VelopackVersionToUpdate;
 #endif
     private GameVersion     NewVersionTag;
 
@@ -52,13 +51,13 @@ public partial class Updater : IDisposable
 
     private static readonly string execPath          = Process.GetCurrentProcess().MainModule!.FileName;
     private static readonly string workingDir        = Path.GetDirectoryName(execPath);
-    private static readonly string applyElevatedPath = Path.Combine(workingDir, "..\\", $"ApplyUpdate.exe");
+    private static readonly string applyElevatedPath = Path.Combine(workingDir, "..\\", "ApplyUpdate.exe");
 
     public event EventHandler<UpdaterStatus>   UpdaterStatusChanged;
     public event EventHandler<UpdaterProgress> UpdaterProgressChanged;
 
-    private UpdaterStatus   Status;
-    private UpdaterProgress Progress;
+    private readonly UpdaterStatus   Status;
+    private          UpdaterProgress Progress;
 
     public Updater(string channelName)
     {
@@ -257,10 +256,10 @@ public partial class Updater : IDisposable
         UpdateStopwatch = Stopwatch.StartNew();
 
         CDNURLProperty preferredCdn = FallbackCDNUtil.GetPreferredCDN();
-        string updateFileIndexUrl = ConverterTool.CombineURLFromString(preferredCdn.URLPrefix, ChannelName.ToLower(), "fileindex.json");
+        string updateFileIndexUrl = CombineURLFromString(preferredCdn.URLPrefix, ChannelName.ToLower(), "fileindex.json");
 
         AppUpdateVersionProp updateInfo = await FallbackCDNUtil.DownloadAsJSONType(updateFileIndexUrl,
-                                            InternalAppJSONContext.Default.AppUpdateVersionProp, default)!;
+                                            AppUpdateVersionPropJsonContext.Default.AppUpdateVersionProp, default)!;
 
         GameVersion? gameVersion = updateInfo!.Version;
 
@@ -375,7 +374,7 @@ public partial class Updater : IDisposable
 
     private static void SuicideLegacy()
     {
-        var applyUpdate = new Process()
+        var applyUpdate = new Process
         {
             StartInfo = new ProcessStartInfo
             {

@@ -6,6 +6,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Security;
 using System.Runtime.InteropServices;
+// ReSharper disable StringLiteralTypo
 
 #nullable enable
 namespace CollapseLauncher.Helper
@@ -32,7 +33,7 @@ namespace CollapseLauncher.Helper
         private HttpVersionPolicy           HttpProtocolVersionPolicy { get; set; } = HttpVersionPolicy.RequestVersionOrLower;
         private TimeSpan                    HttpTimeout               { get; set; } = TimeSpan.FromSeconds(HttpTimeoutDefault);
         private Uri?                        HttpBaseUri               { get; set; }
-        private Dictionary<string, string?> HttpHeaders               { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, string?> HttpHeaders               { get; } = new();
 
         public HttpClientBuilder<THandler> UseProxy(bool isUseSystemProxy = true)
         {
@@ -54,15 +55,16 @@ namespace CollapseLauncher.Helper
         public HttpClientBuilder<THandler> UseExternalProxy(string host, string? username = null, string? password = null)
         {
             // Try to create the Uri
-            if (!Uri.TryCreate(host, UriKind.Absolute, out Uri? hostUri))
+            if (Uri.TryCreate(host, UriKind.Absolute, out Uri? hostUri))
             {
-                IsUseProxy = false;
-                IsUseSystemProxy = false;
-                ExternalProxy = null;
-                return this;
+                return UseExternalProxy(hostUri, username, password);
             }
 
-            return UseExternalProxy(hostUri, username, password);
+            IsUseProxy       = false;
+            IsUseSystemProxy = false;
+            ExternalProxy    = null;
+            return this;
+
         }
 
         public HttpClientBuilder<THandler> UseExternalProxy(Uri hostUri, string? username = null, string? password = null)
@@ -89,23 +91,22 @@ namespace CollapseLauncher.Helper
             string? lHttpProxyUrl = LauncherConfig.GetAppConfigValue("HttpProxyUrl").ToString();
             string? lHttpProxyUsername = LauncherConfig.GetAppConfigValue("HttpProxyUsername").ToString();
             string? lHttpProxyPassword = LauncherConfig.GetAppConfigValue("HttpProxyPassword").ToString();
-            int lHttpClientConnections = maxConnections;
 
             double lHttpClientTimeout = LauncherConfig.GetAppConfigValue("HttpClientTimeout").ToDouble();
 
             bool isHttpProxyUrlValid = Uri.TryCreate(lHttpProxyUrl, UriKind.Absolute, out Uri? lProxyUri);
 
-            this.UseProxy();
+            UseProxy();
 
             if (lIsUseProxy && isHttpProxyUrlValid && lProxyUri != null)
-                this.UseExternalProxy(lProxyUri, lHttpProxyUsername, lHttpProxyPassword);
+                UseExternalProxy(lProxyUri, lHttpProxyUsername, lHttpProxyPassword);
 
-            this.AllowUntrustedCert(lIsAllowUntrustedCert);
-            this.AllowCookies(lIsAllowHttpCookies);
-            this.AllowRedirections(lIsAllowHttpRedirections);
+            AllowUntrustedCert(lIsAllowUntrustedCert);
+            AllowCookies(lIsAllowHttpCookies);
+            AllowRedirections(lIsAllowHttpRedirections);
 
-            this.SetTimeout(lHttpClientTimeout);
-            this.SetMaxConnection(lHttpClientConnections);
+            SetTimeout(lHttpClientTimeout);
+            SetMaxConnection(maxConnections);
 
             return this;
         }
@@ -206,13 +207,13 @@ namespace CollapseLauncher.Helper
             // If the key already exist, then override the previous one.
             // Otherwise, add the new key-value pair
             // ReSharper disable once RedundantDictionaryContainsKeyBeforeAdding
-            if (HttpHeaders.ContainsKey(key))
+            if (HttpHeaders != null && HttpHeaders.ContainsKey(key))
             {
                 HttpHeaders[key] = value;
             }
             else
             {
-                HttpHeaders.Add(key, value);
+                HttpHeaders?.Add(key, value);
             }
 
             // Return the instance of the builder
@@ -228,8 +229,7 @@ namespace CollapseLauncher.Helper
             if (typeof(THandler) == typeof(HttpClientHandler))
             {
                 // Cast as HttpClientHandler
-                HttpClientHandler? httpClientHandler = handler as HttpClientHandler;
-                if (httpClientHandler == null)
+                if (handler is not HttpClientHandler httpClientHandler)
                     throw new InvalidCastException("Cannot cast handler as HttpClientHandler");
 
                 // Set the properties
@@ -251,8 +251,7 @@ namespace CollapseLauncher.Helper
             else if (typeof(THandler) == typeof(SocketsHttpHandler))
             {
                 // Cast as SocketsHttpHandler
-                SocketsHttpHandler? socketsHttpHandler = handler as SocketsHttpHandler;
-                if (socketsHttpHandler == null)
+                if (handler is not SocketsHttpHandler socketsHttpHandler)
                     throw new InvalidCastException("Cannot cast handler as SocketsHttpHandler");
 
                 // Set the properties

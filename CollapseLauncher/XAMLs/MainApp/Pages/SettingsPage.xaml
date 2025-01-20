@@ -47,9 +47,9 @@
                             <ComboBox x:Name="LanguageSelector"
                                       MinWidth="256"
                                       CornerRadius="14"
-                                      ItemsSource="{x:Bind LanguageList}"
+                                      ItemsSource="{x:Bind conv:SettingsPage.LanguageList}"
                                       MaxDropDownHeight="200"
-                                      SelectedIndex="{x:Bind LanguageSelectedIndex}"
+                                      SelectedIndex="{x:Bind conv:SettingsPage.LanguageSelectedIndex}"
                                       SelectionChanged="LanguageSelector_SelectionChanged" />
                             <TextBlock x:Name="AppLangSelectionWarning"
                                        Margin="0,12,0,0"
@@ -70,14 +70,14 @@
                                       Margin="0,0,0,14"
                                       CornerRadius="14"
                                       MaxDropDownHeight="200"
-                                      SelectedIndex="{x:Bind AppGameLaunchedBehaviorIndex, Mode=TwoWay}">
+                                      SelectedIndex="{x:Bind conv:SettingsPage.AppGameLaunchedBehaviorIndex, Mode=TwoWay}">
                                 <ComboBoxItem Content="{x:Bind helper:Locale.Lang._SettingsPage.AppBehavior_PostGameLaunch_Minimize}" />
                                 <ComboBoxItem Content="{x:Bind helper:Locale.Lang._SettingsPage.AppBehavior_PostGameLaunch_ToTray}" />
                                 <ComboBoxItem Content="{x:Bind helper:Locale.Lang._SettingsPage.AppBehavior_PostGameLaunch_Nothing}" />
                             </ComboBox>
                             <ToggleSwitch Margin="0,4"
                                           Header="{x:Bind helper:Locale.Lang._SettingsPage.AppBehavior_MinimizeToTray}"
-                                          IsOn="{x:Bind IsMinimizeToTaskbar, Mode=TwoWay}"
+                                          IsOn="{x:Bind conv:SettingsPage.IsMinimizeToTaskbar, Mode=TwoWay}"
                                           OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                           OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}" />
                             <ToggleSwitch x:Name="StartupToggle"
@@ -89,7 +89,7 @@
                             <ToggleSwitch x:Name="StartupToTrayToggle"
                                           Margin="0,4"
                                           Header="{x:Bind helper:Locale.Lang._SettingsPage.AppBehavior_StartupToTray}"
-                                          IsOn="{x:Bind IsStartupToTray, Mode=TwoWay}"
+                                          IsOn="{x:Bind conv:SettingsPage.IsStartupToTray, Mode=TwoWay}"
                                           OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                           OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}"
                                           Visibility="Collapsed" />
@@ -115,13 +115,13 @@
                         </StackPanel>
                         <ToggleSwitch Margin="0,4"
                                       Header="{x:Bind helper:Locale.Lang._SettingsPage.IntroSequenceToggle}"
-                                      IsOn="{x:Bind IsIntroEnabled, Mode=TwoWay}"
+                                      IsOn="{x:Bind conv:SettingsPage.IsIntroEnabled, Mode=TwoWay}"
                                       OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                       OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}" />
                         <ToggleSwitch x:Name="AppBackgroundUseAcrylic"
                                       Margin="0,4"
                                       Header="{x:Bind helper:Locale.Lang._SettingsPage.EnableAcrylicEffect}"
-                                      IsOn="{x:Bind IsAcrylicEffectEnabled, Mode=TwoWay}"
+                                      IsOn="{x:Bind conv:SettingsPage.IsAcrylicEffectEnabled, Mode=TwoWay}"
                                       OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                       OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}" />
                         <TextBlock Margin="0,16,0,8"
@@ -139,7 +139,7 @@
                         <ToggleSwitch x:Name="AppBGMode"
                                       Margin="0,4,0,8"
                                       Header="{x:Bind helper:Locale.Lang._SettingsPage.AppBG_Checkbox}"
-                                      IsOn="{x:Bind IsBGCustom, Mode=TwoWay}"
+                                      IsOn="{x:Bind IsBgCustom, Mode=TwoWay}"
                                       OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                       OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}" />
                         <StackPanel x:Name="AppBGCustomizer"
@@ -195,15 +195,15 @@
                                        Text="{x:Bind helper:Locale.Lang._SettingsPage.ImageBackground}" />
                             <Grid Margin="0,4">
                                 <Border Background="Transparent"
-                                        ToolTipService.ToolTip="{x:Bind Waifu2XToolTip}"
-                                        Visibility="{x:Bind IsWaifu2XUsable, Converter={StaticResource InverseBooleanVisibilityConverter}}" />
+                                        ToolTipService.ToolTip="{x:Bind conv:SettingsPage.Waifu2XToolTip}"
+                                        Visibility="{x:Bind conv:SettingsPage.IsWaifu2XUsable, Converter={StaticResource InverseBooleanVisibilityConverter}}" />
                                 <ToggleSwitch x:Name="Waifu2XToggleSwitch"
-                                              IsEnabled="{x:Bind IsWaifu2XUsable}"
+                                              IsEnabled="{x:Bind conv:SettingsPage.IsWaifu2XUsable}"
                                               IsOn="{x:Bind IsWaifu2XEnabled, Mode=TwoWay}"
                                               OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                               OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}"
-                                              ToolTipService.ToolTip="{x:Bind Waifu2XToolTip}"
-                                              Visibility="{x:Bind IsWaifu2XUsable, Converter={StaticResource BooleanVisibilityConverter}}">
+                                              ToolTipService.ToolTip="{x:Bind conv:SettingsPage.Waifu2XToolTip}"
+                                              Visibility="{x:Bind conv:SettingsPage.IsWaifu2XUsable, Converter={StaticResource BooleanVisibilityConverter}}">
                                     <ToggleSwitch.Header>
                                         <StackPanel Loaded="EnableHeaderMouseEvent"
                                                     Orientation="Horizontal">
@@ -214,7 +214,7 @@
                                                        FontFamily="{ThemeResource FontAwesomeSolid}"
                                                        FontSize="18"
                                                        Opacity="0.25"
-                                                       Text="{x:Bind Waifu2XToolTipIcon}" />
+                                                       Text="{x:Bind conv:SettingsPage.Waifu2XToolTipIcon}" />
                                         </StackPanel>
                                     </ToggleSwitch.Header>
                                 </ToggleSwitch>
@@ -229,13 +229,13 @@
                             <ToggleSwitch Margin="0,4"
                                           Header="{x:Bind helper:Locale.Lang._SettingsPage.VideoBackground_IsEnableAcrylicBackground}"
                                           IsEnabled="{x:Bind AppBackgroundUseAcrylic.IsOn, Mode=OneWay}"
-                                          IsOn="{x:Bind IsUseVideoBGDynamicColorUpdate, Mode=TwoWay}"
+                                          IsOn="{x:Bind conv:SettingsPage.IsUseVideoBgDynamicColorUpdate, Mode=TwoWay}"
                                           OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                           OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}" />
                             <ToggleSwitch x:Name="VideoBackgroundIsAudioMute"
                                           Margin="0,4"
                                           Header="{x:Bind helper:Locale.Lang._SettingsPage.VideoBackground_IsEnableAudio}"
-                                          IsOn="{x:Bind IsVideoBackgroundAudioMute, Mode=TwoWay}"
+                                          IsOn="{x:Bind conv:SettingsPage.IsVideoBackgroundAudioMute, Mode=TwoWay}"
                                           OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                           OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}" />
                             <TextBlock Margin="0,4"
@@ -248,7 +248,7 @@
                                     Maximum="100"
                                     Minimum="0"
                                     Style="{ThemeResource FatSliderStyle}"
-                                    Value="{x:Bind VideoBackgroundAudioVolume, Mode=TwoWay}" />
+                                    Value="{x:Bind conv:SettingsPage.VideoBackgroundAudioVolume, Mode=TwoWay}" />
                         </StackPanel>
                         <TextBlock Margin="0,16,0,8"
                                    Style="{ThemeResource SubtitleTextBlockStyle}"
@@ -326,21 +326,21 @@
                         <ToggleSwitch x:Name="ToggleDiscordRPC"
                                       Margin="0,4"
                                       Header="{x:Bind helper:Locale.Lang._SettingsPage.DiscordRPC_Toggle}"
-                                      IsOn="{x:Bind IsDiscordRPCEnabled, Mode=TwoWay}"
+                                      IsOn="{x:Bind IsDiscordRpcEnabled, Mode=TwoWay}"
                                       OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                       OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}" />
                         <ToggleSwitch x:Name="ToggleDiscordGameStatus"
                                       Margin="0,4"
                                       Header="{x:Bind helper:Locale.Lang._SettingsPage.DiscordRPC_GameStatusToggle}"
                                       IsEnabled="False"
-                                      IsOn="{x:Bind IsDiscordGameStatusEnabled, Mode=TwoWay}"
+                                      IsOn="{x:Bind conv:SettingsPage.IsDiscordGameStatusEnabled, Mode=TwoWay}"
                                       OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                       OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}"
                                       Visibility="Collapsed" />
                         <ToggleSwitch x:Name="ToggleDiscordIdleStatus"
                                       Margin="0,4"
                                       Header="{x:Bind helper:Locale.Lang._SettingsPage.DiscordRPC_IdleStatusToggle}"
-                                      IsOn="{x:Bind IsDiscordIdleStatusEnabled, Mode=TwoWay}"
+                                      IsOn="{x:Bind conv:SettingsPage.IsDiscordIdleStatusEnabled, Mode=TwoWay}"
                                       OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                       OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}"
                                       Visibility="Collapsed" />
@@ -408,7 +408,7 @@
                                     MaxWidth="640"
                                     HorizontalAlignment="Left">
                             <ToggleSwitch x:Name="NetworkSettingsProxyToggle"
-                                          IsOn="{x:Bind IsUseProxy, Mode=TwoWay}"
+                                          IsOn="{x:Bind conv:SettingsPage.IsUseProxy, Mode=TwoWay}"
                                           OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                           OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}" />
                             <TextBox x:Name="ProxyHostnameTextbox"
@@ -441,12 +441,12 @@
                                          IsEnabled="{Binding IsOn, ElementName=NetworkSettingsProxyToggle}"
                                          IsSpellCheckEnabled="False"
                                          PlaceholderText="{x:Bind helper:Locale.Lang._SettingsPage.NetworkSettings_Proxy_UsernamePlaceholder}"
-                                         Text="{x:Bind HttpProxyUsername, Mode=TwoWay}" />
+                                         Text="{x:Bind conv:SettingsPage.HttpProxyUsername, Mode=TwoWay}" />
                                 <PasswordBox Grid.Row="0"
                                              Grid.Column="1"
                                              Header="{x:Bind helper:Locale.Lang._SettingsPage.NetworkSettings_Proxy_Password}"
                                              IsEnabled="{Binding IsOn, ElementName=NetworkSettingsProxyToggle}"
-                                             Password="{x:Bind HttpProxyPassword, Mode=TwoWay}"
+                                             Password="{x:Bind conv:SettingsPage.HttpProxyPassword, Mode=TwoWay}"
                                              PasswordRevealMode="Peek"
                                              PlaceholderText="{x:Bind helper:Locale.Lang._SettingsPage.NetworkSettings_Proxy_PasswordPlaceholder}" />
                                 <Button x:Name="ProxyConnectivityTestButton"
@@ -566,15 +566,15 @@
                                        Style="{ThemeResource SubtitleTextBlockStyle}"
                                        Text="{x:Bind helper:Locale.Lang._SettingsPage.NetworkSettings_Http_Title}" />
                             <ToggleSwitch Header="{x:Bind helper:Locale.Lang._SettingsPage.NetworkSettings_Http_Redirect}"
-                                          IsOn="{x:Bind IsAllowHttpRedirections, Mode=TwoWay}"
+                                          IsOn="{x:Bind conv:SettingsPage.IsAllowHttpRedirections, Mode=TwoWay}"
                                           OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                           OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}" />
                             <ToggleSwitch Header="{x:Bind helper:Locale.Lang._SettingsPage.NetworkSettings_Http_SimulateCookies}"
-                                          IsOn="{x:Bind IsAllowHttpCookies, Mode=TwoWay}"
+                                          IsOn="{x:Bind conv:SettingsPage.IsAllowHttpCookies, Mode=TwoWay}"
                                           OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                           OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}" />
                             <ToggleSwitch Header="{x:Bind helper:Locale.Lang._SettingsPage.NetworkSettings_Http_UntrustedHttps}"
-                                          IsOn="{x:Bind IsAllowUntrustedCert, Mode=TwoWay}"
+                                          IsOn="{x:Bind conv:SettingsPage.IsAllowUntrustedCert, Mode=TwoWay}"
                                           OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                           OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}" />
                             <NumberBox x:Name="HttpClientTimeoutNumberBox"
@@ -730,7 +730,7 @@
                                            SmallChange="0.125"
                                            SpinButtonPlacementMode="Inline"
                                            Text="100"
-                                           Value="{x:Bind DownloadSpeedLimit, Mode=TwoWay}" />
+                                           Value="{x:Bind conv:SettingsPage.DownloadSpeedLimit, Mode=TwoWay}" />
                                 <Grid x:Name="NetworkDownloadSpeedLimitGrid"
                                       Grid.Column="1"
                                       Margin="0,0,0,4"
@@ -784,7 +784,7 @@
                                            SmallChange="0.125"
                                            SpinButtonPlacementMode="Inline"
                                            Text="100"
-                                           Value="{x:Bind DownloadChunkSize, Mode=TwoWay}" />
+                                           Value="{x:Bind conv:SettingsPage.DownloadChunkSize, Mode=TwoWay}" />
                                 <Grid x:Name="NetworkDownloadChunkSizeGrid"
                                       Grid.Column="1"
                                       Margin="0,0,0,4"
@@ -804,7 +804,7 @@
                                 </Grid>
                             </Grid>
                             <ToggleSwitch x:Name="NetworkBurstDownloadModeToggle"
-                                          IsOn="{x:Bind IsBurstDownloadModeEnabled, Mode=TwoWay}"
+                                          IsOn="{x:Bind conv:SettingsPage.IsBurstDownloadModeEnabled, Mode=TwoWay}"
                                           OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                           OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}">
                                 <Grid>
@@ -828,7 +828,7 @@
                             <RadioButtons x:Name="AppCDNSelection"
                                           ItemsSource="{x:Bind innerConfig:LauncherConfig.CDNList}"
                                           MaxColumns="3"
-                                          SelectedIndex="{x:Bind SelectedCDN, Mode=TwoWay}">
+                                          SelectedIndex="{x:Bind conv:SettingsPage.SelectedCDN, Mode=TwoWay}">
                                 <RadioButtons.ItemTemplate>
                                     <DataTemplate x:DataType="innerConfig:CDNURLProperty">
                                         <RadioButton Margin="0,0,12,0"
@@ -966,7 +966,7 @@
                                        Maximum="16"
                                        Minimum="2"
                                        SpinButtonPlacementMode="Inline"
-                                       Value="{x:Bind CurrentAppThreadDownloadValue, Mode=TwoWay}" />
+                                       Value="{x:Bind conv:SettingsPage.CurrentAppThreadDownloadValue, Mode=TwoWay}" />
                             <NumberBox x:Name="ExtractionThreadsNumBox"
                                        Width="160"
                                        Margin="16,0,0,0"
@@ -975,11 +975,11 @@
                                        Maximum="128"
                                        Minimum="0"
                                        SpinButtonPlacementMode="Inline"
-                                       Value="{x:Bind CurrentAppThreadExtractValue, Mode=TwoWay}" />
+                                       Value="{x:Bind conv:SettingsPage.CurrentAppThreadExtractValue, Mode=TwoWay}" />
                         </StackPanel>
                         <ToggleSwitch x:Name="OldDownloadChunksMergingToggle"
                                       Header="{x:Bind helper:Locale.Lang._SettingsPage.EnableDownloadChunksMerging}"
-                                      IsOn="{x:Bind IsUseDownloadChunksMerging, Mode=TwoWay}"
+                                      IsOn="{x:Bind conv:SettingsPage.IsUseDownloadChunksMerging, Mode=TwoWay}"
                                       OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                       OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}" />
                         <StackPanel Margin="0,16,0,8"
@@ -1057,7 +1057,7 @@
                             </Button>
                         </StackPanel>
                         <ToggleSwitch Header="{x:Bind helper:Locale.Lang._SettingsPage.SophonToggle}"
-                                      IsOn="{x:Bind IsEnableSophon, Mode=TwoWay}"
+                                      IsOn="{x:Bind conv:SettingsPage.IsEnableSophon, Mode=TwoWay}"
                                       OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                       OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}" />
                         <StackPanel Margin="0,0,0,8"
@@ -1070,7 +1070,7 @@
                                        Maximum="64"
                                        Minimum="0"
                                        SpinButtonPlacementMode="Inline"
-                                       Value="{x:Bind SophonDownThread, Mode=TwoWay}" />
+                                       Value="{x:Bind conv:SettingsPage.SophonDownThread, Mode=TwoWay}" />
                             <NumberBox x:Name="SophonHttpConnNumBox"
                                        Width="128"
                                        Margin="16,0,0,0"
@@ -1079,11 +1079,11 @@
                                        Maximum="128"
                                        Minimum="0"
                                        SpinButtonPlacementMode="Inline"
-                                       Value="{x:Bind SophonHttpConn, Mode=TwoWay}" />
+                                       Value="{x:Bind conv:SettingsPage.SophonHttpConn, Mode=TwoWay}" />
                         </StackPanel>
                         <ToggleSwitch Margin="0,4"
                                       Header="{x:Bind helper:Locale.Lang._SettingsPage.SophonPredownPerfMode_Toggle}"
-                                      IsOn="{x:Bind IsSophonPreloadPerfMode, Mode=TwoWay}"
+                                      IsOn="{x:Bind conv:SettingsPage.IsSophonPreloadPerfMode, Mode=TwoWay}"
                                       OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                       OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}"
                                       ToolTipService.ToolTip="{x:Bind helper:Locale.Lang._SettingsPage.SophonPredownPerfMode_Tooltip}" />
@@ -1345,13 +1345,13 @@
                         <ToggleSwitch x:Name="ToggleIncludeGameLogs"
                                       Margin="0,4"
                                       Header="{x:Bind helper:Locale.Lang._SettingsPage.Debug_IncludeGameLogs}"
-                                      IsOn="{x:Bind IsIncludeGameLogs, Mode=TwoWay}"
+                                      IsOn="{x:Bind conv:SettingsPage.IsIncludeGameLogs, Mode=TwoWay}"
                                       OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                       OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}"
                                       Visibility="Collapsed" />
                         <ToggleSwitch Margin="0,4"
                                       Header="{x:Bind helper:Locale.Lang._SettingsPage.Debug_MultipleInstance}"
-                                      IsOn="{x:Bind IsMultipleInstanceEnabled, Mode=TwoWay}"
+                                      IsOn="{x:Bind conv:SettingsPage.IsMultipleInstanceEnabled, Mode=TwoWay}"
                                       OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                       OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}" />
                         <Grid>
@@ -1359,7 +1359,7 @@
                                     ToolTipService.ToolTip="{x:Bind helper:Locale.Lang._SettingsPage.LowerCollapsePrioOnGameLaunch_Tooltip}" />
                             <ToggleSwitch Margin="0,4"
                                           Header="{x:Bind helper:Locale.Lang._SettingsPage.LowerCollapsePrioOnGameLaunch}"
-                                          IsOn="{x:Bind IsLowerCollapsePriorityOnGameLaunch, Mode=TwoWay}"
+                                          IsOn="{x:Bind conv:SettingsPage.IsLowerCollapsePriorityOnGameLaunch, Mode=TwoWay}"
                                           OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                           OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}"
                                           ToolTipService.ToolTip="" />
@@ -1393,12 +1393,12 @@
                         </StackPanel>
                         <ToggleSwitch Margin="0,4"
                                       Header="{x:Bind helper:Locale.Lang._SettingsPage.UseExternalBrowser}"
-                                      IsOn="{x:Bind IsAlwaysUseExternalBrowser, Mode=TwoWay}"
+                                      IsOn="{x:Bind conv:SettingsPage.IsAlwaysUseExternalBrowser, Mode=TwoWay}"
                                       OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                       OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}" />
                         <ToggleSwitch Margin="0,4"
                                       Header="{x:Bind helper:Locale.Lang._SettingsPage.Enforce7ZipExtract}"
-                                      IsOn="{x:Bind IsEnforceToUse7zipOnExtract, Mode=TwoWay}"
+                                      IsOn="{x:Bind conv:SettingsPage.IsEnforceToUse7ZipOnExtract, Mode=TwoWay}"
                                       OffContent="{x:Bind helper:Locale.Lang._Misc.Disabled}"
                                       OnContent="{x:Bind helper:Locale.Lang._Misc.Enabled}" />
                     </StackPanel>
